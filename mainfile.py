@@ -11,8 +11,7 @@ import os
 from docx import Document
 
 # Use Streamlit's secret management to securely load your API key
-openai.api_key = st.secrets["openai"]["api_key"]
-
+openai.api_key = st.secrets["openai_api_key"]
 
 # Function to sanitize text by replacing unsupported characters
 def sanitize_text(text):
@@ -93,8 +92,9 @@ def generate_pdf(student_details, summary_report, file_name):
 # Function to send an email with PDF attachment
 def send_email_with_pdf(to_email, subject, body, file_name):
    
-    from_email = st.secrets["email"]["address"]  # Access the email from the secrets file
-    password = st.secrets["email"]["password"]  # Access the app-specific password from secrets
+    from_email = st.secrets["email"]
+    password = st.secrets["password"]
+
 
 
     # Create the email message
