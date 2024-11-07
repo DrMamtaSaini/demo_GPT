@@ -33,56 +33,24 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Function to generate a PDF report with better formatting and borders
-def generate_pdf(student_details, summary_report, file_name):
+# Function to generate a PDF file for the lesson plan
+def generate_pdf_lesson_plan(lesson_plan, file_name):
     pdf = FPDF()
     pdf.add_page()
 
     # Set font and add a title with borders
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Assessment Report", ln=True, align='C', border=1)
+    pdf.cell(0, 10, "Lesson Plan", ln=True, align='C', border=1)
 
     # Leave a space after the title
     pdf.ln(10)
 
-    # Section 1: Student Details with border
+    # Set font for the lesson plan content
     pdf.set_font("Arial", size=12)
-    for line in student_details:
+    for line in lesson_plan.split('\n'):
         wrapped_lines = wrap_text(line, pdf)
         for wrapped_line in wrapped_lines:
-            pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=1)
-
-    # Add some space before the summary section
-    pdf.ln(10)
-
-    # Section 2: Summary Report with border
-    pdf.set_font("Arial", size=12, style='B')
-    pdf.cell(0, 10, "Summary", ln=True, align='L', border=1)
-    pdf.ln(5)
-
-    if summary_report:
-        pdf.set_font("Arial", size=12)
-        for line in summary_report:
-            if ":" in line:
-                # Make the field name bold and place it on a new line
-                field, value = line.split(":", 1)
-                wrapped_lines_field = wrap_text(f"{field}:", pdf)
-                for wrapped_field in wrapped_lines_field:
-                    pdf.set_font("Arial", size=12, style='B')
-                    pdf.cell(0, 10, txt=sanitize_text(wrapped_field), ln=True, border=1)
-                
-                wrapped_lines_value = wrap_text(value.strip(), pdf)
-                for wrapped_value in wrapped_lines_value:
-                    pdf.set_font("Arial", size=12)
-                    pdf.cell(0, 10, txt=sanitize_text(wrapped_value), ln=True, border=1)
-            else:
-                # If no colon, treat as normal text
-                wrapped_lines = wrap_text(line, pdf)
-                for wrapped_line in wrapped_lines:
-                    pdf.set_font("Arial", size=12)
-                    pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=1)
-    else:
-        pdf.cell(200, 10, txt="No Summary Found", ln=True, border=1)
+            pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
 
     # Save the PDF
     pdf.output(file_name)
@@ -138,6 +106,31 @@ def generate_content(board, standard, topics, content_type, total_marks, time_du
     )
     return response['choices'][0]['message']['content']
 
+# Function to generate a lesson plan
+def generate_lesson_plan(subject, grade, board, duration, topic):
+    prompt = f"""
+    Create a comprehensive lesson plan for teaching {subject} to {grade} under the {board} board. 
+    The lesson duration is {duration}, and the topic of the lesson is {topic}. The lesson plan should include:
+
+    - Lesson Title and Duration
+    - Learning Objectives
+    - Materials and Resources Needed
+    - Detailed Lesson Flow:
+        - Introduction (5-10 minutes)
+        - Core Teaching Segment with explanations and examples
+        - Interactive Activities for engagement
+        - Assessment and Recap to measure understanding
+        - Homework/Assignments for reinforcement
+    - Date and Schedule field
+    Ensure flexibility to adapt to different student needs, learning speeds, and teaching styles.
+    """
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
     doc = Document()
@@ -157,8 +150,8 @@ def read_docx(file):
 def main():
     st.title("Educational Content Creator & Assessment Assistant")
 
-    # Choose between content creation or student assessment assistant
-    task = st.sidebar.selectbox("Choose a task", ["Create Educational Content", "Student Assessment Assistant"])
+    # Choose between content creation, lesson plan creation, or student assessment assistant
+    task = st.sidebar.selectbox("Choose a task", ["Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
 
     # Section 1: Educational Content Creation
     if task == "Create Educational Content":
@@ -195,7 +188,38 @@ def main():
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
-    # Section 2: Student Assessment Assistant
+    # Section 2: Lesson Plan Creation
+    elif task == "Create Lesson Plan":
+        st.header("Lesson Plan Creation")
+
+        # Collect lesson plan details
+        subject = st.text_input("Enter Subject:")
+        grade = st.text_input("Enter Class/Grade:")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+        topic = st.text_input("Enter Lesson Topic:")
+
+        if st.button("Generate Lesson Plan"):
+            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
+            
+            # Save lesson plan as a Word document
+            docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
+            save_content_as_doc(lesson_plan, docx_file_name)
+            
+            # Save lesson plan as a PDF
+            pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
+            generate_pdf_lesson_plan(lesson_plan, pdf_file_name)
+            
+            # Download buttons for the lesson plan documents
+            with open(docx_file_name, "rb") as docx_file:
+                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
+                
+            with open(pdf_file_name, "rb") as pdf_file:
+                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
+
+    # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
