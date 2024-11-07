@@ -148,13 +148,31 @@ def read_docx(file):
 
 # Main function
 def main():
-    st.sidebar.title("EduCreate Pro")
+    # Apply custom CSS for an attractive UI
+    st.markdown("""
+    <style>
+        body { background-color: #F0F2F6; }
+        .stApp { color: #4B0082; }
+        .sidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
+        h1, h2, h3, h4 { color: #4B0082; }
+        .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; width: 100%; padding: 10px; font-size: 16px; }
+        .stButton>button:hover { background-color: #483D8B; color: white; }
+        .stFileUploader { color: #4B0082; }
+        .stMarkdown { color: #4B0082; }
+        .stAlert, .stSuccess { color: #228B22; background-color: #E0FFE0; border-radius: 8px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # Choose between content creation, lesson plan creation, or student assessment assistant
-    task = st.sidebar.selectbox("Choose a task", ["Home","Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
+    st.sidebar.title("EduCreate Pro")
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
+
     if task == "Home":
-        st.title("EduCreate Pro")
-        st.write("Your all-in-one platform for creating educational content, lesson plans, and student assessments.")
+        st.title("Welcome to EduCreate Pro")
+        st.markdown("""
+            <div style='text-align: center; font-size: 18px; color: #4B0082;'>
+                Your all-in-one platform for creating educational content, lesson plans, and student assessments.
+            </div>
+        """, unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)
         with col1:
             st.subheader("Content Creator")
@@ -165,7 +183,13 @@ def main():
         with col3:
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
-        st.button("Get Started Today")
+        st.markdown("""
+            <div style='text-align: center; margin-top: 30px;'>
+                <button style="padding: 15px; font-size: 16px; background-color: #6A5ACD; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Get Started Today
+                </button>
+            </div>
+        """, unsafe_allow_html=True)
 
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
