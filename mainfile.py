@@ -97,15 +97,29 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Generalized function to generate a PDF file for lesson plans or assessment reports
-def generate_pdf(content, title, file_name):
+# Function to generate a PDF file for assessment reports with custom layout
+def generate_assessment_pdf(school_name, student_name, student_id, assessment_id, report_content, file_name):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, title, ln=True, align='C', border=1)
+    
+    # School name at the top
+    pdf.cell(0, 10, school_name, ln=True, align='C', border=0)
+    pdf.ln(5)
+    
+    # Assessment report title with student name
+    pdf.cell(0, 10, f"Assessment Report - {student_name}", ln=True, align='C', border=0)
     pdf.ln(10)
+    
+    # Student ID and Assessment ID
     pdf.set_font("Arial", size=12)
-    for line in content.split('\n'):
+    pdf.cell(0, 10, f"Student ID: {student_id}", ln=True, border=0)
+    pdf.cell(0, 10, f"Assessment ID: {assessment_id}", ln=True, border=0)
+    pdf.ln(10)
+    
+    # Report content
+    pdf.set_font("Arial", size=12)
+    for line in report_content.split('\n'):
         wrapped_lines = wrap_text(line, pdf)
         for wrapped_line in wrapped_lines:
             pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
@@ -201,14 +215,11 @@ def read_docx(file):
 def main():
     st.markdown("<h1 style='text-align: center;'>Educational Content Creator & Assessment Assistant</h1>", unsafe_allow_html=True)
 
-    # Choose between content creation, lesson plan creation, or student assessment assistant
     task = st.sidebar.selectbox("Choose a task", ["Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
 
     # Section 1: Educational Content Creation
     if task == "Create Educational Content":
         st.markdown("<h2>Educational Content Creation</h2>", unsafe_allow_html=True)
-        
-        # Collect basic information
         school_name = st.text_input("Enter School Name:")
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
         standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
@@ -235,8 +246,6 @@ def main():
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.markdown("<h2>Lesson Plan Creation</h2>", unsafe_allow_html=True)
-
-        # Collect lesson plan details
         school_name = st.text_input("Enter School Name:")
         subject = st.text_input("Enter Subject:")
         grade = st.text_input("Enter Class/Grade:")
@@ -253,7 +262,7 @@ def main():
             save_content_as_doc(lesson_plan, docx_file_name)
             
             pdf_file_name = f"{school_name}_Lesson_Plan_{subject}_{grade}.pdf"
-            generate_pdf(lesson_plan, f"Lesson Plan - {school_name}", pdf_file_name)
+            generate_assessment_pdf(school_name, f"Lesson Plan - {subject}", docx_file_name)
             
             with open(docx_file_name, "rb") as docx_file:
                 st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
@@ -264,8 +273,6 @@ def main():
     # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.markdown("<h2>Student Assessment Assistant</h2>", unsafe_allow_html=True)
-
-        # Collect student information
         school_name = st.text_input("Enter School Name:")
         student_name = st.text_input("Enter Student Name:")
         student_id = st.text_input("Enter Student ID:")
@@ -320,14 +327,14 @@ def main():
                     model="gpt-3.5-turbo",
                     messages=[{"role": "system", "content": prompt}]
                 )
-                report = response['choices'][0]['message']['content']
+                report_content = response['choices'][0]['message']['content']
 
                 file_name = f"{school_name}_assessment_report_{student_id}.pdf"
-                generate_pdf(report, f"Assessment Report - {school_name}", file_name)
+                generate_assessment_pdf(school_name, student_name, student_id, assessment_id, report_content, file_name)
                 
                 st.success(f"PDF report generated: {file_name}")
                 st.write(f"### Assessment Report for {school_name}")
-                st.write(report)
+                st.write(report_content)
                 
                 with open(file_name, "rb") as file:
                     st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
