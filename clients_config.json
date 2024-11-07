@@ -1,0 +1,12 @@
+{
+    "client_1": {
+        "name": "Client One Academy",
+        "logo": "https://path-to-client1-logo.png",
+        "theme_color": "#003366"
+    },
+    "client_2": {
+        "name": "Client Two Institute",
+        "logo": "https://path-to-client2-logo.png",
+        "theme_color": "#990000"
+    }
+}
