@@ -146,20 +146,6 @@ def read_docx(file):
         full_text.append(para.text)
     return '\n'.join(full_text)
 
-# Modified function to display assessment data in a table format with multiple questions
-def display_assessment_table(assessment_data):
-    # Convert the data into a DataFrame
-    df = pd.DataFrame(assessment_data)
-    st.write("### Detailed Question-by-Question Analysis")
-    st.table(df)
-
-    # Final Summary
-    st.write("### Final Summary")
-    st.write("Total Score: 12 out of 16")
-    st.write("Final Grade: B")
-    st.write("Overall Accuracy: 77%")
-    st.write("Concept Clarity: Moderate. The student demonstrates understanding of basic definitions but should aim to provide more detailed answers on structural differences and functional group impacts.")
-
 # Main function
 def main():
     st.title("Educational Content Creator & Assessment Assistant")
@@ -298,27 +284,6 @@ def main():
                 )
                 report = response['choices'][0]['message']['content']
 
-                # Convert report content to structured data for table display
-                assessment_data = [
-                    # Sample assessment data (replace this with extracted data from `report`)
-                    {
-                        "Topic": "Organic Chemistry",
-                        "Subtopic": "Catenation",
-                        "Question Number": 1,
-                        "Question": "Explain the concept of catenation in carbon and give one example to illustrate it.",
-                        "Child's Score": "2/3",
-                        "Accuracy": "67%",
-                        "Concept Cleared": "Partial",
-                        "Scope of Improvement": "Needs elaboration on how catenation enables chain formation in carbon compounds.",
-                        "Suggestion": "Review the concept of catenation, focusing on examples beyond basic structures.",
-                        "Right Answer": "Catenation is the ability of carbon atoms to bond with each other to form long chains. Example: alkanes."
-                    },
-                    # Add more entries for other questions here
-                ]
-
-                # Display Assessment Data in Table
-                display_assessment_table(assessment_data)
-
                 # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
                 generate_pdf(report, "Assessment Report", file_name)
@@ -327,6 +292,7 @@ def main():
 
                 # Display and download report
                 st.write("### Assessment Report")
+                st.write(report)
                 with open(file_name, "rb") as file:
                     st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
