@@ -148,27 +148,13 @@ def read_docx(file):
 
 # Main function
 def main():
-    st.sidebar.title("EduCreate Pro")
+    st.title("Educational Content Creator & Assessment Assistant")
 
-    task = st.sidebar.radio("Select Module", ["Home", "Content Creator", "Lesson Planner", "Assessment"])
-
-    if task == "Home":
-        st.title("Welcome to EduCreate Pro")
-        st.write("Your all-in-one platform for creating educational content, lesson plans, and student assessments.")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.subheader("Content Creator")
-            st.write("Generate quizzes, sample papers, and assignments.")
-        with col2:
-            st.subheader("Lesson Planner")
-            st.write("Create detailed lesson plans with learning objectives and materials.")
-        with col3:
-            st.subheader("Assessment Assistant")
-            st.write("Generate comprehensive student assessments and progress reports.")
-        st.button("Get Started Today")
+    # Choose between content creation, lesson plan creation, or student assessment assistant
+    task = st.sidebar.selectbox("Choose a task", ["Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
 
     # Section 1: Educational Content Creation
-    elif task == "Create Educational Content":
+    if task == "Create Educational Content":
         st.header("Educational Content Creation")
         
         # Collect basic information
