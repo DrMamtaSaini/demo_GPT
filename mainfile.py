@@ -205,7 +205,7 @@ def main():
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
 
     if task == "Home":
-        st.title("Welcome to EduCreate Pro")
+        st.title("EduCreate Pro")
         st.markdown("""
             <div style='text-align: center; font-size: 18px; color: #4B0082;'>
                 Your all-in-one platform for creating educational content, lesson plans, and student assessments.
