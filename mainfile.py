@@ -12,6 +12,18 @@ from docx import Document
 import streamlit as st
 import json
 
+
+import os
+st.write("Current directory:", os.getcwd())
+st.write("Files in the current directory:", os.listdir())
+
+import json
+
+with open("clients_config.json") as config_file:
+    clients_config = json.load(config_file)
+
+
+
 # Load client configuration
 with open("clients_config.json") as config_file:
     clients_config = json.load(config_file)
