@@ -9,20 +9,11 @@ from email import encoders
 from email.mime.text import MIMEText
 import os
 from docx import Document
+
+
+
 import streamlit as st
 import json
-
-
-import os
-st.write("Current directory:", os.getcwd())
-st.write("Files in the current directory:", os.listdir())
-
-import json
-
-with open("clients_config.json") as config_file:
-    clients_config = json.load(config_file)
-
-
 
 # Load client configuration
 with open("clients_config.json") as config_file:
@@ -35,9 +26,22 @@ def get_client_config(client_id):
 # Assuming you know the client ID somehow (e.g., from a login system)
 client_id = "client_1"  # Replace this with a dynamic value based on each client
 client_config = get_client_config(client_id)
+
 # Display the logo and name
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
+
+
+st.markdown(
+    f"""
+    <style>
+    .main {{
+        background-color: {client_config["theme_color"]};
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # Use Streamlit's secret management to securely load your API key
