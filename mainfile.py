@@ -17,8 +17,6 @@ openai.api_key = st.secrets["openai_api_key"]
 def sanitize_text(text):
     return text.encode('latin-1', 'replace').decode('latin-1')
 
-from fpdf import FPDF
-
 # Function to wrap text within a cell and add borders
 def wrap_text(text, pdf, max_line_length=90):
     words = text.split(' ')
@@ -91,11 +89,8 @@ def generate_pdf(student_details, summary_report, file_name):
 
 # Function to send an email with PDF attachment
 def send_email_with_pdf(to_email, subject, body, file_name):
-   
     from_email = st.secrets["email"]
     password = st.secrets["password"]
-
-
 
     # Create the email message
     msg = MIMEMultipart()
@@ -149,6 +144,14 @@ def save_content_as_doc(content, file_name):
     for line in content.split('\n'):
         doc.add_paragraph(line)
     doc.save(file_name)
+
+# Function to read content from a DOCX file
+def read_docx(file):
+    doc = Document(file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
 
 # Main function
 def main():
@@ -204,17 +207,17 @@ def main():
         email_id = st.text_input("Enter Parent's Email ID:")
 
         # Upload Question Paper, Marking Scheme, and Answer Sheet
-        question_paper = st.file_uploader("Upload Question Paper (CSV)", type=["csv"])
-        marking_scheme = st.file_uploader("Upload Marking Scheme (CSV)", type=["csv"])
-        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (CSV)", type=["csv"])
+        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
+        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
+        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
         # Generate Assessment Report and Email PDF
         if st.button("Generate and Send PDF Report"):
             if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
-                # Load the CSV files
-                question_paper_df = pd.read_csv(question_paper)
-                marking_scheme_df = pd.read_csv(marking_scheme)
-                answer_sheet_df = pd.read_csv(answer_sheet)
+                # Load the DOCX files
+                question_paper_content = read_docx(question_paper)
+                marking_scheme_content = read_docx(marking_scheme)
+                answer_sheet_content = read_docx(answer_sheet)
 
                 # Enhanced GPT-4 prompt with explicit structure for the report
                 prompt = f"""
@@ -225,9 +228,14 @@ def main():
                 Class: {class_name}
                 Assessment ID: {assessment_id}
 
-                Here is the question paper: {question_paper_df.to_string(index=False)}
-                Here is the marking scheme: {marking_scheme_df.to_string(index=False)}
-                Here is the student's answer sheet: {answer_sheet_df.to_string(index=False)}
+                Here is the question paper:
+                {question_paper_content}
+
+                Here is the marking scheme:
+                {marking_scheme_content}
+
+                Here is the student's answer sheet:
+                {answer_sheet_content}
 
                 The report should include two sections clearly labeled:
                 1. Question Details (include the following columns for each question):
@@ -290,7 +298,8 @@ def main():
                 st.write(report)
 
                 # Download the report
-                st.download_button(label="Download Report as PDF", data=open(file_name, 'rb').read(), file_name=file_name)
+                with open(file_name, "rb") as file:
+                    st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
                 # Send the report via email
                 subject = f"Assessment Report for Student {student_name}"
