@@ -222,7 +222,7 @@ if not st.session_state.logged_in:
 else:
     # Main app function
 
-    # Main function
+# Main function
     def main():
     # Apply custom CSS for an attractive UI
         st.markdown("""
