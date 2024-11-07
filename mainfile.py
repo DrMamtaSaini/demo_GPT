@@ -228,15 +228,21 @@ def main():
                 question_table = []  # Table rows as lists
                 summary_report = []
 
-                # Assuming the format is followed for splitting sections
-                question_section = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
-                summary_section = report.split("Summary Report:")[1].strip()
+                # Check if "Question Analysis:" and "Summary Report:" exist in the response
+                if "Question Analysis:" in report and "Summary Report:" in report:
+                    question_section = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
+                    summary_section = report.split("Summary Report:")[1].strip()
 
-                for line in question_section.split('\n'):
-                    row = line.split('|')
-                    question_table.append(row)
+                    # Parse the question analysis into a table format
+                    for line in question_section.split('\n'):
+                        row = line.split('|')
+                        question_table.append(row)
 
-                summary_report = summary_section.split('\n')
+                    # Parse the summary section
+                    summary_report = summary_section.split('\n')
+                else:
+                    st.warning("One or more sections (Question Analysis or Summary Report) were not found in the report.")
+                    summary_report = ["No Summary Found"]
 
                 # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
