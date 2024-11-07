@@ -21,7 +21,14 @@ with open("clients_config.json") as config_file:
 
 # Function to get the client-specific configuration
 def get_client_config(client_id):
-    return clients_config.get(client_id, clients_config["default"])
+    # Fallback to a default configuration if client_id is not found
+    default_config = {
+        "name": "Default Academy",
+        "logo": "https://path-to-default-logo.png",
+        "theme_color": "#000000"
+    }
+    return clients_config.get(client_id, default_config)
+
 
 # Assuming you know the client ID somehow (e.g., from a login system)
 client_id = "client_1"  # Replace this with a dynamic value based on each client
