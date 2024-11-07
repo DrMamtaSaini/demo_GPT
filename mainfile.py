@@ -9,6 +9,24 @@ from email import encoders
 from email.mime.text import MIMEText
 import os
 from docx import Document
+import streamlit as st
+import json
+
+# Load client configuration
+with open("clients_config.json") as config_file:
+    clients_config = json.load(config_file)
+
+# Function to get the client-specific configuration
+def get_client_config(client_id):
+    return clients_config.get(client_id, clients_config["default"])
+
+# Assuming you know the client ID somehow (e.g., from a login system)
+client_id = "client_1"  # Replace this with a dynamic value based on each client
+client_config = get_client_config(client_id)
+# Display the logo and name
+st.image(client_config["logo"], width=200)
+st.title(f"Welcome to {client_config['name']}!")
+
 
 # Use Streamlit's secret management to securely load your API key
 openai.api_key = st.secrets["openai_api_key"]
