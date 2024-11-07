@@ -34,46 +34,55 @@ def wrap_text(text, pdf, max_line_length=90):
     return wrapped_lines
 
 # Function to generate a PDF report with better formatting and borders
-def generate_pdf(student_details, question_table, summary_report, file_name):
+def generate_pdf(student_details, summary_report, file_name):
     pdf = FPDF()
     pdf.add_page()
 
-    # Title
+    # Set font and add a title with borders
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Assessment Report", ln=True, align='C', border=1)
+
+    # Leave a space after the title
     pdf.ln(10)
 
-    # Student Details
+    # Section 1: Student Details with border
     pdf.set_font("Arial", size=12)
     for line in student_details:
         wrapped_lines = wrap_text(line, pdf)
         for wrapped_line in wrapped_lines:
             pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=1)
+
+    # Add some space before the summary section
     pdf.ln(10)
 
-    # Question Analysis in Tabular Form
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Question Analysis", ln=True, border=1)
-    pdf.set_font("Arial", size=10)
-    col_widths = [30, 30, 30, 20, 20, 50]  # Customize column widths
-
-    # Table headers
-    headers = ["Topic", "Subtopic", "Question Number", "Score", "Concept Cleared", "Suggestions"]
-    for idx, header in enumerate(headers):
-        pdf.cell(col_widths[idx], 10, header, border=1, ln=0 if idx < len(headers) - 1 else 1)
-    
-    # Table rows
-    for row in question_table:
-        for idx, cell in enumerate(row):
-            pdf.cell(col_widths[idx], 10, sanitize_text(str(cell)), border=1, ln=0 if idx < len(row) - 1 else 1)
-    pdf.ln(10)
-
-    # Summary Report
-    pdf.set_font("Arial", "B", 12)
+    # Section 2: Summary Report with border
+    pdf.set_font("Arial", size=12, style='B')
     pdf.cell(0, 10, "Summary", ln=True, align='L', border=1)
-    pdf.set_font("Arial", size=12)
-    for line in summary_report:
-        pdf.cell(0, 10, txt=sanitize_text(line), ln=True, border=1)
+    pdf.ln(5)
+
+    if summary_report:
+        pdf.set_font("Arial", size=12)
+        for line in summary_report:
+            if ":" in line:
+                # Make the field name bold and place it on a new line
+                field, value = line.split(":", 1)
+                wrapped_lines_field = wrap_text(f"{field}:", pdf)
+                for wrapped_field in wrapped_lines_field:
+                    pdf.set_font("Arial", size=12, style='B')
+                    pdf.cell(0, 10, txt=sanitize_text(wrapped_field), ln=True, border=1)
+                
+                wrapped_lines_value = wrap_text(value.strip(), pdf)
+                for wrapped_value in wrapped_lines_value:
+                    pdf.set_font("Arial", size=12)
+                    pdf.cell(0, 10, txt=sanitize_text(wrapped_value), ln=True, border=1)
+            else:
+                # If no colon, treat as normal text
+                wrapped_lines = wrap_text(line, pdf)
+                for wrapped_line in wrapped_lines:
+                    pdf.set_font("Arial", size=12)
+                    pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=1)
+    else:
+        pdf.cell(200, 10, txt="No Summary Found", ln=True, border=1)
 
     # Save the PDF
     pdf.output(file_name)
@@ -83,12 +92,16 @@ def send_email_with_pdf(to_email, subject, body, file_name):
     from_email = st.secrets["email"]
     password = st.secrets["password"]
 
+    # Create the email message
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
     msg['Subject'] = subject
+
+    # Attach the email body
     msg.attach(MIMEText(body, 'plain'))
 
+    # Attach the PDF file
     with open(file_name, "rb") as attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
@@ -96,6 +109,7 @@ def send_email_with_pdf(to_email, subject, body, file_name):
         part.add_header('Content-Disposition', f'attachment; filename= {file_name}')
         msg.attach(part)
 
+    # Send the email via Gmail's SMTP server
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login(from_email, password)
@@ -104,13 +118,25 @@ def send_email_with_pdf(to_email, subject, body, file_name):
 
     st.success(f"Email sent to {to_email} with the attached PDF report!")
 
-# Function to read content from a DOCX file
-def read_docx(file):
-    doc = Document(file)
-    full_text = []
-    for para in doc.paragraphs:
-        full_text.append(para.text)
-    return '\n'.join(full_text)
+# Function to generate content for educational purposes
+def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
+    prompt = f"""
+    You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
+    Based on the topics: {topics}. The {content_type} should be of {total_marks} marks and a time duration of {time_duration}. 
+    The question types should include {', '.join(question_types)}, with a difficulty level of {difficulty}.
+    The category of questions should be {category}.
+    """
+    
+    if include_solutions:
+        prompt += " Include the solution set."
+    else:
+        prompt += " Only include the question set without solutions."
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
 
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
@@ -118,6 +144,14 @@ def save_content_as_doc(content, file_name):
     for line in content.split('\n'):
         doc.add_paragraph(line)
     doc.save(file_name)
+
+# Function to read content from a DOCX file
+def read_docx(file):
+    doc = Document(file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
 
 # Main function
 def main():
@@ -149,22 +183,15 @@ def main():
         include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
 
         if st.button("Generate Educational Content"):
-            content_prompt = f"Create {content_type} for the {board} board, {standard} class on {topics}. Include questions of {difficulty} difficulty in {category}. Total Marks: {total_marks}. Duration: {time_duration}."
-            if include_solutions == "Yes":
-                content_prompt += " Include solutions."
-            
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": content_prompt}]
-            )
-            content = response['choices'][0]['message']['content']
+            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
             st.write("### Generated Educational Content")
             st.write(content)
-
+            
             # Save as Word document
             file_name = f"{content_type}_{standard}.docx"
             save_content_as_doc(content, file_name)
-
+            
+            # Download button for the document file
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
@@ -194,7 +221,7 @@ def main():
 
                 # Enhanced GPT-4 prompt with explicit structure for the report
                 prompt = f"""
-                Analyze the student's answer sheet using the question paper and marking scheme.
+                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
                 Student Name: {student_name}
                 Student ID: {student_id}
@@ -210,46 +237,28 @@ def main():
                 Student's Answer Sheet:
                 {answer_sheet_content}
 
-                Provide:
-                1. Question Analysis in table format with columns:
+                Please provide the following in the assessment report:
+                1. Question Analysis - Each question should include:
                     - Topic
                     - Subtopic
                     - Question Number
-                    - Score
-                    - Concept Cleared (Yes/No)
-                    - Suggestions
-                2. Summary with:
+                    - Score for the answer based on accuracy and relevance
+                    - Concept Clarity (Yes/No)
+                    - Feedback and Suggestions
+
+                2. Summary Report - Include:
                     - Final Score
                     - Grade
                     - Areas of Strength
                     - Areas for Improvement
+                    - Final Remarks
                 """
-
+                
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "system", "content": prompt}]
                 )
                 report = response['choices'][0]['message']['content']
-
-                # Parsing and preparing data for the table and summary
-                question_table = []  # Table rows as lists
-                summary_report = []
-
-                # Check if "Question Analysis:" and "Summary Report:" exist in the response
-                if "Question Analysis:" in report and "Summary Report:" in report:
-                    question_section = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
-                    summary_section = report.split("Summary Report:")[1].strip()
-
-                    # Parse the question analysis into a table format
-                    for line in question_section.split('\n'):
-                        row = line.split('|')
-                        question_table.append(row)
-
-                    # Parse the summary section
-                    summary_report = summary_section.split('\n')
-                else:
-                    st.warning("One or more sections (Question Analysis or Summary Report) were not found in the report.")
-                    summary_report = ["No Summary Found"]
 
                 # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
@@ -260,14 +269,23 @@ def main():
                     f"Assessment ID: {assessment_id}"
                 ]
                 
-                generate_pdf(student_details, question_table, summary_report, file_name)
+                # Split report into question analysis and summary
+                if "Question Analysis" in report and "Summary Report" in report:
+                    question_analysis = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
+                    summary_report = report.split("Summary Report:")[1].strip()
+                else:
+                    summary_report = ["No Summary Found"]
+                
+                generate_pdf(student_details, summary_report.split('\n'), file_name)
                 st.success(f"PDF report generated: {file_name}")
 
+                # Display and download report
                 st.write("### Assessment Report")
                 st.write(report)
                 with open(file_name, "rb") as file:
                     st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
+                # Send report via email
                 subject = f"Assessment Report for Student {student_name}"
                 body = "Please find attached the student's assessment report."
                 send_email_with_pdf(email_id, subject, body, file_name)
