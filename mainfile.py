@@ -33,21 +33,21 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Function to generate a PDF file for the lesson plan
-def generate_pdf_lesson_plan(lesson_plan, file_name):
+# Generalized function to generate a PDF file for lesson plans or assessment reports
+def generate_pdf(content, title, file_name):
     pdf = FPDF()
     pdf.add_page()
 
     # Set font and add a title with borders
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Lesson Plan", ln=True, align='C', border=1)
+    pdf.cell(0, 10, title, ln=True, align='C', border=1)
 
     # Leave a space after the title
     pdf.ln(10)
 
-    # Set font for the lesson plan content
+    # Set font for the content
     pdf.set_font("Arial", size=12)
-    for line in lesson_plan.split('\n'):
+    for line in content.split('\n'):
         wrapped_lines = wrap_text(line, pdf)
         for wrapped_line in wrapped_lines:
             pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
@@ -210,7 +210,7 @@ def main():
             
             # Save lesson plan as a PDF
             pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
-            generate_pdf_lesson_plan(lesson_plan, pdf_file_name)
+            generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
             
             # Download buttons for the lesson plan documents
             with open(docx_file_name, "rb") as docx_file:
@@ -286,21 +286,8 @@ def main():
 
                 # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
-                student_details = [
-                    f"Student Name: {student_name}",
-                    f"Student ID: {student_id}",
-                    f"Class: {class_name}",
-                    f"Assessment ID: {assessment_id}"
-                ]
+                generate_pdf(report, "Assessment Report", file_name)
                 
-                # Split report into question analysis and summary
-                if "Question Analysis" in report and "Summary Report" in report:
-                    question_analysis = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
-                    summary_report = report.split("Summary Report:")[1].strip()
-                else:
-                    summary_report = ["No Summary Found"]
-                
-                generate_pdf(student_details, summary_report.split('\n'), file_name)
                 st.success(f"PDF report generated: {file_name}")
 
                 # Display and download report
