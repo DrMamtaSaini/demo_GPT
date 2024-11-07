@@ -185,47 +185,13 @@ def read_docx(file):
         full_text.append(para.text)
     return '\n'.join(full_text)
 
-# Define user credentials (use secure storage in production)
-users = {
-    "client_1": "password123",
-    "client_2": "securepass456"
-}
 
-# Function to authenticate users
-def authenticate(username, password):
-    if username in users and users[username] == password:
-        return True
-    return False
-
-# Login system with session state
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.client_id = None
-
-if not st.session_state.logged_in:
-    # Show login form
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    login_button = st.button("Login")
-
-    if login_button:
-        if authenticate(username, password):
-            st.session_state.logged_in = True
-            st.session_state.client_id = username
-            st.success(f"Logged in as {username}")
-            st.experimental_rerun()  # Refresh to load the main app content
-        else:
-            st.error("Invalid username or password")
-
-# If the user is logged in, show the main app
-else:
     # Main app function
 
 # Main function
-    def main():
+def main():
     # Apply custom CSS for an attractive UI
-        st.markdown("""
+    st.markdown("""
     <style>
         body { background-color: #F0F2F6; }
         .stApp { color: #4B0082; }
