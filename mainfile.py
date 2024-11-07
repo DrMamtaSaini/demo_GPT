@@ -11,17 +11,15 @@ import os
 from docx import Document
 
 
-
 import streamlit as st
 import json
 
-# Load client configuration
+# Step 1: Load the client configuration file
 with open("clients_config.json") as config_file:
     clients_config = json.load(config_file)
 
-# Function to get the client-specific configuration
+# Step 2: Function to get client configuration or a default if client_id is not found
 def get_client_config(client_id):
-    # Fallback to a default configuration if client_id is not found
     default_config = {
         "name": "Default Academy",
         "logo": "https://path-to-default-logo.png",
@@ -29,14 +27,15 @@ def get_client_config(client_id):
     }
     return clients_config.get(client_id, default_config)
 
-
-# Assuming you know the client ID somehow (e.g., from a login system)
-client_id = "client_1"  # Replace this with a dynamic value based on each client
+# Step 3: Get client_id from the URL query parameter
+client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
 client_config = get_client_config(client_id)
 
-# Display the logo and name
+# Step 4: Display the customized content for each client
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
+st.markdown(f"<style>.main {{ background-color: {client_config['theme_color']}; }}</style>", unsafe_allow_html=True)
+
 
 
 st.markdown(
