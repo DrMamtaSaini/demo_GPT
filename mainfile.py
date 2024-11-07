@@ -164,7 +164,7 @@ def main():
     task = st.sidebar.radio("Select Module", ["Home", "Content Creator", "Lesson Planner", "Assessment"])
 
     if task == "Home":
-        st.title("Welcome to EduCreate Pro")
+        st.title("EduCreate Pro")
         st.write("Your all-in-one platform for creating educational content, lesson plans, and student assessments.")
         col1, col2, col3 = st.columns(3)
         with col1:
