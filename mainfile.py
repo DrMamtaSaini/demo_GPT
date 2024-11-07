@@ -118,33 +118,6 @@ def send_email_with_pdf(to_email, subject, body, file_name):
 
     st.success(f"Email sent to {to_email} with the attached PDF report!")
 
-# Function to generate content for educational purposes
-def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
-    prompt = f"""
-    You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
-    Based on the topics: {topics}. The {content_type} should be of {total_marks} marks and a time duration of {time_duration}. 
-    The question types should include {', '.join(question_types)}, with a difficulty level of {difficulty}.
-    The category of questions should be {category}.
-    """
-    
-    if include_solutions:
-        prompt += " Include the solution set."
-    else:
-        prompt += " Only include the question set without solutions."
-    
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": prompt}]
-    )
-    return response['choices'][0]['message']['content']
-
-# Function to save content as a Word document
-def save_content_as_doc(content, file_name):
-    doc = Document()
-    for line in content.split('\n'):
-        doc.add_paragraph(line)
-    doc.save(file_name)
-
 # Function to read content from a DOCX file
 def read_docx(file):
     doc = Document(file)
@@ -160,43 +133,8 @@ def main():
     # Choose between content creation or student assessment assistant
     task = st.sidebar.selectbox("Choose a task", ["Create Educational Content", "Student Assessment Assistant"])
 
-    # Section 1: Educational Content Creation
-    if task == "Create Educational Content":
-        st.header("Educational Content Creation")
-        
-        # Collect basic information
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
-        topics = st.text_input("Enter Topics (comma-separated):")
-        
-        # Choose content type
-        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
-
-        # Collect details based on content type
-        total_marks = st.number_input("Enter Total Marks", min_value=1)
-        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
-        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
-        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
-        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
-
-        # Option to include solutions
-        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
-
-        if st.button("Generate Educational Content"):
-            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
-            st.write("### Generated Educational Content")
-            st.write(content)
-            
-            # Save as Word document
-            file_name = f"{content_type}_{standard}.docx"
-            save_content_as_doc(content, file_name)
-            
-            # Download button for the document file
-            with open(file_name, "rb") as file:
-                st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
-
     # Section 2: Student Assessment Assistant
-    elif task == "Student Assessment Assistant":
+    if task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
         # Collect student information
@@ -206,7 +144,7 @@ def main():
         class_name = st.text_input("Enter Class:")
         email_id = st.text_input("Enter Parent's Email ID:")
 
-        # Upload Question Paper, Marking Scheme, and Answer Sheet
+        # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
         question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
         marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
         answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
@@ -214,73 +152,53 @@ def main():
         # Generate Assessment Report and Email PDF
         if st.button("Generate and Send PDF Report"):
             if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
-                # Load the DOCX files
+                # Read DOC files
                 question_paper_content = read_docx(question_paper)
                 marking_scheme_content = read_docx(marking_scheme)
                 answer_sheet_content = read_docx(answer_sheet)
 
                 # Enhanced GPT-4 prompt with explicit structure for the report
                 prompt = f"""
-                You are an educational assessment assistant. Analyze the student's performance and generate a well-structured report.
+                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
                 Student Name: {student_name}
                 Student ID: {student_id}
                 Class: {class_name}
                 Assessment ID: {assessment_id}
 
-                Here is the question paper:
+                Question Paper:
                 {question_paper_content}
 
-                Here is the marking scheme:
+                Marking Scheme:
                 {marking_scheme_content}
 
-                Here is the student's answer sheet:
+                Student's Answer Sheet:
                 {answer_sheet_content}
 
-                The report should include two sections clearly labeled:
-                1. Question Details (include the following columns for each question):
+                Please provide the following in the assessment report:
+                1. Question Analysis - Each question should include:
                     - Topic
                     - Subtopic
                     - Question Number
-                    - Child's Score
-                    - Accuracy
-                    - Concept Cleared (Yes/No)
-                    - Suggestion
+                    - Score for the answer based on accuracy and relevance
+                    - Concept Clarity (Yes/No)
+                    - Feedback and Suggestions
 
-                2. Summary Report (include the following):
+                2. Summary Report - Include:
                     - Final Score
                     - Grade
-                    - Overall Accuracy
-                    - Overall Concept Clarity
-                    - Strengths
-                    - Areas of Improvement
-                    - Final Remarks/Suggestions
-
-                Please clearly separate these two sections with the labels "Question Details:" and "Summary:". Ensure that the summary section always appears, even if the student has not provided enough answers.
+                    - Areas of Strength
+                    - Areas for Improvement
+                    - Final Remarks
                 """
-                # Call GPT-4 API to generate assessment report
+                
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "system", "content": prompt}]
                 )
                 report = response['choices'][0]['message']['content']
 
-                # Safely handle missing sections and split the report into question details and summary
-                question_details = []
-                summary_report = []
-                
-                if "Question Details:" in report and "Summary:" in report:
-                    question_details_section = report.split("Question Details:")[1].split("Summary:")[0].strip()
-                    question_details = [line.strip().split('\n') for line in question_details_section.split('\n') if line.strip()]
-                    
-                    summary_report_section = report.split("Summary:")[1].strip()
-                    summary_report = summary_report_section.split('\n')
-                else:
-                    st.warning("One or more sections (Question Details or Summary) were not found in the report.")
-                    # Fallback if summary is not found
-                    summary_report = ["No Summary Found"]
-
-                # Save the report as a PDF
+                # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
                 student_details = [
                     f"Student Name: {student_name}",
@@ -289,24 +207,28 @@ def main():
                     f"Assessment ID: {assessment_id}"
                 ]
                 
-                # Generate PDF
-                generate_pdf(student_details, summary_report, file_name)
+                # Split report into question analysis and summary
+                if "Question Analysis" in report and "Summary Report" in report:
+                    question_analysis = report.split("Question Analysis:")[1].split("Summary Report:")[0].strip()
+                    summary_report = report.split("Summary Report:")[1].strip()
+                else:
+                    summary_report = ["No Summary Found"]
+                
+                generate_pdf(student_details, summary_report.split('\n'), file_name)
                 st.success(f"PDF report generated: {file_name}")
 
-                # Display report on the screen
+                # Display and download report
                 st.write("### Assessment Report")
                 st.write(report)
-
-                # Download the report
                 with open(file_name, "rb") as file:
                     st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
-                # Send the report via email
+                # Send report via email
                 subject = f"Assessment Report for Student {student_name}"
                 body = "Please find attached the student's assessment report."
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
-                st.error("Please provide all required inputs (Student Name, Class, Student ID, Assessment ID, Parent's Email, Question Paper, Marking Scheme, and Answer Sheet).")
+                st.error("Please provide all required inputs.")
 
 if __name__ == "__main__":
     main()
