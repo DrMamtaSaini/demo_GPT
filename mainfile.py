@@ -9,9 +9,54 @@ from email import encoders
 from email.mime.text import MIMEText
 import os
 from docx import Document
+import json
+
 
 import streamlit as st
-import json
+
+# Step 1: Define user credentials (in practice, use a database or encrypted file)
+users = {
+    "client_1": "password123",  # Example client 1 username and password
+    "client_2": "securepass456"  # Example client 2 username and password
+}
+
+# Step 2: Function to authenticate users
+def authenticate(username, password):
+    if username in users and users[username] == password:
+        return True
+    return False
+
+# Step 3: Login system with session state
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.client_id = None
+
+if not st.session_state.logged_in:
+    # Show login form
+    st.title("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    login_button = st.button("Login")
+
+    if login_button:
+        if authenticate(username, password):
+            st.session_state.logged_in = True
+            st.session_state.client_id = username
+            st.success(f"Logged in as {username}")
+        else:
+            st.error("Invalid username or password")
+
+else:
+    # Once logged in, show the customized content
+    st.title("Welcome to the Customized App")
+    st.write(f"Hello, {st.session_state.client_id}!")
+
+    # Log out option
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.client_id = None
+
+
 
 # Step 1: Load the client configuration file
 with open("clients_config.json") as config_file:
