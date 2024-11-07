@@ -37,14 +37,22 @@ def wrap_text(text, pdf, max_line_length=90):
 def generate_pdf(content, title, file_name):
     pdf = FPDF()
     pdf.add_page()
+
+    # Set font and add a title with borders
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, title, ln=True, align='C', border=1)
+
+    # Leave a space after the title
     pdf.ln(10)
+
+    # Set font for the content
     pdf.set_font("Arial", size=12)
     for line in content.split('\n'):
         wrapped_lines = wrap_text(line, pdf)
         for wrapped_line in wrapped_lines:
             pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
+
+    # Save the PDF
     pdf.output(file_name)
 
 # Function to send an email with PDF attachment
@@ -52,12 +60,16 @@ def send_email_with_pdf(to_email, subject, body, file_name):
     from_email = st.secrets["email"]
     password = st.secrets["password"]
 
+    # Create the email message
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
     msg['Subject'] = subject
+
+    # Attach the email body
     msg.attach(MIMEText(body, 'plain'))
 
+    # Attach the PDF file
     with open(file_name, "rb") as attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
@@ -65,6 +77,7 @@ def send_email_with_pdf(to_email, subject, body, file_name):
         part.add_header('Content-Disposition', f'attachment; filename= {file_name}')
         msg.attach(part)
 
+    # Send the email via Gmail's SMTP server
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login(from_email, password)
@@ -73,31 +86,7 @@ def send_email_with_pdf(to_email, subject, body, file_name):
 
     st.success(f"Email sent to {to_email} with the attached PDF report!")
 
-# Function to parse question details into a DataFrame
-def parse_question_details(details_text):
-    rows = []
-    for line in details_text.split('\n'):
-        columns = line.split('|')  # Assuming each field is separated by '|'
-        if len(columns) >= 6:
-            rows.append(columns[:6])  # Adjust based on expected number of columns
-    return pd.DataFrame(rows, columns=["Topic", "Subtopic", "Question Number", "Score", "Concept Clarity", "Feedback"])
-
-# Function to save content as a Word document
-def save_content_as_doc(content, file_name):
-    doc = Document()
-    for line in content.split('\n'):
-        doc.add_paragraph(line)
-    doc.save(file_name)
-
-# Function to read content from a DOCX file
-def read_docx(file):
-    doc = Document(file)
-    full_text = []
-    for para in doc.paragraphs:
-        full_text.append(para.text)
-    return '\n'.join(full_text)
-
-# Function to generate educational content
+# Function to generate content for educational purposes
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
     prompt = f"""
     You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
@@ -142,6 +131,52 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
     )
     return response['choices'][0]['message']['content']
 
+# Function to save content as a Word document
+def save_content_as_doc(content, file_name):
+    doc = Document()
+    for line in content.split('\n'):
+        doc.add_paragraph(line)
+    doc.save(file_name)
+
+# Function to read content from a DOCX file
+def read_docx(file):
+    doc = Document(file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
+# Modified function to display assessment data in a table format
+def display_assessment_table():
+    # Sample data - replace this with your generated data
+    data = [
+        {
+            "Topic": "Organic Chemistry",
+            "Subtopic": "Catenation",
+            "Question Number": 1,
+            "Question": "Explain the concept of catenation in carbon and give one example to illustrate it.",
+            "Child's Score": "2/3",
+            "Accuracy": "67%",
+            "Concept Cleared": "Partial",
+            "Scope of Improvement": "Needs elaboration on how catenation enables chain formation in carbon compounds.",
+            "Suggestion": "Review the concept of catenation, focusing on examples beyond basic structures.",
+            "Right Answer": "Catenation is the ability of carbon atoms to bond with each other to form long chains. Example: alkanes."
+        },
+        # Add more entries here for actual questions
+    ]
+
+    # Convert to DataFrame for tabular display
+    df = pd.DataFrame(data)
+    st.write("### Detailed Question-by-Question Analysis")
+    st.table(df)
+
+    # Final Summary
+    st.write("### Final Summary")
+    st.write("Total Score: 12 out of 16")
+    st.write("Final Grade: B")
+    st.write("Overall Accuracy: 77%")
+    st.write("Concept Clarity: Moderate. The student demonstrates understanding of basic definitions but should aim to provide more detailed answers on structural differences and functional group impacts.")
+
 # Main function
 def main():
     st.title("Educational Content Creator & Assessment Assistant")
@@ -152,15 +187,23 @@ def main():
     # Section 1: Educational Content Creation
     if task == "Create Educational Content":
         st.header("Educational Content Creation")
+        
+        # Collect basic information
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
         standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
         topics = st.text_input("Enter Topics (comma-separated):")
+        
+        # Choose content type
         content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
+
+        # Collect details based on content type
         total_marks = st.number_input("Enter Total Marks", min_value=1)
         time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
         question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
         difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
         category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
+
+        # Option to include solutions
         include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
 
         if st.button("Generate Educational Content"):
@@ -168,14 +211,19 @@ def main():
             st.write("### Generated Educational Content")
             st.write(content)
             
+            # Save as Word document
             file_name = f"{content_type}_{standard}.docx"
             save_content_as_doc(content, file_name)
+            
+            # Download button for the document file
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
+
+        # Collect lesson plan details
         subject = st.text_input("Enter Subject:")
         grade = st.text_input("Enter Class/Grade:")
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
@@ -187,12 +235,15 @@ def main():
             st.write("### Generated Lesson Plan")
             st.write(lesson_plan)
             
+            # Save lesson plan as a Word document
             docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
             save_content_as_doc(lesson_plan, docx_file_name)
             
+            # Save lesson plan as a PDF
             pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
             generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
             
+            # Download buttons for the lesson plan documents
             with open(docx_file_name, "rb") as docx_file:
                 st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
                 
@@ -202,22 +253,28 @@ def main():
     # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
+
+        # Collect student information
         student_name = st.text_input("Enter Student Name:")
         student_id = st.text_input("Enter Student ID:")
         assessment_id = st.text_input("Enter Assessment ID:")
         class_name = st.text_input("Enter Class:")
         email_id = st.text_input("Enter Parent's Email ID:")
 
+        # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
         question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
         marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
         answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
+        # Generate Assessment Report and Email PDF
         if st.button("Generate and Send PDF Report"):
             if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
+                # Read DOC files
                 question_paper_content = read_docx(question_paper)
                 marking_scheme_content = read_docx(marking_scheme)
                 answer_sheet_content = read_docx(answer_sheet)
 
+                # Enhanced GPT-4 prompt with explicit structure for the report
                 prompt = f"""
                 You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
@@ -258,26 +315,19 @@ def main():
                 )
                 report = response['choices'][0]['message']['content']
 
-                # Display question-by-question details in table format
-                if "Question Details:" in report and "Summary:" in report:
-                    question_details = report.split("Question Details:")[1].split("Summary:")[0].strip()
-                    summary_report = report.split("Summary:")[1].strip()
-                    question_df = parse_question_details(question_details)
-                    st.write("### Question-by-Question Analysis")
-                    st.table(question_df)  # Display in table format
-                else:
-                    st.write("No structured question details found.")
-                    summary_report = report
-
-                # Display summary report
-                st.write("### Summary Report")
-                st.write(summary_report)
-
+                # Generate PDF
                 file_name = f"assessment_report_{student_id}.pdf"
                 generate_pdf(report, "Assessment Report", file_name)
+                
+                st.success(f"PDF report generated: {file_name}")
+
+                # Display and download report
+                st.write("### Assessment Report")
+                display_assessment_table()
                 with open(file_name, "rb") as file:
                     st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
+                # Send report via email
                 subject = f"Assessment Report for Student {student_name}"
                 body = "Please find attached the student's assessment report."
                 send_email_with_pdf(email_id, subject, body, file_name)
