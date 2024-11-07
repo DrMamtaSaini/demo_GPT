@@ -112,6 +112,13 @@ def read_docx(file):
         full_text.append(para.text)
     return '\n'.join(full_text)
 
+# Function to save content as a Word document
+def save_content_as_doc(content, file_name):
+    doc = Document()
+    for line in content.split('\n'):
+        doc.add_paragraph(line)
+    doc.save(file_name)
+
 # Main function
 def main():
     st.title("Educational Content Creator & Assessment Assistant")
