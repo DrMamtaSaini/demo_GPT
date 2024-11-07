@@ -65,11 +65,9 @@ with open("clients_config.json") as config_file:
 # Step 2: Function to get client configuration or a default if client_id is not found
 def get_client_config(client_id):
     default_config = {
-        "name": "Default Academy",
-        "logo": "https://path-to-default-logo.png",
-        "theme_color": "#000000"
+        
     }
-    return clients_config.get(client_id, default_config)
+    return clients_config.get(client_id)
 
 # Step 3: Get client_id from the URL query parameter
 client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
