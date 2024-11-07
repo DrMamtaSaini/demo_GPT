@@ -33,8 +33,8 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Generalized function to generate a PDF file for lesson plans or assessment reports
-def generate_pdf(content, title, file_name):
+# Enhanced function to generate a PDF file with a table for assessment details
+def generate_pdf(content, title, file_name, is_assessment=False):
     pdf = FPDF()
     pdf.add_page()
 
@@ -47,10 +47,53 @@ def generate_pdf(content, title, file_name):
 
     # Set font for the content
     pdf.set_font("Arial", size=12)
-    for line in content.split('\n'):
-        wrapped_lines = wrap_text(line, pdf)
-        for wrapped_line in wrapped_lines:
-            pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
+
+    if is_assessment:
+        # Separate question details and summary for structured formatting
+        if "Question Details:" in content and "Summary:" in content:
+            question_details = content.split("Question Details:")[1].split("Summary:")[0].strip()
+            summary = content.split("Summary:")[1].strip()
+        else:
+            question_details = content
+            summary = "No Summary Found"
+
+        # Display Question Details in tabular form
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Question Details:", ln=True)
+        pdf.ln(5)
+
+        pdf.set_font("Arial", size=10)
+        col_widths = [20, 40, 20, 20, 20, 60]  # Adjust column widths for better fit
+        headers = ["Q. No", "Topic", "Subtopic", "Score", "Accuracy", "Feedback"]
+        
+        # Render table headers
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 10, header, border=1)
+        pdf.ln()
+
+        # Render each row in question details as a table row
+        for line in question_details.split('\n'):
+            columns = line.split('|')  # Assuming '|' is used as a separator
+            for i, col in enumerate(columns):
+                pdf.cell(col_widths[i], 10, sanitize_text(col.strip()), border=1)
+            pdf.ln()
+
+        # Add Summary
+        pdf.ln(10)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Summary:", ln=True)
+        pdf.set_font("Arial", size=10)
+        for line in summary.split('\n'):
+            wrapped_lines = wrap_text(line, pdf)
+            for wrapped_line in wrapped_lines:
+                pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
+
+    else:
+        # Render non-assessment content as regular text
+        for line in content.split('\n'):
+            wrapped_lines = wrap_text(line, pdf)
+            for wrapped_line in wrapped_lines:
+                pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
 
     # Save the PDF
     pdf.output(file_name)
@@ -284,9 +327,9 @@ def main():
                 )
                 report = response['choices'][0]['message']['content']
 
-                # Generate PDF
+                # Generate PDF with a table for question-by-question assessment
                 file_name = f"assessment_report_{student_id}.pdf"
-                generate_pdf(report, "Assessment Report", file_name)
+                generate_pdf(report, "Assessment Report", file_name, is_assessment=True)
                 
                 st.success(f"PDF report generated: {file_name}")
 
