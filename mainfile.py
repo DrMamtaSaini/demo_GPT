@@ -10,9 +10,68 @@ from email.mime.text import MIMEText
 import os
 from docx import Document
 import json
+from docx.shared import Inches
+from io import BytesIO
+import requests
 
 
-import streamlit as st
+# Function to fetch images based on topic and subtopics
+def fetch_image(prompt):
+    # Example image generation code (e.g., from a specific API or service)
+    # Here, we’ll assume you use a free API that returns image URLs
+    response = openai.Image.create(prompt=prompt, n=1, size="512x512")
+    image_url = response['data'][0]['url']
+    image_response = requests.get(image_url)
+    return BytesIO(image_response.content)
+
+# Function to generate question using GPT based on input
+def generate_question(topic, class_level, question_type, subtopic):
+    prompt = f"Generate a {question_type} question on the topic '{topic}' for {class_level} on the subtopic '{subtopic}'. Include a question text and answer options."
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=100
+    )
+    return response.choices[0].text.strip()
+
+# Function to create quiz document
+def create_quiz_document(topic, class_level, num_questions, question_type):
+    document = Document()
+    document.add_heading(f'{topic} Quiz for {class_level}', level=1)
+    
+    # Example subtopics for a chosen topic (these could be dynamically generated as well)
+    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
+    
+    # Generate questions based on subtopics
+    for i in range(num_questions):
+        subtopic = subtopics[i % len(subtopics)]
+        question_text = generate_question(topic, class_level, question_type, subtopic)
+        
+        # Add image to document
+        image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
+        image = fetch_image(image_prompt)
+        document.add_picture(image, width=Inches(2))
+        
+        # Add question and answer options
+        document.add_paragraph(f'Q{i+1}: {question_text}')
+        if question_type == "MCQ":
+            document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
+        elif question_type == "true/false":
+            document.add_paragraph("a) True\nb) False")
+        elif question_type == "yes/no":
+            document.add_paragraph("a) Yes\nb) No")
+        
+        document.add_paragraph("\n")  # Add space between questions
+    
+    # Add answer space at the end
+    document.add_paragraph("\nAnswers:\n")
+    for i in range(num_questions):
+        document.add_paragraph(f'Q{i+1}: ________________')
+    
+    # Save the document
+    filename = f'{topic}_Quiz_{class_level}.docx'
+    document.save(filename)
+    return filename
 
 
 
@@ -207,7 +266,7 @@ def main():
     """, unsafe_allow_html=True)
 
     st.sidebar.title("EduCreate Pro")
-    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant"])
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Generate Image Based Questions"])
 
     if task == "Home":
         st.title("EduCreate Pro")
@@ -383,6 +442,22 @@ def main():
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
                 st.error("Please provide all required inputs.")
+    elif task=="Generate Image Based Questions":
+         st.header("Generate Image Based Questions")
+         topic = input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks): ")
+    class_level = input("Select a class level (e.g., Grade 1, Grade 2, Grade 3): ")
+    num_questions = int(input("Enter the number of questions (minimum 5): "))
+    question_type = input("Choose question type (MCQ, true/false, yes/no): ")
+    
+    # Ensure minimum questions
+    if num_questions < 5:
+        print("Minimum number of questions is 5. Setting to 5.")
+        num_questions = 5
+    
+    # Create the quiz document
+    quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
+    print(f"Quiz generated and saved as '{quiz_filename}'.")
+
 
 if __name__ == "__main__":
     main()
