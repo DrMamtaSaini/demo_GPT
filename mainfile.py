@@ -275,7 +275,7 @@ def main():
                 Your all-in-one platform for creating educational content, lesson plans, and student assessments.
             </div>
         """, unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3,col4 = st.columns(4)
         with col1:
             st.subheader("Content Creator")
             st.write("Generate quizzes, sample papers, and assignments.")
@@ -285,6 +285,10 @@ def main():
         with col3:
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
+        with col4:
+            st.subheader("Image Based Question Generator")
+            st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type)")
+        
         st.markdown("""
             <div style='text-align: center; margin-top: 30px;'>
                 <button style="padding: 15px; font-size: 16px; background-color: #6A5ACD; color: white; border: none; border-radius: 8px; cursor: pointer;">
@@ -442,6 +446,7 @@ def main():
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
                 st.error("Please provide all required inputs.")
+    #section4
     elif task=="Generate Image Based Questions":
          st.header("Generate Image Based Questions")
          topic = input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks): ")
