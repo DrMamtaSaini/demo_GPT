@@ -29,12 +29,12 @@ def fetch_image(prompt):
 # Function to generate question using GPT based on input
 def generate_question(topic, class_level, question_type, subtopic):
     prompt = f"Generate a {question_type} question on the topic '{topic}' for {class_level} on the subtopic '{subtopic}'. Include a question text and answer options."
-    response = openai.Completion.create(
-        engine="gpt-3.5-turbo",
-        prompt=prompt,
-        max_tokens=100
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].text.strip()
+    return response['choices'][0]['message']['content']
+
 
 # Function to create quiz document
 def create_quiz_document(topic, class_level, num_questions, question_type):
