@@ -14,6 +14,8 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 
+# Use Streamlit's secret management to securely load your API key
+openai.api_key = st.secrets["openai_api_key"]
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -28,7 +30,7 @@ def fetch_image(prompt):
 def generate_question(topic, class_level, question_type, subtopic):
     prompt = f"Generate a {question_type} question on the topic '{topic}' for {class_level} on the subtopic '{subtopic}'. Include a question text and answer options."
     response = openai.Completion.create(
-        engine="text-davinci-003",
+        engine="gpt-3.5-turbo",
         prompt=prompt,
         max_tokens=100
     )
@@ -112,8 +114,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Use Streamlit's secret management to securely load your API key
-openai.api_key = st.secrets["openai_api_key"]
 
 # Function to sanitize text by replacing unsupported characters
 def sanitize_text(text):
