@@ -384,6 +384,7 @@ def main():
             with open(pdf_file_name, "rb") as pdf_file:
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
+    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -477,47 +478,60 @@ def main():
             if weak_topics:
                 st.subheader("Generate Personalized Learning Material and Assignment")
 
-                # Generate personalized learning material
-                learning_material = generate_personalized_material(weak_topics)
-                st.write("### Personalized Learning Material")
-                st.write(learning_material)
+                # Selection checkboxes for Learning Material and Assignment
+                include_learning_material = st.checkbox("Generate and Download Learning Material")
+                include_assignment = st.checkbox("Generate and Download Assignment")
+                
+                if include_learning_material:
+                    # Generate personalized learning material
+                    learning_material = generate_personalized_material(weak_topics)
+                    st.write("### Personalized Learning Material")
+                    st.write(learning_material)
 
-                # Choose assignment options
-                include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
-                assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
-                st.write("### Personalized Assignment")
-                st.write(assignment_content)
+                    # Save learning material as DOCX and PDF
+                    learning_material_docx = f"{student_name}_Learning_Material.docx"
+                    learning_material_pdf = f"{student_name}_Learning_Material.pdf"
+                    save_content_as_doc(learning_material, learning_material_docx)
+                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
 
-                # Download Options
-                st.subheader("Download Options")
+                    # Download button for learning material
+                    with open(learning_material_docx, "rb") as file:
+                        st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
+                    with open(learning_material_pdf, "rb") as file:
+                        st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
+                    
+                    # Option to email learning material
+                    if st.button("Email Learning Material"):
+                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material for your child.", learning_material_docx)
 
-                # Save learning material as DOCX and PDF
-                learning_material_docx = f"{student_name}_Learning_Material.docx"
-                learning_material_pdf = f"{student_name}_Learning_Material.pdf"
-                save_content_as_doc(learning_material, learning_material_docx)
-                generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
+                if include_assignment:
+                    # Choose if solutions should be included in the assignment
+                    include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
+                    assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
+                    st.write("### Personalized Assignment")
+                    st.write(assignment_content)
 
-                # Save assignment as DOCX and PDF
-                assignment_docx = f"{student_name}_Assignment.docx"
-                assignment_pdf = f"{student_name}_Assignment.pdf"
-                save_content_as_doc(assignment_content, assignment_docx)
-                generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
+                    # Save assignment as DOCX and PDF
+                    assignment_docx = f"{student_name}_Assignment.docx"
+                    assignment_pdf = f"{student_name}_Assignment.pdf"
+                    save_content_as_doc(assignment_content, assignment_docx)
+                    generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
 
-                # Download buttons for each file
-                with open(learning_material_docx, "rb") as file:
-                    st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
-                with open(learning_material_pdf, "rb") as file:
-                    st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
-                with open(assignment_docx, "rb") as file:
-                    st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
-                with open(assignment_pdf, "rb") as file:
-                    st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
+                    # Download button for assignment
+                    with open(assignment_docx, "rb") as file:
+                        st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
+                    with open(assignment_pdf, "rb") as file:
+                        st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
+                    
+                    # Option to email assignment
+                    if st.button("Email Assignment"):
+                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment for your child.", assignment_docx)
             else:
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
-    
-    # Section 4: Generate Image-Based Questions
+
+# Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
     
