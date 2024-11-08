@@ -272,7 +272,7 @@ def main():
         st.title("EduCreate Pro")
         st.markdown("""
             <div style='text-align: center; font-size: 18px; color: #4B0082;'>
-                Your all-in-one platform for creating educational content, lesson plans, and student assessments.
+                Your all-in-one platform for creating educational content, lesson plans, and student assessments, Image Based Questions.
             </div>
         """, unsafe_allow_html=True)
         col1, col2, col3,col4 = st.columns(4)
@@ -447,7 +447,7 @@ def main():
             else:
                 st.error("Please provide all required inputs.")
     #section4
-    elif task=="Generate Image Based Questions":
+    elif task == "Generate Image Based Questions":
          st.header("Generate Image Based Questions")
          topic = input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks): ")
     class_level = input("Select a class level (e.g., Grade 1, Grade 2, Grade 3): ")
