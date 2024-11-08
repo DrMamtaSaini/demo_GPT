@@ -446,22 +446,30 @@ def main():
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
                 st.error("Please provide all required inputs.")
-    #section4
+    # Section 4: Generate Image-Based Questions
     elif task == "Generate Image Based Questions":
-         st.header("Generate Image Based Questions")
-         topic = input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks): ")
-    class_level = input("Select a class level (e.g., Grade 1, Grade 2, Grade 3): ")
-    num_questions = int(input("Enter the number of questions (minimum 5): "))
-    question_type = input("Choose question type (MCQ, true/false, yes/no): ")
+        st.header("Generate Image Based Questions")
     
-    # Ensure minimum questions
-    if num_questions < 5:
-        print("Minimum number of questions is 5. Setting to 5.")
-        num_questions = 5
+    # Use Streamlit input components
+    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
+    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
+    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
+    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
     
-    # Create the quiz document
-    quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
-    print(f"Quiz generated and saved as '{quiz_filename}'.")
+    if st.button("Generate Quiz Document"):
+        # Ensure minimum questions
+        if num_questions < 5:
+            st.warning("Minimum number of questions is 5. Setting to 5.")
+            num_questions = 5
+        
+        # Create the quiz document
+        quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
+        st.success(f"Quiz generated and saved as '{quiz_filename}'")
+        
+        # Display download button
+        with open(quiz_filename, "rb") as file:
+            st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+
 
 
 if __name__ == "__main__":
