@@ -387,93 +387,96 @@ def main():
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-        # Collect student information
-        student_name = st.text_input("Enter Student Name:")
-        student_id = st.text_input("Enter Student ID:")
-        assessment_id = st.text_input("Enter Assessment ID:")
-        class_name = st.text_input("Enter Class:")
-        email_id = st.text_input("Enter Parent's Email ID:")
+    # Collect student information
+    student_name = st.text_input("Enter Student Name:")
+    student_id = st.text_input("Enter Student ID:")
+    assessment_id = st.text_input("Enter Assessment ID:")
+    class_name = st.text_input("Enter Class:")
+    email_id = st.text_input("Enter Parent's Email ID:")
 
-        # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
-        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
-        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
-        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
+    # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
+    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
+    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
+    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
-        # Generate Assessment Report and Email PDF
-        if st.button("Generate and Send PDF Report"):
-            if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
-                # Read DOC files
-                question_paper_content = read_docx(question_paper)
-                marking_scheme_content = read_docx(marking_scheme)
-                answer_sheet_content = read_docx(answer_sheet)
+    # Generate Assessment Report and Email PDF
+    if st.button("Generate and Send PDF Report"):
+        if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
+            # Read DOC files
+            question_paper_content = read_docx(question_paper)
+            marking_scheme_content = read_docx(marking_scheme)
+            answer_sheet_content = read_docx(answer_sheet)
 
-                # Enhanced GPT-4 prompt with explicit structure for the report
-                prompt = f"""
-                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+            # Enhanced GPT-4 prompt with explicit structure for the report
+            prompt = f"""
+            You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
-                Student Name: {student_name}
-                Student ID: {student_id}
-                Class: {class_name}
-                Assessment ID: {assessment_id}
+            Student Name: {student_name}
+            Student ID: {student_id}
+            Class: {class_name}
+            Assessment ID: {assessment_id}
 
-                Question Paper:
-                {question_paper_content}
+            Question Paper:
+            {question_paper_content}
 
-                Marking Scheme:
-                {marking_scheme_content}
+            Marking Scheme:
+            {marking_scheme_content}
 
-                Student's Answer Sheet:
-                {answer_sheet_content}
+            Student's Answer Sheet:
+            {answer_sheet_content}
 
-                Please provide the following in the assessment report:
-                1. Question Analysis - Each question should include:
-                    - Topic
-                    - Subtopic
-                    - Question Number
-                    - Score for the answer based on accuracy and relevance
-                    - Concept Clarity (Yes/No)
-                    - Feedback and Suggestions
+            Please provide the following in the assessment report:
+            1. Question Analysis - Each question should include:
+                - Topic
+                - Subtopic
+                - Question Number
+                - Score for the answer based on accuracy and relevance
+                - Concept Clarity (Yes/No)
+                - Feedback and Suggestions
 
-                2. Summary Report - Include:
-                    - Final Score
-                    - Grade
-                    - Areas of Strength
-                    - Areas for Improvement
-                    - Final Remarks
-                """
-                
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "system", "content": prompt}]
-                )
-                report = response['choices'][0]['message']['content']
+            2. Summary Report - Include:
+                - Final Score
+                - Grade
+                - Areas of Strength
+                - Areas for Improvement (Concepts not cleared)
+                - Final Remarks
+            """
+            
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": prompt}]
+            )
+            report = response['choices'][0]['message']['content']
+            st.write("### Assessment Report")
+            st.write(report)
+            
+            # Automatically extract weak topics from the assessment report
+            weak_topics = []
+            for line in report.splitlines():
+                if "Concept Clarity: No" in line:
+                    # Assuming topic is mentioned before "Concept Clarity"
+                    topic = line.split("-")[1].strip()
+                    weak_topics.append(topic)
 
-                # Generate PDF
-                file_name = f"assessment_report_{student_id}.pdf"
-                generate_pdf(report, "Assessment Report", file_name)
-                
-                st.success(f"PDF report generated: {file_name}")
+            # Generate PDF
+            file_name = f"assessment_report_{student_id}.pdf"
+            generate_pdf(report, "Assessment Report", file_name)
+            
+            st.success(f"PDF report generated: {file_name}")
 
-                # Display and download report
-                st.write("### Assessment Report")
-                st.write(report)
-                with open(file_name, "rb") as file:
-                    st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
+            # Display and download report
+            with open(file_name, "rb") as file:
+                st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
 
-                # Send report via email
-                subject = f"Assessment Report for Student {student_name}"
-                body = "Please find attached the student's assessment report."
-                send_email_with_pdf(email_id, subject, body, file_name)
-            else:
-                st.error("Please provide all required inputs.")
+            # Send report via email
+            subject = f"Assessment Report for Student {student_name}"
+            body = "Please find attached the student's assessment report."
+            send_email_with_pdf(email_id, subject, body, file_name)
 
-        # Personalized Learning Material and Assignment Generation Section
-        st.subheader("Generate Personalized Learning Material and Assignment")
-        
-        weak_topics = st.text_area("Enter topics where the student needs improvement (comma-separated):").split(",")
-        
-        if st.button("Generate Personalized Learning Material and Assignment"):
+            # Personalized Learning Material and Assignment Generation
             if weak_topics:
+                st.subheader("Generate Personalized Learning Material and Assignment")
+
                 # Generate personalized learning material
                 learning_material = generate_personalized_material(weak_topics)
                 st.write("### Personalized Learning Material")
@@ -487,7 +490,7 @@ def main():
 
                 # Download Options
                 st.subheader("Download Options")
-                
+
                 # Save learning material as DOCX and PDF
                 learning_material_docx = f"{student_name}_Learning_Material.docx"
                 learning_material_pdf = f"{student_name}_Learning_Material.pdf"
@@ -510,7 +513,10 @@ def main():
                 with open(assignment_pdf, "rb") as file:
                     st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
             else:
-                st.error("Please enter the topics where the student needs improvement.")
+                st.info("No weak topics identified for personalized material.")
+        else:
+            st.error("Please provide all required inputs.")
+    
     # Section 4: Generate Image-Based Questions
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
