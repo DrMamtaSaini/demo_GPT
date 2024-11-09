@@ -49,10 +49,13 @@ def login_page():
 
         # If login fails
         st.error("Invalid credentials. Please try again.")
+if not st.session_state['logged_in']:
+    login_page()
+else:
+    st.write(f"Welcome, {st.session_state['school_id']}! openai.api_key: {st.session_state['api_key']}")
 
-
-
-openai.api_key = st.secrets["openai_api_key"]
+ 
+#openai.api_key = st.secrets["openai_api_key"]
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
