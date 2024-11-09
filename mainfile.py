@@ -26,39 +26,30 @@ if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 
 def login_page():
+    # Show login fields only if not logged in
     if not st.session_state['logged_in']:
         st.title("School Login")
-        
-        # Input fields with unique keys
-        school_username = st.text_input("Username", key="school_username_input")
-        school_password = st.text_input("Password", type="password", key="school_password_input")
+        school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
+        school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
         
         if st.button("Login"):
+            # Check credentials
             for school_id, credentials in SCHOOL_CREDENTIALS.items():
-                if (school_username == credentials["username"] and 
-                    school_password == credentials["password"]):
-                    
-                    # Set session state for school_id and api_key
+                if (school_username == credentials["username"] and school_password == credentials["password"]):
+                    # Set session state for successful login
                     st.session_state['logged_in'] = True
                     st.session_state['school_id'] = school_id
                     st.session_state['api_key'] = credentials["api_key"]
-                    st.success("Login successful!")
-                    
-                    # Trigger a rerun to display main content after login
-                    st.experimental_rerun()
+                    st.experimental_rerun()  # Rerun to display main content
                     return
-
-            # If login fails
             st.error("Invalid credentials. Please try again.")
 
-if not st.session_state['logged_in']:
-    login_page()
-else:
-    st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
-
-# Set the OpenAI API key
+# Display main content if logged in, else show login page
 if st.session_state['logged_in']:
-    openai.api_key = st.session_state['api_key']
+    st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
+    openai.api_key = st.session_state['api_key']  # Set OpenAI key
+else:
+    login_page()
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -290,7 +281,8 @@ def main_app():
 
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Personalized Learning Material","Generate Image Based Questions"])
- # Add the logout button in the sidebar
+
+    # Logout functionality
     if st.sidebar.button("Logout"):
         st.session_state['logged_in'] = False
         st.session_state['school_id'] = None
@@ -380,10 +372,9 @@ def main_app():
 
 def main():
     if st.session_state['logged_in']:
-        main_app()  # Show main app content if logged in
+        main_app()
     else:
         login_page()  # Show login page if not logged in
-    
 
 if __name__ == "__main__":
     main()
