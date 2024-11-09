@@ -20,6 +20,12 @@ import json
 from io import BytesIO
 import requests
 
+import streamlit as st
+import openai
+import json
+from io import BytesIO
+import requests
+
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
@@ -59,7 +65,6 @@ def login_page():
                 st.experimental_rerun()
                 return
         st.error("Invalid credentials. Please try again.")
-
 
 
 
@@ -289,8 +294,7 @@ def main_app():
         .center { text-align: center; }
     </style>
     """, unsafe_allow_html=True)
-#Main application logic after successful login."""
-    # Load client configuration using the stored client_id
+## Load client configuration using the stored client_id
     client_config = get_client_config(st.session_state['client_id'])
     
     # Display client-specific information
@@ -531,13 +535,11 @@ def main_app():
 
 def main():
     if st.session_state['logged_in']:
-       # st.write(f"Welcome, {st.session_state['school_id']}")
-       # API Key: {st.session_state['api_key']}
-        openai.api_key = st.session_state['api_key']  # Set OpenAI key
+        openai.api_key = st.session_state['api_key']
         main_app()
     else:
-        login_page()  # Show login page if not logged in
-    
+        login_page()
+
    
 if __name__ == "__main__":
     main()
