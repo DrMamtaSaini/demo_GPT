@@ -232,7 +232,7 @@ def main():
     """, unsafe_allow_html=True)
 
     st.sidebar.title("EduCreate Pro")
-    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Generate Image Based Questions"])
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Personalised Learning Material","Generate Image Based Questions"])
 
     if task == "Home":
         st.title("EduCreate Pro")
@@ -241,7 +241,7 @@ def main():
                 Your all-in-one platform for creating educational content, lesson plans, and student assessments, Image Based Questions.
             </div>
         """, unsafe_allow_html=True)
-        col1, col2, col3,col4 = st.columns(4)
+        col1, col2, col3,col4,col5 = st.columns(5)
         with col1:
             st.subheader("Content Creator")
             st.write("Generate quizzes, sample papers, and assignments.")
@@ -252,6 +252,9 @@ def main():
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
         with col4:
+            st.subheader("Personalised Learning Material")
+            st.write("Generate learning material and assignment based on your assessment report.)")
+        with col5:
             st.subheader("Image Based Question Generator")
             st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type)")
         
