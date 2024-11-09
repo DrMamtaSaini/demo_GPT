@@ -26,29 +26,30 @@ if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 
 def login_page():
-    st.title("School Login")
-    
-    # Input fields
-    school_username = st.text_input("Username", key="school_username")
-    school_password = st.text_input("Password", type="password", key="school_password")
-    
-    if st.button("Login"):
-        for school_id, credentials in SCHOOL_CREDENTIALS.items():
-            if (school_username == credentials["username"] and 
-                school_password == credentials["password"]):
-                
-                # Set session state for school_id and api_key
-                st.session_state['logged_in'] = True
-                st.session_state['school_id'] = school_id
-                st.session_state['api_key'] = credentials["api_key"]
-                st.success("Login successful!")
-                
-                # Trigger a rerun to display main content after login
-                st.experimental_rerun()
-                return
+    if not st.session_state['logged_in']:
+        st.title("School Login")
+        
+        # Input fields with unique keys
+        school_username = st.text_input("Username", key="school_username_input")
+        school_password = st.text_input("Password", type="password", key="school_password_input")
+        
+        if st.button("Login"):
+            for school_id, credentials in SCHOOL_CREDENTIALS.items():
+                if (school_username == credentials["username"] and 
+                    school_password == credentials["password"]):
+                    
+                    # Set session state for school_id and api_key
+                    st.session_state['logged_in'] = True
+                    st.session_state['school_id'] = school_id
+                    st.session_state['api_key'] = credentials["api_key"]
+                    st.success("Login successful!")
+                    
+                    # Trigger a rerun to display main content after login
+                    st.experimental_rerun()
+                    return
 
-        # If login fails
-        st.error("Invalid credentials. Please try again.")
+            # If login fails
+            st.error("Invalid credentials. Please try again.")
 
 if not st.session_state['logged_in']:
     login_page()
@@ -56,8 +57,8 @@ else:
     st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
 
 # Set the OpenAI API key
-openai.api_key = st.session_state.get('api_key', '')
-
+if st.session_state['logged_in']:
+    openai.api_key = st.session_state['api_key']
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -65,6 +66,9 @@ def fetch_image(prompt):
     image_url = response['data'][0]['url']
     image_response = requests.get(image_url)
     return BytesIO(image_response.content)
+
+# The remaining functions (e.g., `generate_question`, `create_quiz_document`, etc.) remain as they are.
+
 
 # Function to generate question using GPT based on input
 def generate_question(topic, class_level, question_type, subtopic):
@@ -111,10 +115,13 @@ def get_client_config(client_id):
     return clients_config.get(client_id, default_config)
 
 client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
+#client_id = st.query_params.get("client_id", ["default"])[0]
+
 client_config = get_client_config(client_id)
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
 st.markdown(f"<style>.main {{ background-color: {client_config['theme_color']}; }}</style>", unsafe_allow_html=True)
+
 # Function to generate a PDF file for reports
 def generate_pdf(content, title, file_name):
     pdf = FPDF()
