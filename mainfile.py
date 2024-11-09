@@ -232,7 +232,7 @@ def main():
     """, unsafe_allow_html=True)
 
     st.sidebar.title("EduCreate Pro")
-    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Personalised Learning Material","Generate Image Based Questions"])
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Personalized Learning Material","Generate Image Based Questions"])
 
     if task == "Home":
         st.title("EduCreate Pro")
