@@ -126,8 +126,22 @@ def read_pdf(file):
     pdf_reader = PdfReader(file)
     text = ""
     for page in pdf_reader.pages:
-        text += page.extract_text()
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text
     return text
+
+# Function to identify weak topics in assessment content
+def identify_weak_topics(assessment_content):
+    weak_topics = []
+    for line in assessment_content.splitlines():
+        # Look for keywords that may indicate weaknesses
+        if "Concepts not cleared" in line or "needs improvement" in line or "weak in" in line.lower():
+            parts = line.split(":")
+            if len(parts) > 1:
+                weak_topics += [topic.strip() for topic in parts[1].split(",")]
+    return list(set(weak_topics))  # Remove duplicates if any
+
 
 # Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
@@ -382,21 +396,15 @@ def main():
 
         if st.button("Generate and Send Personalized Learning Material"):
             if email_id and assessment_pdf:
+                # Read and process the PDF
                 assessment_content = read_pdf(assessment_pdf)
 
-                # Identify weak topics based on keywords in the PDF content
-                weak_topics = []
-                for line in assessment_content.splitlines():
-                    if "Concepts not cleared" in line or "needs improvement" in line:
-                        parts = line.split(":")
-                        if len(parts) > 1:
-                            weak_topics += [topic.strip() for topic in parts[1].split(",")]
-
-                weak_topics = list(set(weak_topics))
+                # Identify weak topics based on PDF content
+                weak_topics = identify_weak_topics(assessment_content)
                 st.subheader("Identified Weak Topics")
                 st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
 
-                # Generate personalized material and assignment
+                # Generate personalized material and assignment if weak topics found
                 if weak_topics:
                     learning_material = generate_personalized_material(weak_topics)
                     assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
@@ -414,7 +422,6 @@ def main():
                     send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", "Learning_Material.docx")
                     send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", "Assignment.docx")
                     st.success(f"Personalized materials have been sent to {email_id}.")
-
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
