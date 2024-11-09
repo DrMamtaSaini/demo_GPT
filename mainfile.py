@@ -57,21 +57,6 @@ def login_page():
                     return
             st.error("Invalid credentials. Please try again.")
 
-# Check if client_id is in session state; if not, show login page
-if 'client_id' not in st.session_state:
-    login_page()
-else:
-    # Retrieve client configuration based on logged-in client's ID
-    client_config = get_client_config(st.session_state['client_id'])
-
-    # Display client-specific logo and title with smaller spacing and fixed colors
-    st.image(client_config["logo"], width=120)
-
-    st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-        </div>
-    """, unsafe_allow_html=True)
 
 
 
@@ -536,6 +521,21 @@ def main():
     else:
         login_page()  # Show login page if not logged in
     
+    # Check if client_id is in session state; if not, show login page
+if 'client_id' not in st.session_state:
+    login_page()
+else:
+    # Retrieve client configuration based on logged-in client's ID
+    client_config = get_client_config(st.session_state['client_id'])
+
+    # Display client-specific logo and title with smaller spacing and fixed colors
+    st.image(client_config["logo"], width=120)
+
+    st.markdown(f"""
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+        </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
