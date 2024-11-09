@@ -316,7 +316,49 @@ def main_app():
                 </button>
             </div>
         """, unsafe_allow_html=True)
+    # Section 1: Educational Content Creation
+    elif task == "Create Educational Content":
+        st.header("Educational Content Creation")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
+        topics = st.text_input("Enter Topics (comma-separated):")
+        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
+        total_marks = st.number_input("Enter Total Marks", min_value=1)
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
+        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
+        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
+        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
+        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
 
+        if st.button("Generate Educational Content"):
+            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
+            st.write("### Generated Educational Content")
+            st.write(content)
+            file_name = f"{content_type}_{standard}.docx"
+            save_content_as_doc(content, file_name)
+            with open(file_name, "rb") as file:
+                st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
+
+    elif task == "Create Lesson Plan":
+        st.header("Lesson Plan Creation")
+        subject = st.text_input("Enter Subject:")
+        grade = st.text_input("Enter Class/Grade:")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+        topic = st.text_input("Enter Lesson Topic:")
+        
+        if st.button("Generate Lesson Plan"):
+            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
+            docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
+            save_content_as_doc(lesson_plan, docx_file_name)
+            pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
+            generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
+            with open(docx_file_name, "rb") as docx_file:
+                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
+            with open(pdf_file_name, "rb") as pdf_file:
+                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
         student_name = st.text_input("Enter Student Name:")
@@ -348,6 +390,25 @@ def main_app():
                     st.success(f"Personalized materials have been sent to {email_id}.")
                 else:
                     st.warning("No weak topics identified. Please ensure the assessment report is properly formatted.")
+    elif task == "Personalized Learning Material":
+        st.header("Personalized Learning Material")
+        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
+
+        if st.button("Generate Personalized Material and Assignment"):
+            if assessment_report:
+                report_content = read_docx(assessment_report)
+                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
+                if weak_topics:
+                    learning_material = generate_personalized_material(weak_topics)
+                    assignment_content = generate_personalized_material(weak_topics)
+                    learning_material_docx = f"Learning_Material.docx"
+                    assignment_docx = f"Assignment.docx"
+                    save_content_as_doc(learning_material, learning_material_docx)
+                    save_content_as_doc(assignment_content, assignment_docx)
+                    with open(learning_material_docx, "rb") as file:
+                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
+                    with open(assignment_docx, "rb") as file:
+                        st.download_button(label="Download Assignment", data=file, file_name=assignment_docx)
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
