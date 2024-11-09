@@ -387,6 +387,7 @@ def main():
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
+    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -458,21 +459,28 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Capture topic and subtopic by checking surrounding lines
+                    # Capture topic and subtopic from previous lines
                     topic = "Unknown Topic"
                     subtopic = "Unknown Subtopic"
-                    for j in range(max(0, i - 3), i):
+                    for j in range(max(0, i - 3), i):  # Check lines before "Concept Clarity: No" line
                         if "Topic:" in lines[j]:
                             topic = lines[j].split("Topic:")[1].strip()
                         if "Subtopic:" in lines[j]:
                             subtopic = lines[j].split("Subtopic:")[1].strip()
                     
-                    # Combine topic and subtopic to create a specific weak topic entry
+                    # Combine topic and subtopic for weak topic entry
                     weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
                     weak_topics.append(weak_topic)
 
             # Remove duplicate weak topics
             weak_topics = list(set(weak_topics))
+
+            # Debugging output to verify weak topics extraction
+            st.write("### Identified Weak Topics for Personalized Material")
+            if weak_topics:
+                st.write(weak_topics)
+            else:
+                st.info("No weak topics identified for personalized material.")
 
             # Generate PDF
             file_name = f"assessment_report_{student_id}.pdf"
@@ -550,6 +558,7 @@ def main():
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 # Ensure the correct module content is shown
