@@ -194,9 +194,6 @@ def wrap_text(text, pdf, max_line_length=90):
     return wrapped_lines
 
 
-   
-   
-
 # Function to generate content for educational purposes
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
     prompt = f"""
@@ -282,7 +279,7 @@ def main():
             st.write("Generate comprehensive student assessments and progress reports.")
         with col4:
             st.subheader("Personalised Learning Material")
-            st.write("Generate learning material and assignment based on your assessment report.)")
+            st.write("Generate learning material and assignment based on your assessment report.")
         with col5:
             st.subheader("Image Based Question Generator")
             st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type)")
@@ -295,23 +292,54 @@ def main():
             </div>
         """, unsafe_allow_html=True)
 
-    # Section 1: Educational Content Creation
-    elif task == "Create Educational Content":
-        st.header("Educational Content Creation")
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
-        topics = st.text_input("Enter Topics (comma-separated):")
-        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
-        total_marks = st.number_input("Enter Total Marks", min_value=1)
-        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
-        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
-        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
-        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
-        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
+    elif task == "Student Assessment Assistant":
+        st.header("Student Assessment Assistant")
+        student_name = st.text_input("Enter Student Name:")
+        student_id = st.text_input("Enter Student ID:")
+        assessment_id = st.text_input("Enter Assessment ID:")
+        class_name = st.text_input("Enter Class:")
+        email_id = st.text_input("Enter Parent's Email ID:")
+        assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
 
-        if st.button("Generate Educational Content"):
-            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
-            st.write("### Generated Educational Content")
-            st.write(content)
-            file_name = f"{content_type}_{standard}.docx"
-            save_content_as_doc(content)
+        if st.button("Generate and Send Personalized Learning Material"):
+            if student_name and student_id and assessment_id and class_name and email_id and assessment_pdf:
+                # Step 1: Extract text from PDF
+                assessment_content = read_pdf(assessment_pdf)
+
+                # Step 2: Extract weak topics from the content
+                weak_topics = extract_weak_topics(assessment_content)
+
+                # If weak topics are identified, proceed to generate materials
+                if weak_topics:
+                    learning_material = generate_personalized_material(weak_topics)
+                    assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+
+                    # Save and send files as attachments
+                    save_content_as_doc(learning_material, "Learning_Material.docx")
+                    save_content_as_doc(assignment, "Assignment.docx")
+
+                    send_email_with_pdf(email_id, "Personalized Learning Material", "Attached learning material.", "Learning_Material.docx")
+                    send_email_with_pdf(email_id, "Personalized Assignment", "Attached assignment.", "Assignment.docx")
+                    st.success(f"Personalized materials have been sent to {email_id}.")
+                else:
+                    st.warning("No weak topics identified. Please ensure the assessment report is properly formatted.")
+
+
+    elif task == "Generate Image Based Questions":
+        st.header("Generate Image Based Questions")
+        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
+        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
+        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
+        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
+
+        if st.button("Generate Quiz Document"):
+            if num_questions < 5:
+                st.warning("Minimum number of questions is 5. Setting to 5.")
+                num_questions = 5
+            quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
+            st.success(f"Quiz generated and saved as '{quiz_filename}'")
+            with open(quiz_filename, "rb") as file:
+                st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+
+if __name__ == "__main__":
+    main()
