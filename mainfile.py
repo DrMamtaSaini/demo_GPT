@@ -376,8 +376,8 @@ def main_app():
 def main():
     if st.session_state['logged_in']:
         main_app()  # Show main app content if logged in
-    else:
-        login_page()  # Show login page if not logged in
+    #else:
+     #   login_page()  # Show login page if not logged in
     
 
 if __name__ == "__main__":
