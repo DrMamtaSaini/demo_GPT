@@ -13,6 +13,7 @@ import json
 from docx.shared import Inches
 from io import BytesIO
 import requests
+from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
 
 openai.api_key = st.secrets["openai_api_key"]
 
@@ -106,8 +107,41 @@ def send_email_with_pdf(to_email, subject, body, file_name):
     server.quit()
     st.success(f"Email sent to {to_email} with the attached PDF report!")
 
+st.markdown("""
+    <style>
+        body { background-color: #F0F2F6; }
+        .stApp { color: #4B0082; }
+        .sidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
+        h1, h2, h3, h4 { color: #4B0082; }
+        .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; width: 100%; padding: 10px; font-size: 16px; }
+        .stButton>button:hover { background-color: #483D8B; color: white; }
+        .stFileUploader { color: #4B0082; }
+        .stMarkdown { color: #4B0082; }
+        .stAlert, .stSuccess { color: #228B22; background-color: #E0FFE0; border-radius: 8px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Function to read PDF content
+def read_pdf(file):
+    pdf_reader = PdfReader(file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
     prompt = f"Create learning material covering the following topics where the student needs improvement: {', '.join(weak_topics)}. Provide detailed explanations and examples for each topic."
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
+# Function to generate personalized assignments based on weak topics
+def generate_personalized_assignment(weak_topics, include_solutions):
+    solution_text = "Include detailed solutions for each question." if include_solutions else "Provide only the questions without solutions."
+    prompt = f"Create an assignment for the following topics where the student needs improvement: {', '.join(weak_topics)}. {solution_text}"
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
@@ -202,15 +236,7 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 
 
-# Function to generate personalized assignments based on weak topics
-def generate_personalized_assignment(weak_topics, include_solutions):
-    solution_text = "Include detailed solutions for each question." if include_solutions else "Provide only the questions without solutions."
-    prompt = f"Create an assignment for the following topics where the student needs improvement: {', '.join(weak_topics)}. {solution_text}"
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response['choices'][0]['message']['content']
+
 
 
 
@@ -350,23 +376,44 @@ def main():
 
     elif task == "Personalized Learning Material":
         st.header("Personalized Learning Material")
-        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
-        if st.button("Generate Personalized Material and Assignment"):
-            if assessment_report:
-                report_content = read_docx(assessment_report)
-                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
+        email_id = st.text_input("Enter Parent's Email ID:")
+        assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+
+        if st.button("Generate and Send Personalized Learning Material"):
+            if email_id and assessment_pdf:
+                assessment_content = read_pdf(assessment_pdf)
+
+                # Identify weak topics based on keywords in the PDF content
+                weak_topics = []
+                for line in assessment_content.splitlines():
+                    if "Concepts not cleared" in line or "needs improvement" in line:
+                        parts = line.split(":")
+                        if len(parts) > 1:
+                            weak_topics += [topic.strip() for topic in parts[1].split(",")]
+
+                weak_topics = list(set(weak_topics))
+                st.subheader("Identified Weak Topics")
+                st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
+
+                # Generate personalized material and assignment
                 if weak_topics:
                     learning_material = generate_personalized_material(weak_topics)
-                    assignment_content = generate_personalized_material(weak_topics)
-                    learning_material_docx = f"Learning_Material.docx"
-                    assignment_docx = f"Assignment.docx"
-                    save_content_as_doc(learning_material, learning_material_docx)
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    with open(learning_material_docx, "rb") as file:
-                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
-                    with open(assignment_docx, "rb") as file:
-                        st.download_button(label="Download Assignment", data=file, file_name=assignment_docx)
+                    assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+
+                    st.subheader("Generated Learning Material")
+                    st.write(learning_material)
+                    st.subheader("Generated Assignment")
+                    st.write(assignment)
+
+                    # Save as Word documents
+                    save_content_as_doc(learning_material, "Learning_Material.docx")
+                    save_content_as_doc(assignment, "Assignment.docx")
+
+                    # Send email with attached documents
+                    send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", "Learning_Material.docx")
+                    send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", "Assignment.docx")
+                    st.success(f"Personalized materials have been sent to {email_id}.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
