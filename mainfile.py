@@ -285,37 +285,88 @@ def main_app():
         st.session_state['api_key'] = None
         st.experimental_rerun()
 
-    if task == "Home":
-        st.title("EduCreate Pro")
-        st.markdown("""
-            <div style='text-align: center; font-size: 18px; color: #4B0082;'>
-                Your all-in-one platform for creating educational content, lesson plans, and student assessments, Image Based Questions.
-            </div>
-        """, unsafe_allow_html=True)
-        col1, col2, col3,col4,col5 = st.columns(5)
-        with col1:
+    # Home Page UI and Layout Improvements
+    elif task == "Home":
+        st.markdown(
+        """
+        <style>
+            body { background-color: #F0F2F6; }
+            .stApp { color: #4B0082; }
+            .option-card { 
+                background-color: #E0E8F6; 
+                padding: 20px; 
+                margin: 10px; 
+                border-radius: 10px; 
+                text-align: center;
+                box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            }
+            .option-card:hover { 
+                background-color: #d1d9f5; 
+                cursor: pointer; 
+                transition: background-color 0.3s ease;
+            }
+            .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; padding: 10px 20px; font-size: 18px; }
+            .stButton>button:hover { background-color: #483D8B; }
+            .stSidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
+            h1, h2, h3, h4 { color: #4B0082; }
+            .center { text-align: center; }
+        </style>
+        """, 
+        unsafe_allow_html=True
+    )
+
+    st.title("EduCreate Pro")
+
+    # Create a row of options with custom styled cards
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        with st.container():
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Content Creator")
             st.write("Generate quizzes, sample papers, and assignments.")
-        with col2:
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        with st.container():
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Lesson Planner")
             st.write("Create detailed lesson plans with learning objectives and materials.")
-        with col3:
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with col3:
+        with st.container():
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
-        with col4:
-            st.subheader("Personalised Learning Material")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    col4, col5 = st.columns(2)
+
+    with col4:
+        with st.container():
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Personalized Learning Material")
             st.write("Generate learning material and assignment based on your assessment report.")
-        with col5:
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with col5:
+        with st.container():
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Image Based Question Generator")
-            st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type)")
-        
-        st.markdown("""
-            <div style='text-align: center; margin-top: 30px;'>
-                <button style="padding: 15px; font-size: 16px; background-color: #6A5ACD; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    Get Started Today
-                </button>
-            </div>
-        """, unsafe_allow_html=True)
+            st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    # Centered 'Get Started Today' button with link to Content Creator section
+    st.markdown('<div class="center">', unsafe_allow_html=True)
+    if st.button("Get Started Today"):
+        st.session_state['task'] = "Create Educational Content"
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Update task selection based on "Get Started Today" click
+    if st.session_state.get('task') == "Create Educational Content":
+        task = "Create Educational Content"
+
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
@@ -440,7 +491,7 @@ def main_app():
 
 def main():
     if st.session_state['logged_in']:
-        st.write(f"Welcome, {st.session_state['school_id']}")
+        #st.write(f"Welcome, {st.session_state['school_id']}")
        # API Key: {st.session_state['api_key']}
         openai.api_key = st.session_state['api_key']  # Set OpenAI key
         main_app()
