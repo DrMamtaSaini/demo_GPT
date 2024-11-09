@@ -368,7 +368,8 @@ def main_app():
 
 def main():
     if st.session_state['logged_in']:
-        st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
+        st.write(f"Welcome, {st.session_state['school_id']}")
+       # API Key: {st.session_state['api_key']}
         openai.api_key = st.session_state['api_key']  # Set OpenAI key
         main_app()
     else:
