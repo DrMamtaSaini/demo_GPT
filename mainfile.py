@@ -15,6 +15,30 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
 
+
+# Define a single user login with a username and password
+USER_CREDENTIALS = {"username": "admin", "password": "password123"}
+
+# Initialize session state for login status
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+
+# Login Page
+def login_page():
+    st.title("Login Page")
+
+    # Input fields for username and password
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    # Login button
+    if st.button("Login"):
+        if username == USER_CREDENTIALS["username"] and password == USER_CREDENTIALS["password"]:
+            st.session_state['logged_in'] = True  # Set the logged-in state
+        else:
+            st.error("Invalid username or password.")
+
+
 openai.api_key = st.secrets["openai_api_key"]
 
 # Function to fetch images based on topic and subtopics
@@ -224,7 +248,7 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
     return response['choices'][0]['message']['content']
 
 # Main function
-def main():
+def main_app():
     # Apply custom CSS for an attractive UI
     st.markdown("""
     <style>
@@ -242,6 +266,9 @@ def main():
 
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant","Personalized Learning Material","Generate Image Based Questions"])
+ # Add the logout button in the sidebar
+    if st.sidebar.button("Logout"):
+        st.session_state['logged_in'] = False  # Reset login status
 
     if task == "Home":
         st.title("EduCreate Pro")
@@ -322,6 +349,15 @@ def main():
             st.success(f"Quiz generated and saved as '{quiz_filename}'")
             with open(quiz_filename, "rb") as file:
                 st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+   
+
+def main():
+    if st.session_state['logged_in']:
+        main_app()  # Show main app content if logged in
+    else:
+        login_page()  # Show login page if not logged in
+    
 
 if __name__ == "__main__":
     main()
+  
