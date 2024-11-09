@@ -386,6 +386,7 @@ def main():
 
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
+    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -495,7 +496,11 @@ def main():
                 # Selection checkboxes for Learning Material and Assignment
                 include_learning_material = st.checkbox("Generate and Download Learning Material")
                 include_assignment = st.checkbox("Generate and Download Assignment")
-                
+
+                # Variables to hold filenames for emailing
+                learning_material_docx, learning_material_pdf = None, None
+                assignment_docx, assignment_pdf = None, None
+
                 if include_learning_material:
                     # Generate personalized learning material
                     learning_material = generate_personalized_material(weak_topics)
@@ -507,16 +512,6 @@ def main():
                     learning_material_pdf = f"{student_name}_Learning_Material.pdf"
                     save_content_as_doc(learning_material, learning_material_docx)
                     generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
-
-                    # Download button for learning material
-                    with open(learning_material_docx, "rb") as file:
-                        st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
-                    with open(learning_material_pdf, "rb") as file:
-                        st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
-                    
-                    # Option to email learning material
-                    if st.button("Email Learning Material"):
-                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material for your child.", learning_material_docx)
 
                 if include_assignment:
                     # Choose if solutions should be included in the assignment
@@ -531,19 +526,31 @@ def main():
                     save_content_as_doc(assignment_content, assignment_docx)
                     generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
 
-                    # Download button for assignment
+                # Buttons for downloading selected documents
+                if include_learning_material:
+                    with open(learning_material_docx, "rb") as file:
+                        st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
+                    with open(learning_material_pdf, "rb") as file:
+                        st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
+                    
+                if include_assignment:
                     with open(assignment_docx, "rb") as file:
                         st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
                     with open(assignment_pdf, "rb") as file:
                         st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
                     
-                    # Option to email assignment
-                    if st.button("Email Assignment"):
-                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment for your child.", assignment_docx)
+                # Button to send selected documents via email
+                if st.button("Send Selected Documents to Parent's Email"):
+                    if include_learning_material:
+                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached personalized learning material for your child.", learning_material_docx)
+                    if include_assignment:
+                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached personalized assignment for your child.", assignment_docx)
+                    st.success("Selected documents have been emailed to the parent.")
             else:
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 # Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
