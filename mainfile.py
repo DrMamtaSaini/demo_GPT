@@ -59,21 +59,7 @@ def get_client_config(client_id):
 
 
 
-# Retrieve client configuration using the session-stored client_id after login
-if 'client_id' in st.session_state:
-    client_config = get_client_config(st.session_state['client_id'])
 
-    # Display logo with smaller width and reduce spacing
-    st.image(client_config["logo"], width=120)
-
-    # Display client-specific name with gradient background
-    st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-        </div>
-    """, unsafe_allow_html=True)
-else:
-    login_page()  # Show login page if client_id is not set
 
 
 
@@ -538,7 +524,21 @@ def main():
     else:
         login_page()  # Show login page if not logged in
     
+    # Retrieve client configuration using the session-stored client_id after login
+if 'client_id' in st.session_state:
+    client_config = get_client_config(st.session_state['client_id'])
 
+    # Display logo with smaller width and reduce spacing
+    st.image(client_config["logo"], width=120)
+
+    # Display client-specific name with gradient background
+    st.markdown(f"""
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+        </div>
+    """, unsafe_allow_html=True)
+else:
+    login_page()  # Show login page if client_id is not set
 if __name__ == "__main__":
     main()
   
