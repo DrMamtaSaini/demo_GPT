@@ -260,9 +260,8 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
-    def main_app():
-    # Apply custom CSS for an attractive UI
-        st.markdown("""
+     # Apply custom CSS for an attractive UI
+    st.markdown("""
     <style>
         body { background-color: #F0F2F6; }
         .stApp { color: #4B0082; }
@@ -306,54 +305,37 @@ def main_app():
             </div>
         """, unsafe_allow_html=True)
 
-        # Create a row of options with custom styled cards
+        # Create a row of options with buttons that act like clickable cards
         col1, col2, col3 = st.columns(3)
 
-        with col1:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Content Creator")
-                st.write("Generate quizzes, sample papers, and assignments.")
-                st.markdown('</div>', unsafe_allow_html=True)
+        if col1.button("Content Creator", key="content_creator"):
+            st.session_state['task'] = "Create Educational Content"  # Set session state to trigger the correct section
+            st.experimental_rerun()
 
-        with col2:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Lesson Planner")
-                st.write("Create detailed lesson plans with learning objectives and materials.")
-                st.markdown('</div>', unsafe_allow_html=True)
+        if col2.button("Lesson Planner", key="lesson_planner"):
+            st.session_state['task'] = "Create Lesson Plan"
+            st.experimental_rerun()
 
-        with col3:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Assessment Assistant")
-                st.write("Generate comprehensive student assessments and progress reports.")
-                st.markdown('</div>', unsafe_allow_html=True)
+        if col3.button("Assessment Assistant", key="assessment_assistant"):
+            st.session_state['task'] = "Student Assessment Assistant"
+            st.experimental_rerun()
 
         col4, col5 = st.columns(2)
 
-        with col4:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Personalized Learning Material")
-                st.write("Generate learning material and assignment based on your assessment report.")
-                st.markdown('</div>', unsafe_allow_html=True)
+        if col4.button("Personalized Learning Material", key="personalized_learning"):
+            st.session_state['task'] = "Personalized Learning Material"
+            st.experimental_rerun()
 
-        with col5:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Image Based Question Generator")
-                st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
-                st.markdown('</div>', unsafe_allow_html=True)
+        if col5.button("Image Based Question Generator", key="image_based"):
+            st.session_state['task'] = "Generate Image Based Questions"
+            st.experimental_rerun()
 
-        # Centered 'Get Started Today' button with link to Content Creator section
-        st.markdown("""
-            <div style='text-align: center; margin-top: 30px;'>
-                <button style="padding: 15px; font-size: 16px; background-color: #6A5ACD; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    Get Started Today
-                </button>
-            </div>
-        """, unsafe_allow_html=True)
+        # Centered 'Get Started Today' button with message on click
+        st.markdown('<div class="center">', unsafe_allow_html=True)
+        if st.button("Get Started Today"):
+            st.warning("Choose one task from the menu on the left to get started.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
@@ -506,21 +488,46 @@ def main_app():
                 st.error("Please provide all required inputs.")
     elif task == "Personalized Learning Material":
         st.header("Personalized Learning Material")
-        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
-        if st.button("Generate Personalized Material and Assignment"):
-            if assessment_report:
-                report_content = read_docx(assessment_report)
-                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
-                if weak_topics:
-                    learning_material = generate_personalized_material(weak_topics)
-                    assignment_content = generate_personalized_material(weak_topics)
-                    learning_material_docx = f"Learning_Material.docx"
-                    assignment_docx = f"Assignment.docx"
-                    save_content_as_doc(learning_material, learning_material_docx)
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    with open(learning_material_docx, "rb") as file:
-                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
+    email_id = st.text_input("Enter Parent's Email ID:")
+    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+
+    if st.button("Generate and Send Personalized Learning Material"):
+        if email_id and assessment_pdf:
+            # Step 1: Extract text from PDF
+            assessment_content = read_pdf(assessment_pdf)
+
+            # Step 2: Display extracted content for debugging
+            st.subheader("Extracted PDF Content (for Debugging)")
+            st.text(assessment_content)  # Display full content in plain text format
+
+            # Step 3: Display each line individually to diagnose line structure
+            st.subheader("Each Line of PDF Content:")
+            for i, line in enumerate(assessment_content.splitlines()):
+                st.write(f"Line {i+1}: {line}")  # Print each line to observe structure
+
+            # Step 4: Try to extract weak topics dynamically based on displayed content
+            weak_topics = extract_weak_topics(assessment_content)
+            st.subheader("Identified Weak Topics")
+            st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
+
+            # If weak topics are identified, proceed to generate materials
+            if weak_topics:
+                learning_material = generate_personalized_material(weak_topics)
+                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+
+                st.subheader("Generated Learning Material")
+                st.write(learning_material)
+                st.subheader("Generated Assignment")
+                st.write(assignment)
+
+                # Save and send files as attachments
+                save_content_as_doc(learning_material, "Learning_Material.docx")
+                save_content_as_doc(assignment, "Assignment.docx")
+
+                send_email_with_pdf(email_id, "Personalized Learning Material", "Attached learning material.", "Learning_Material.docx")
+                send_email_with_pdf(email_id, "Personalized Assignment", "Attached assignment.", "Assignment.docx")
+                st.success(f"Personalized materials have been sent to {email_id}.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
