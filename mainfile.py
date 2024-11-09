@@ -31,8 +31,9 @@ def login_page():
     st.title("School Login")
     
     # Input fields
-    school_username = st.text_input("Username")
-    school_password = st.text_input("Password", type="password")
+    school_username = st.text_input("Username", key="school_username")
+    school_password = st.text_input("Password", type="password", key="school_password")
+
     
     if st.button("Login"):
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
@@ -52,10 +53,10 @@ def login_page():
 if not st.session_state['logged_in']:
     login_page()
 else:
-    st.write(f"Welcome, {st.session_state['school_id']}! openai.api_key: {st.session_state['api_key']}")
+    st.write(f"Welcome, {st.session_state['school_id']}! api_key: {st.session_state['api_key']}")
 
  
-#openai.api_key = st.secrets["openai_api_key"]
+openai.api_key = {st.session_state['api_key']}
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -108,7 +109,8 @@ def get_client_config(client_id):
     default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
     return clients_config.get(client_id, default_config)
 
-client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
+#client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
+client_id = st.query_params.get("client_id", ["default"])[0]
 
 client_config = get_client_config(client_id)
 st.image(client_config["logo"], width=200)
