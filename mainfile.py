@@ -15,8 +15,6 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
 
-
-
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
 # Initialize session states for login
@@ -31,9 +29,8 @@ def login_page():
     st.title("School Login")
     
     # Input fields
-    school_username = st.text_input("Username")
-    school_password = st.text_input("Password", type="password")
-
+    school_username = st.text_input("Username", key="school_username")
+    school_password = st.text_input("Password", type="password", key="school_password")
     
     if st.button("Login"):
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
@@ -45,18 +42,22 @@ def login_page():
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
                 st.success("Login successful!")
+                
+                # Trigger a rerun to display main content after login
                 st.experimental_rerun()
                 return
 
         # If login fails
         st.error("Invalid credentials. Please try again.")
+
 if not st.session_state['logged_in']:
     login_page()
 else:
-    st.write(f"Welcome, {st.session_state['school_id']}! api_key: {st.session_state['api_key']}")
+    st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
 
- 
-openai.api_key = st.session_state['api_key']
+# Set the OpenAI API key
+openai.api_key = st.session_state.get('api_key', '')
+
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -110,13 +111,10 @@ def get_client_config(client_id):
     return clients_config.get(client_id, default_config)
 
 client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
-#client_id = st.query_params.get("client_id", ["default"])[0]
-
 client_config = get_client_config(client_id)
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
 st.markdown(f"<style>.main {{ background-color: {client_config['theme_color']}; }}</style>", unsafe_allow_html=True)
-
 # Function to generate a PDF file for reports
 def generate_pdf(content, title, file_name):
     pdf = FPDF()
@@ -376,8 +374,8 @@ def main_app():
 def main():
     if st.session_state['logged_in']:
         main_app()  # Show main app content if logged in
-    #else:
-     #   login_page()  # Show login page if not logged in
+    else:
+        login_page()  # Show login page if not logged in
     
 
 if __name__ == "__main__":
