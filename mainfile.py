@@ -121,7 +121,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Function to read PDF content
+# Function to read PDF content more accurately
 def read_pdf(file):
     pdf_reader = PdfReader(file)
     text = ""
@@ -131,16 +131,19 @@ def read_pdf(file):
             text += page_text
     return text
 
-# Function to identify weak topics in assessment content
-def identify_weak_topics(assessment_content):
+# Improved logic to extract weak topics
+def extract_weak_topics(assessment_content):
     weak_topics = []
+    # Scan for keywords indicating weak topics; adjust phrases based on report language
     for line in assessment_content.splitlines():
-        # Look for keywords that may indicate weaknesses
-        if "Concepts not cleared" in line or "needs improvement" in line or "weak in" in line.lower():
+        if "Areas for Improvement" in line or "Concept Clarity: No" in line:
             parts = line.split(":")
             if len(parts) > 1:
                 weak_topics += [topic.strip() for topic in parts[1].split(",")]
-    return list(set(weak_topics))  # Remove duplicates if any
+    
+    # Ensure unique weak topics
+    return list(set(weak_topics))
+
 
 
 # Function to generate personalized learning material based on weak topics
@@ -400,8 +403,8 @@ def main():
                 assessment_content = read_pdf(assessment_pdf)
 
                 # Identify weak topics based on PDF content
-                weak_topics = identify_weak_topics(assessment_content)
-                st.subheader("Identified Weak Topics")
+                weak_topics = extract_weak_topics(assessment_content)
+                st.subheader("Extract Weak Topics")
                 st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
 
                 # Generate personalized material and assignment if weak topics found
