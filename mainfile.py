@@ -347,11 +347,13 @@ def main_app():
                 st.markdown('</div>', unsafe_allow_html=True)
 
         # Centered 'Get Started Today' button with link to Content Creator section
-        st.markdown('<div class="center">', unsafe_allow_html=True)
-        if st.button("Get Started Today"):
-            st.session_state['task'] = "Create Educational Content"
-            st.experimental_rerun()  # Rerun the app to directly show the selected section
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("""
+            <div style='text-align: center; margin-top: 30px;'>
+                <button style="padding: 15px; font-size: 16px; background-color: #6A5ACD; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Get Started Today
+                </button>
+            </div>
+        """, unsafe_allow_html=True)
 
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
@@ -502,6 +504,23 @@ def main_app():
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
                 st.error("Please provide all required inputs.")
+    elif task == "Personalized Learning Material":
+        st.header("Personalized Learning Material")
+        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
+
+        if st.button("Generate Personalized Material and Assignment"):
+            if assessment_report:
+                report_content = read_docx(assessment_report)
+                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
+                if weak_topics:
+                    learning_material = generate_personalized_material(weak_topics)
+                    assignment_content = generate_personalized_material(weak_topics)
+                    learning_material_docx = f"Learning_Material.docx"
+                    assignment_docx = f"Assignment.docx"
+                    save_content_as_doc(learning_material, learning_material_docx)
+                    save_content_as_doc(assignment_content, assignment_docx)
+                    with open(learning_material_docx, "rb") as file:
+                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
