@@ -451,13 +451,25 @@ def main():
             st.write("### Assessment Report")
             st.write(report)
             
-            # Automatically extract weak topics from the assessment report
+            # Automatically extract weak topics and subtopics from the assessment report
             weak_topics = []
-            for line in report.splitlines():
+            lines = report.splitlines()
+            for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Assuming topic is mentioned before "Concept Clarity"
-                    topic = line.split("-")[1].strip()
-                    weak_topics.append(topic)
+                    # Try to capture the topic and subtopic from previous lines or within the same line
+                    topic_line = lines[i - 1] if i > 0 else ""
+                    subtopic_line = lines[i - 2] if i > 1 else ""
+                    
+                    # Assuming "Topic:" and "Subtopic:" keywords are in lines above
+                    topic = topic_line.split(":")[1].strip() if "Topic" in topic_line else "Unknown Topic"
+                    subtopic = subtopic_line.split(":")[1].strip() if "Subtopic" in subtopic_line else "Unknown Subtopic"
+                    
+                    # Combine topic and subtopic to create a more specific weak topic entry
+                    weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
+                    weak_topics.append(weak_topic)
+
+            # Ensure unique weak topics to avoid duplicates
+            weak_topics = list(set(weak_topics))
 
             # Generate PDF
             file_name = f"assessment_report_{student_id}.pdf"
@@ -530,6 +542,7 @@ def main():
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 # Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
