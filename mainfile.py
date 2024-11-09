@@ -17,26 +17,39 @@ from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
 
 
 
-# Define a single user login with a username and password
-USER_CREDENTIALS = {"username": "admin", "password": "password123"}
+SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
-# Initialize session state for login status
+# Initialize session states for login
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
+if 'school_id' not in st.session_state:
+    st.session_state['school_id'] = None
+if 'api_key' not in st.session_state:
+    st.session_state['api_key'] = None
 
-# Login Page
 def login_page():
-    st.title("Login Page")
-    username = st.text_input("Username", key="username_input")
-    password = st.text_input("Password", type="password", key="password_input")
-
-   
-    # Login button
+    st.title("School Login")
+    
+    # Input fields
+    school_username = st.text_input("Username")
+    school_password = st.text_input("Password", type="password")
+    
     if st.button("Login"):
-        if username == USER_CREDENTIALS["username"] and password == USER_CREDENTIALS["password"]:
-            st.session_state['logged_in'] = True  # Set the logged-in state
-        else:
-            st.error("Invalid username or password.")
+        for school_id, credentials in SCHOOL_CREDENTIALS.items():
+            if (school_username == credentials["username"] and 
+                school_password == credentials["password"]):
+                
+                # Set session state for school_id and api_key
+                st.session_state['logged_in'] = True
+                st.session_state['school_id'] = school_id
+                st.session_state['api_key'] = credentials["api_key"]
+                st.success("Login successful!")
+                st.experimental_rerun()
+                return
+
+        # If login fails
+        st.error("Invalid credentials. Please try again.")
+
 
 
 openai.api_key = st.secrets["openai_api_key"]
