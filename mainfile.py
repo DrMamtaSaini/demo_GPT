@@ -354,10 +354,38 @@ def main():
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
     # Section 2: Lesson Plan Creation
-    # Student Assessment Assistant Section
+    elif task == "Create Lesson Plan":
+        st.header("Lesson Plan Creation")
+
+        # Collect lesson plan details
+        subject = st.text_input("Enter Subject:")
+        grade = st.text_input("Enter Class/Grade:")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+        topic = st.text_input("Enter Lesson Topic:")
+
+        if st.button("Generate Lesson Plan"):
+            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
+            
+            # Save lesson plan as a Word document
+            docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
+            save_content_as_doc(lesson_plan, docx_file_name)
+            
+            # Save lesson plan as a PDF
+            pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
+            generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
+            
+            # Download buttons for the lesson plan documents
+            with open(docx_file_name, "rb") as docx_file:
+                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
+                
+            with open(pdf_file_name, "rb") as pdf_file:
+                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
+
     
-    # Student Assessment Assistant Section
-    # Student Assessment Assistant Section
+    
     # Updated Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
@@ -426,17 +454,21 @@ def main():
             st.write("### Assessment Report")
             st.write(report)
             
-            # Automatically extract weak topics and subtopics from the assessment report
+            # Automatically extract weak topics from the assessment report
             weak_topics = []
             for line in report.splitlines():
                 if "Concept Clarity: No" in line:
-                    # Look for lines mentioning "Topic" and "Subtopic" above the "Concept Clarity: No"
-                    topic = subtopic = None
-                    if "Topic:" in line:
-                        topic = line.split("Topic:")[1].strip()
-                    if "Subtopic:" in line:
-                        subtopic = line.split("Subtopic:")[1].strip()
-                    weak_topic = f"{topic or 'General'} - {subtopic or 'General'}"
+                    # Check the previous lines for Topic/Subtopic keywords
+                    topic_line = subtopic_line = ""
+                    for prev_line in reversed(report.splitlines()[:report.splitlines().index(line)]):
+                        if "Topic:" in prev_line:
+                            topic_line = prev_line.split("Topic:")[1].strip()
+                        if "Subtopic:" in prev_line:
+                            subtopic_line = prev_line.split("Subtopic:")[1].strip()
+                        if topic_line and subtopic_line:
+                            break
+                    # Combine topic and subtopic
+                    weak_topic = f"{topic_line} - {subtopic_line}" if subtopic_line else topic_line
                     weak_topics.append(weak_topic)
 
             # Remove duplicates and display weak topics
@@ -465,12 +497,12 @@ def main():
             st.success(f"Email sent to {email_id} with the attached PDF report!")
 
             # Provide buttons to generate and email/download personalized documents
-            generate_materials = st.button("Generate Personalized Learning Material and Assignment")
-            download_materials = st.button("Download All Personalized Documents")
-            email_materials = st.button("Generate and Email All Personalized Documents")
+            generate_personalized = st.button("Generate Personalized Learning Material and Assignment")
+            download_documents = st.button("Download All Personalized Documents")
+            email_documents = st.button("Generate and Email All Personalized Documents")
 
-            # If weak topics exist, generate personalized documents
-            if weak_topics and generate_materials:
+            # Generate learning material and assignment only if weak topics are identified
+            if weak_topics and generate_personalized:
                 # Generate personalized learning material and assignment
                 learning_material = generate_personalized_material(weak_topics)
                 include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
@@ -490,7 +522,7 @@ def main():
 
                 st.success("Personalized materials generated successfully.")
 
-            if download_materials:
+            if download_documents:
                 # Download learning material
                 with open(learning_material_docx, "rb") as file:
                     st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
@@ -503,12 +535,13 @@ def main():
                 with open(assignment_pdf, "rb") as file:
                     st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
 
-            if email_materials:
+            if email_documents:
                 send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached personalized learning material for your child.", learning_material_docx)
                 send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached personalized assignment for your child.", assignment_docx)
                 st.success(f"Personalized documents emailed to {email_id}.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 
