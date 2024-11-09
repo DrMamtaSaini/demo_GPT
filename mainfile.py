@@ -385,6 +385,7 @@ def main():
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
     # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
+    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -456,19 +457,20 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Try to capture the topic and subtopic from previous lines or within the same line
-                    topic_line = lines[i - 1] if i > 0 else ""
-                    subtopic_line = lines[i - 2] if i > 1 else ""
+                    # Capture topic and subtopic by checking surrounding lines
+                    topic = "Unknown Topic"
+                    subtopic = "Unknown Subtopic"
+                    for j in range(max(0, i - 3), i):
+                        if "Topic:" in lines[j]:
+                            topic = lines[j].split("Topic:")[1].strip()
+                        if "Subtopic:" in lines[j]:
+                            subtopic = lines[j].split("Subtopic:")[1].strip()
                     
-                    # Assuming "Topic:" and "Subtopic:" keywords are in lines above
-                    topic = topic_line.split(":")[1].strip() if "Topic" in topic_line else "Unknown Topic"
-                    subtopic = subtopic_line.split(":")[1].strip() if "Subtopic" in subtopic_line else "Unknown Subtopic"
-                    
-                    # Combine topic and subtopic to create a more specific weak topic entry
+                    # Combine topic and subtopic to create a specific weak topic entry
                     weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
                     weak_topics.append(weak_topic)
 
-            # Ensure unique weak topics to avoid duplicates
+            # Remove duplicate weak topics
             weak_topics = list(set(weak_topics))
 
             # Generate PDF
@@ -543,7 +545,6 @@ def main():
         else:
             st.error("Please provide all required inputs.")
 
-
 # Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
@@ -568,7 +569,7 @@ def main():
         with open(quiz_filename, "rb") as file:
             st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
 
-
-
 if __name__ == "__main__":
     main()
+
+
