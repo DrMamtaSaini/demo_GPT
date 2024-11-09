@@ -27,11 +27,10 @@ if 'logged_in' not in st.session_state:
 # Login Page
 def login_page():
     st.title("Login Page")
+    username = st.text_input("Username", key="username_input")
+    password = st.text_input("Password", type="password", key="password_input")
 
-    # Input fields for username and password
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
+   
     # Login button
     if st.button("Login"):
         if username == USER_CREDENTIALS["username"] and password == USER_CREDENTIALS["password"]:
@@ -94,6 +93,7 @@ def get_client_config(client_id):
     return clients_config.get(client_id, default_config)
 
 client_id = st.query_params().get("client_id", ["default"])[0]
+
 client_config = get_client_config(client_id)
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
