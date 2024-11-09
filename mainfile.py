@@ -260,8 +260,9 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
-     # Apply custom CSS for an attractive UI
-    st.markdown("""
+    def main_app():
+    # Apply custom CSS for an attractive UI
+        st.markdown("""
     <style>
         body { background-color: #F0F2F6; }
         .stApp { color: #4B0082; }
@@ -298,44 +299,58 @@ def main_app():
 
     # Home Page Layout with Cards
     if task == "Home":
-        st.title("EduCreate Pro")
+        #st.title("EduCreate Pro")
         st.markdown("""
             <div style='text-align: center; font-size: 18px; color: #4B0082;'>
                 Your all-in-one platform for creating educational content, lesson plans, and student assessments.
             </div>
         """, unsafe_allow_html=True)
 
-        # Create a row of options with buttons that act like clickable cards
+        # Create a row of options with custom styled cards
         col1, col2, col3 = st.columns(3)
 
-        if col1.button("Content Creator", key="content_creator"):
-            st.session_state['task'] = "Create Educational Content"  # Set session state to trigger the correct section
-            st.experimental_rerun()
+        with col1:
+            with st.container():
+                st.markdown('<div class="option-card">', unsafe_allow_html=True)
+                st.subheader("Content Creator")
+                st.write("Generate quizzes, sample papers, and assignments.")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        if col2.button("Lesson Planner", key="lesson_planner"):
-            st.session_state['task'] = "Create Lesson Plan"
-            st.experimental_rerun()
+        with col2:
+            with st.container():
+                st.markdown('<div class="option-card">', unsafe_allow_html=True)
+                st.subheader("Lesson Planner")
+                st.write("Create detailed lesson plans with learning objectives and materials.")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        if col3.button("Assessment Assistant", key="assessment_assistant"):
-            st.session_state['task'] = "Student Assessment Assistant"
-            st.experimental_rerun()
+        with col3:
+            with st.container():
+                st.markdown('<div class="option-card">', unsafe_allow_html=True)
+                st.subheader("Assessment Assistant")
+                st.write("Generate comprehensive student assessments and progress reports.")
+                st.markdown('</div>', unsafe_allow_html=True)
 
         col4, col5 = st.columns(2)
 
-        if col4.button("Personalized Learning Material", key="personalized_learning"):
-            st.session_state['task'] = "Personalized Learning Material"
-            st.experimental_rerun()
+        with col4:
+            with st.container():
+                st.markdown('<div class="option-card">', unsafe_allow_html=True)
+                st.subheader("Personalized Learning Material")
+                st.write("Generate learning material and assignment based on your assessment report.")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        if col5.button("Image Based Question Generator", key="image_based"):
-            st.session_state['task'] = "Generate Image Based Questions"
-            st.experimental_rerun()
+        with col5:
+            with st.container():
+                st.markdown('<div class="option-card">', unsafe_allow_html=True)
+                st.subheader("Image Based Question Generator")
+                st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        # Centered 'Get Started Today' button with message on click
+       # Centered 'Get Started Today' button with message on click
         st.markdown('<div class="center">', unsafe_allow_html=True)
         if st.button("Get Started Today"):
             st.warning("Choose one task from the menu on the left to get started.")
         st.markdown('</div>', unsafe_allow_html=True)
-
 
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
