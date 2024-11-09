@@ -14,13 +14,10 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 
-# Use Streamlit's secret management to securely load your API key
 openai.api_key = st.secrets["openai_api_key"]
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
-    # Example image generation code (e.g., from a specific API or service)
-    # Here, we’ll assume you use a free API that returns image URLs
     response = openai.Image.create(prompt=prompt, n=1, size="512x512")
     image_url = response['data'][0]['url']
     image_response = requests.get(image_url)
@@ -35,26 +32,18 @@ def generate_question(topic, class_level, question_type, subtopic):
     )
     return response['choices'][0]['message']['content']
 
-
 # Function to create quiz document
 def create_quiz_document(topic, class_level, num_questions, question_type):
     document = Document()
     document.add_heading(f'{topic} Quiz for {class_level}', level=1)
-    
-    # Example subtopics for a chosen topic (these could be dynamically generated as well)
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
     
-    # Generate questions based on subtopics
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
         question_text = generate_question(topic, class_level, question_type, subtopic)
-        
-        # Add image to document
         image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
         image = fetch_image(image_prompt)
         document.add_picture(image, width=Inches(2))
-        
-        # Add question and answer options
         document.add_paragraph(f'Q{i+1}: {question_text}')
         if question_type == "MCQ":
             document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
@@ -62,57 +51,80 @@ def create_quiz_document(topic, class_level, num_questions, question_type):
             document.add_paragraph("a) True\nb) False")
         elif question_type == "yes/no":
             document.add_paragraph("a) Yes\nb) No")
-        
-        document.add_paragraph("\n")  # Add space between questions
-    
-    # Add answer space at the end
+        document.add_paragraph("\n")
     document.add_paragraph("\nAnswers:\n")
     for i in range(num_questions):
         document.add_paragraph(f'Q{i+1}: ________________')
-    
-    # Save the document
     filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
 
-
-
-
-
-# Step 1: Load the client configuration file
+# Load client configuration
 with open("clients_config.json") as config_file:
     clients_config = json.load(config_file)
 
-# Step 2: Function to get client configuration or a default if client_id is not found
 def get_client_config(client_id):
-    default_config = {
-        "name": "Default Academy",
-        "logo": "https://path-to-default-logo.png",
-        "theme_color": "#000000"
-    }
+    default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
     return clients_config.get(client_id, default_config)
 
-# Step 3: Get client_id from the URL query parameter
 client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
 client_config = get_client_config(client_id)
-
-# Step 4: Display the customized content for each client
 st.image(client_config["logo"], width=200)
 st.title(f"Welcome to {client_config['name']}!")
 st.markdown(f"<style>.main {{ background-color: {client_config['theme_color']}; }}</style>", unsafe_allow_html=True)
 
+# Function to generate a PDF file for reports
+def generate_pdf(content, title, file_name):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, title, ln=True, align='C')
+    pdf.ln(10)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, content)
+    pdf.output(file_name)
 
+# Function to send an email with PDF attachment
+def send_email_with_pdf(to_email, subject, body, file_name):
+    from_email = st.secrets["email"]
+    password = st.secrets["password"]
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+    with open(file_name, "rb") as attachment:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(attachment.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename= {file_name}')
+        msg.attach(part)
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(from_email, password)
+    server.sendmail(from_email, to_email, msg.as_string())
+    server.quit()
+    st.success(f"Email sent to {to_email} with the attached PDF report!")
 
-st.markdown(
-    f"""
-    <style>
-    .main {{
-        background-color: {client_config["theme_color"]};
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+def generate_personalized_material(weak_topics):
+    prompt = f"Create learning material covering the following topics where the student needs improvement: {', '.join(weak_topics)}. Provide detailed explanations and examples for each topic."
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
+def save_content_as_doc(content, file_name):
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    doc.save(file_name)
+
+def read_docx(file):
+    doc = Document(file)
+    full_text = [para.text for para in doc.paragraphs]
+    return "\n".join(full_text)
+
 
 
 # Function to sanitize text by replacing unsupported characters
@@ -135,47 +147,11 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Generalized function to generate a PDF file for reports
-def generate_pdf(content, title, file_name):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, title, ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(0, 10, content)
-    pdf.output(file_name)
 
-# Function to send an email with PDF attachment
-def send_email_with_pdf(to_email, subject, body, file_name):
-    from_email = st.secrets["email"]
-    password = st.secrets["password"]
 
-    # Create the email message
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
 
-    # Attach the email body
-    msg.attach(MIMEText(body, 'plain'))
-
-    # Attach the PDF file
-    with open(file_name, "rb") as attachment:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(attachment.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename= {file_name}')
-        msg.attach(part)
-
-    # Send the email via Gmail's SMTP server
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(from_email, password)
-    server.sendmail(from_email, to_email, msg.as_string())
-    server.quit()
-
-    st.success(f"Email sent to {to_email} with the attached PDF report!")
+   
+   
 
 # Function to generate content for educational purposes
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
@@ -221,28 +197,10 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
         messages=[{"role": "system", "content": prompt}]
     )
     return response['choices'][0]['message']['content']
-# Function to read content from a DOCX file
-def read_docx(file):
-    doc = Document(file)
-    full_text = [para.text for para in doc.paragraphs]
-    return "\n".join(full_text)
-
-# Function to save content as a Word document
-def save_content_as_doc(content, file_name):
-    doc = Document()
-    for line in content.split("\n"):
-        doc.add_paragraph(line)
-    doc.save(file_name)
 
 
-# Function to generate personalized learning material based on weak topics
-def generate_personalized_material(weak_topics):
-    prompt = f"Create learning material covering the following topics where the student needs improvement: {', '.join(weak_topics)}. Provide detailed explanations and examples for each topic."
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response['choices'][0]['message']['content']
+
+
 
 # Function to generate personalized assignments based on weak topics
 def generate_personalized_assignment(weak_topics, include_solutions):
@@ -255,13 +213,6 @@ def generate_personalized_assignment(weak_topics, include_solutions):
     return response['choices'][0]['message']['content']
 
 
-# Function to read content from a DOCX file
-def read_docx(file):
-    doc = Document(file)
-    full_text = []
-    for para in doc.paragraphs:
-        full_text.append(para.text)
-    return '\n'.join(full_text)
 
 # Main function
 def main():
@@ -315,209 +266,121 @@ def main():
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
-        
-        # Collect basic information
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
         standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
         topics = st.text_input("Enter Topics (comma-separated):")
-        
-        # Choose content type
         content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
-
-        # Collect details based on content type
         total_marks = st.number_input("Enter Total Marks", min_value=1)
         time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
         question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
         difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
         category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
-
-        # Option to include solutions
         include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
 
         if st.button("Generate Educational Content"):
             content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
             st.write("### Generated Educational Content")
             st.write(content)
-            
-            # Save as Word document
             file_name = f"{content_type}_{standard}.docx"
             save_content_as_doc(content, file_name)
-            
-            # Download button for the document file
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
-    # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
-
-        # Collect lesson plan details
         subject = st.text_input("Enter Subject:")
         grade = st.text_input("Enter Class/Grade:")
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
         duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
         topic = st.text_input("Enter Lesson Topic:")
-
+        
         if st.button("Generate Lesson Plan"):
             lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
             st.write("### Generated Lesson Plan")
             st.write(lesson_plan)
-            
-            # Save lesson plan as a Word document
             docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
             save_content_as_doc(lesson_plan, docx_file_name)
-            
-            # Save lesson plan as a PDF
             pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
             generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
-            
-            # Download buttons for the lesson plan documents
             with open(docx_file_name, "rb") as docx_file:
                 st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
-                
             with open(pdf_file_name, "rb") as pdf_file:
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
-    
-    
-      # Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
+        student_name = st.text_input("Enter Student Name:")
+        student_id = st.text_input("Enter Student ID:")
+        assessment_id = st.text_input("Enter Assessment ID:")
+        class_name = st.text_input("Enter Class:")
+        email_id = st.text_input("Enter Parent's Email ID:")
+        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
+        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
+        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
-    # Collect student information
-    student_name = st.text_input("Enter Student Name:")
-    student_id = st.text_input("Enter Student ID:")
-    assessment_id = st.text_input("Enter Assessment ID:")
-    class_name = st.text_input("Enter Class:")
-    email_id = st.text_input("Enter Parent's Email ID:")
+        if st.button("Generate and Send PDF Report"):
+            if student_name and student_id and assessment_id and class_name and email_id and question_paper and marking_scheme and answer_sheet:
+                question_paper_content = read_docx(question_paper)
+                marking_scheme_content = read_docx(marking_scheme)
+                answer_sheet_content = read_docx(answer_sheet)
+                prompt = f"""
+                Evaluate the student's answers based on the question paper, marking scheme, and answer sheet provided.
+                Student Name: {student_name}, ID: {student_id}, Class: {class_name}, Assessment ID: {assessment_id}
+                Question Paper: {question_paper_content}, Marking Scheme: {marking_scheme_content}, Answer Sheet: {answer_sheet_content}.
+                Provide analysis including topic, subtopic, question number, score, concept clarity, feedback, final score, and grade.
+                """
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "system", "content": prompt}]
+                )
+                report = response['choices'][0]['message']['content']
+                st.write("### Assessment Report")
+                st.write(report)
+                weak_topics = [line.split(":")[1].strip() for line in report.splitlines() if "needs improvement" in line]
+                st.subheader("Identified Weak Topics")
+                st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
+                report_pdf_file = f"assessment_report_{student_id}.pdf"
+                generate_pdf(report, "Assessment Report", report_pdf_file)
+                with open(report_pdf_file, "rb") as file:
+                    st.download_button(label="Download Report as PDF", data=file, file_name=report_pdf_file)
+                send_email_with_pdf(email_id, "Assessment Report", "Here is the student's assessment report.", report_pdf_file)
 
-    # Upload files
-    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
-    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
-    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
+    elif task == "Personalized Learning Material":
+        st.header("Personalized Learning Material")
+        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
-    # Generate assessment report
-    if st.button("Generate and Send PDF Report"):
-        if student_name and student_id and assessment_id and class_name and email_id and question_paper and marking_scheme and answer_sheet:
-            # Read uploaded DOCX files
-            question_paper_content = read_docx(question_paper)
-            marking_scheme_content = read_docx(marking_scheme)
-            answer_sheet_content = read_docx(answer_sheet)
-
-            # Define prompt for generating assessment report
-            prompt = f"""
-            You are an educational assessment assistant. Evaluate the student's answers based on the question paper, marking scheme, and answer sheet provided.
-
-            Student Name: {student_name}
-            Student ID: {student_id}
-            Class: {class_name}
-            Assessment ID: {assessment_id}
-
-            Question Paper:
-            {question_paper_content}
-
-            Marking Scheme:
-            {marking_scheme_content}
-
-            Student's Answer Sheet:
-            {answer_sheet_content}
-
-            Provide:
-            1. Question Analysis: Topic, Subtopic, Question Number, Score, Concept Clarity (Yes/No), Feedback.
-            2. Summary Report: Final Score, Grade, Areas of Strength, Areas for Improvement (Concepts not cleared), and Final Remarks.
-            """
-
-            # Generate report
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": prompt}]
-            )
-            report = response['choices'][0]['message']['content']
-            st.write("### Assessment Report")
-            st.write(report)
-
-            # Extract weak topics based on "Concepts not cleared"
-            weak_topics = []
-            for line in report.splitlines():
-                if "Concepts not cleared" in line or "needs improvement" in line:
-                    parts = line.split(":")
-                    if len(parts) > 1:
-                        weak_topics += [topic.strip() for topic in parts[1].split(",")]
-
-            # Ensure unique weak topics
-            weak_topics = list(set(weak_topics))
-            st.subheader("Identified Weak Topics")
-            st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
-
-            # Save assessment report as PDF
-            report_pdf_file = f"assessment_report_{student_id}.pdf"
-            generate_pdf(report, "Assessment Report", report_pdf_file)
-
-            # Display download and email options
-            st.subheader("Personalized Material Options")
-
-            if st.button("Download Personalized Material and Assignment"):
+        if st.button("Generate Personalized Material and Assignment"):
+            if assessment_report:
+                report_content = read_docx(assessment_report)
+                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
                 if weak_topics:
-                    # Generate personalized learning material and assignment based on weak topics
-                    learning_material_content = f"Personalized material for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
-                    assignment_content = f"Personalized assignment for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
-                    
-                    # Save files
-                    learning_material_docx = f"{student_name}_Learning_Material.docx"
-                    assignment_docx = f"{student_name}_Assignment.docx"
-                    save_content_as_doc(learning_material_content, learning_material_docx)
+                    learning_material = generate_personalized_material(weak_topics)
+                    assignment_content = generate_personalized_material(weak_topics)
+                    learning_material_docx = f"Learning_Material.docx"
+                    assignment_docx = f"Assignment.docx"
+                    save_content_as_doc(learning_material, learning_material_docx)
                     save_content_as_doc(assignment_content, assignment_docx)
-
-                    # Download buttons for both files
                     with open(learning_material_docx, "rb") as file:
                         st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
                     with open(assignment_docx, "rb") as file:
                         st.download_button(label="Download Assignment", data=file, file_name=assignment_docx)
 
-            if st.button("Generate and Email Personalized Material and Assignment"):
-                if weak_topics:
-                    # Generate and save learning material and assignment files for email
-                    learning_material_content = f"Personalized material for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
-                    assignment_content = f"Personalized assignment for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
-                    
-                    learning_material_docx = f"{student_name}_Learning_Material.docx"
-                    assignment_docx = f"{student_name}_Assignment.docx"
-                    save_content_as_doc(learning_material_content, learning_material_docx)
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    
-                    # Send email for both files
-                    send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", learning_material_docx)
-                    send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", assignment_docx)
-                    st.success(f"Personalized documents have been sent to {email_id}.")
-
-
-
-
-# Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
-    
-    # Use Streamlit input components
-    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
-    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
-    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
-    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
-    
-    if st.button("Generate Quiz Document"):
-        # Ensure minimum questions
-        if num_questions < 5:
-            st.warning("Minimum number of questions is 5. Setting to 5.")
-            num_questions = 5
-        
-        # Create the quiz document
-        quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
-        st.success(f"Quiz generated and saved as '{quiz_filename}'")
-        
-        # Display download button
-        with open(quiz_filename, "rb") as file:
-            st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
+        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
+        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
+        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
+
+        if st.button("Generate Quiz Document"):
+            if num_questions < 5:
+                st.warning("Minimum number of questions is 5. Setting to 5.")
+                num_questions = 5
+            quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
+            st.success(f"Quiz generated and saved as '{quiz_filename}'")
+            with open(quiz_filename, "rb") as file:
+                st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
 
 if __name__ == "__main__":
     main()
-
 
