@@ -395,7 +395,7 @@ def main():
     elif task == "Personalized Learning Material":
         st.header("Personalized Learning Material")
 
-        email_id = st.text_input("Enter Parent's Email ID:")
+    email_id = st.text_input("Enter Parent's Email ID:")
     assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
 
     if st.button("Generate and Send Personalized Learning Material"):
@@ -406,24 +406,31 @@ def main():
             # Display PDF content for debugging
             st.subheader("Extracted PDF Content (for Debugging)")
             st.write(assessment_content)
-                # Generate personalized material and assignment if weak topics found
+
+            # Extract weak topics from the content
+            weak_topics = extract_weak_topics(assessment_content)
+            st.subheader("Identified Weak Topics")
+            st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
+
+            # Generate personalized material and assignment if weak topics are found
             if weak_topics:
-                    learning_material = generate_personalized_material(weak_topics)
-                    assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+                learning_material = generate_personalized_material(weak_topics)
+                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
 
-                    st.subheader("Generated Learning Material")
-                    st.write(learning_material)
-                    st.subheader("Generated Assignment")
-                    st.write(assignment)
+                st.subheader("Generated Learning Material")
+                st.write(learning_material)
+                st.subheader("Generated Assignment")
+                st.write(assignment)
 
-                    # Save as Word documents
-                    save_content_as_doc(learning_material, "Learning_Material.docx")
-                    save_content_as_doc(assignment, "Assignment.docx")
+                # Save as Word documents
+                save_content_as_doc(learning_material, "Learning_Material.docx")
+                save_content_as_doc(assignment, "Assignment.docx")
 
-                    # Send email with attached documents
-                    send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", "Learning_Material.docx")
-                    send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", "Assignment.docx")
-                    st.success(f"Personalized materials have been sent to {email_id}.")
+                # Send email with attached documents
+                send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", "Learning_Material.docx")
+                send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", "Assignment.docx")
+                st.success(f"Personalized materials have been sent to {email_id}.")
+
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
