@@ -131,16 +131,16 @@ def read_pdf(file):
             text += page_text
     return text
 
-
+# Improved function to extract weak topics
 def extract_weak_topics(assessment_content):
     weak_topics = []
     # Adjust keywords here based on report language
     for line in assessment_content.splitlines():
         if "Concept Clarity: No" in line:
             topic_line = line.split("Concept Clarity: No")[0].strip()
-            weak_topics.append(topic_line.split("- Subtopic:")[0].replace("Topic:", "").strip())
+            topic = topic_line.split("- Subtopic:")[0].replace("Topic:", "").strip()
+            weak_topics.append(topic)
     return list(set(weak_topics))
-
 
 # Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
@@ -161,38 +161,22 @@ def generate_personalized_assignment(weak_topics, include_solutions):
     )
     return response['choices'][0]['message']['content']
 
+# Function to save content as a Word document
 def save_content_as_doc(content, file_name):
     doc = Document()
     for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
 
+# Function to read Word document content
 def read_docx(file):
     doc = Document(file)
     full_text = [para.text for para in doc.paragraphs]
     return "\n".join(full_text)
 
-
 # Function to sanitize text by replacing unsupported characters
 def sanitize_text(text):
     return text.encode('latin-1', 'replace').decode('latin-1')
-
-# Function to wrap text within a cell and add borders
-def wrap_text(text, pdf, max_line_length=90):
-    words = text.split(' ')
-    current_line = ""
-    wrapped_lines = []
-    
-    for word in words:
-        if len(current_line + word) + 1 <= max_line_length:
-            current_line += word + " "
-        else:
-            wrapped_lines.append(current_line.strip())
-            current_line = word + " "
-    
-    wrapped_lines.append(current_line.strip())  # Add the last line
-    return wrapped_lines
-
 
 # Function to generate content for educational purposes
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
@@ -238,7 +222,6 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
         messages=[{"role": "system", "content": prompt}]
     )
     return response['choices'][0]['message']['content']
-
 
 # Main function
 def main():
@@ -323,7 +306,6 @@ def main():
                     st.success(f"Personalized materials have been sent to {email_id}.")
                 else:
                     st.warning("No weak topics identified. Please ensure the assessment report is properly formatted.")
-
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
