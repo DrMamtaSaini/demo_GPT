@@ -260,9 +260,8 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
-    def main_app():
     # Apply custom CSS for an attractive UI
-        st.markdown("""
+    st.markdown("""
     <style>
         body { background-color: #F0F2F6; }
         .stApp { color: #4B0082; }
@@ -299,7 +298,6 @@ def main_app():
 
     # Home Page Layout with Cards
     if task == "Home":
-        #st.title("EduCreate Pro")
         st.markdown("""
             <div style='text-align: center; font-size: 18px; color: #4B0082;'>
                 Your all-in-one platform for creating educational content, lesson plans, and student assessments.
@@ -310,43 +308,38 @@ def main_app():
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Content Creator")
-                st.write("Generate quizzes, sample papers, and assignments.")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Content Creator")
+            st.write("Generate quizzes, sample papers, and assignments.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with col2:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Lesson Planner")
-                st.write("Create detailed lesson plans with learning objectives and materials.")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Lesson Planner")
+            st.write("Create detailed lesson plans with learning objectives and materials.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with col3:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Assessment Assistant")
-                st.write("Generate comprehensive student assessments and progress reports.")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Assessment Assistant")
+            st.write("Generate comprehensive student assessments and progress reports.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         col4, col5 = st.columns(2)
 
         with col4:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Personalized Learning Material")
-                st.write("Generate learning material and assignment based on your assessment report.")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Personalized Learning Material")
+            st.write("Generate learning material and assignment based on your assessment report.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with col5:
-            with st.container():
-                st.markdown('<div class="option-card">', unsafe_allow_html=True)
-                st.subheader("Image Based Question Generator")
-                st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="option-card">', unsafe_allow_html=True)
+            st.subheader("Image Based Question Generator")
+            st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-       # Centered 'Get Started Today' button with message on click
+        # Centered 'Get Started Today' button with message on click
         st.markdown('<div class="center">', unsafe_allow_html=True)
         if st.button("Get Started Today"):
             st.warning("Choose one task from the menu on the left to get started.")
