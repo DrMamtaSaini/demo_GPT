@@ -106,7 +106,7 @@ client_id = st.experimental_get_query_params().get("client_id", ["default"])[0]
 
 client_config = get_client_config(client_id)
 st.image(client_config["logo"], width=200)
-st.title(f"Welcome to {client_config['name']}!")
+st.title(f" {client_config['name']}!")
 st.markdown(f"<style>.main {{ background-color: {client_config['theme_color']}; }}</style>", unsafe_allow_html=True)
 
 # Function to generate a PDF file for reports
