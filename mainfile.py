@@ -354,40 +354,7 @@ def main():
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
     # Section 2: Lesson Plan Creation
-    elif task == "Create Lesson Plan":
-        st.header("Lesson Plan Creation")
-
-        # Collect lesson plan details
-        subject = st.text_input("Enter Subject:")
-        grade = st.text_input("Enter Class/Grade:")
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
-        topic = st.text_input("Enter Lesson Topic:")
-
-        if st.button("Generate Lesson Plan"):
-            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-            st.write("### Generated Lesson Plan")
-            st.write(lesson_plan)
-            
-            # Save lesson plan as a Word document
-            docx_file_name = f"Lesson_Plan_{subject}_{grade}.docx"
-            save_content_as_doc(lesson_plan, docx_file_name)
-            
-            # Save lesson plan as a PDF
-            pdf_file_name = f"Lesson_Plan_{subject}_{grade}.pdf"
-            generate_pdf(lesson_plan, "Lesson Plan", pdf_file_name)
-            
-            # Download buttons for the lesson plan documents
-            with open(docx_file_name, "rb") as docx_file:
-                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
-                
-            with open(pdf_file_name, "rb") as pdf_file:
-                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
-
-    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
-    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
-    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
-    # Updated in Student Assessment Assistant Section to include Personalized Learning Material and Assignment
+    # Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -459,28 +426,19 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Capture topic and subtopic from previous lines
+                    # Extract topic and subtopic from lines above "Concept Clarity"
                     topic = "Unknown Topic"
                     subtopic = "Unknown Subtopic"
-                    for j in range(max(0, i - 3), i):  # Check lines before "Concept Clarity: No" line
+                    for j in range(max(0, i-3), i):
                         if "Topic:" in lines[j]:
                             topic = lines[j].split("Topic:")[1].strip()
-                        if "Subtopic:" in lines[j]:
+                        elif "Subtopic:" in lines[j]:
                             subtopic = lines[j].split("Subtopic:")[1].strip()
-                    
-                    # Combine topic and subtopic for weak topic entry
                     weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
                     weak_topics.append(weak_topic)
 
-            # Remove duplicate weak topics
+            # Ensure unique weak topics to avoid duplicates
             weak_topics = list(set(weak_topics))
-
-            # Debugging output to verify weak topics extraction
-            st.write("### Identified Weak Topics for Personalized Material")
-            if weak_topics:
-                st.write(weak_topics)
-            else:
-                st.info("No weak topics identified for personalized material.")
 
             # Generate PDF
             file_name = f"assessment_report_{student_id}.pdf"
@@ -496,68 +454,69 @@ def main():
             subject = f"Assessment Report for Student {student_name}"
             body = "Please find attached the student's assessment report."
             send_email_with_pdf(email_id, subject, body, file_name)
+            st.success(f"Email sent to {email_id} with the attached PDF report!")
 
-            # Personalized Learning Material and Assignment Generation
+            # Display identified weak topics
             if weak_topics:
+                st.subheader("Identified Weak Topics for Personalized Material")
+                st.write(weak_topics)
+
+                # Section for generating personalized learning material and assignment
                 st.subheader("Generate Personalized Learning Material and Assignment")
 
                 # Selection checkboxes for Learning Material and Assignment
                 include_learning_material = st.checkbox("Generate and Download Learning Material")
                 include_assignment = st.checkbox("Generate and Download Assignment")
 
-                # Variables to hold filenames for emailing
-                learning_material_docx, learning_material_pdf = None, None
-                assignment_docx, assignment_pdf = None, None
-
-                if include_learning_material:
-                    # Generate personalized learning material
-                    learning_material = generate_personalized_material(weak_topics)
-                    st.write("### Personalized Learning Material")
-                    st.write(learning_material)
-
-                    # Save learning material as DOCX and PDF
-                    learning_material_docx = f"{student_name}_Learning_Material.docx"
-                    learning_material_pdf = f"{student_name}_Learning_Material.pdf"
-                    save_content_as_doc(learning_material, learning_material_docx)
-                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
-
-                if include_assignment:
-                    # Choose if solutions should be included in the assignment
-                    include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
-                    assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
-                    st.write("### Personalized Assignment")
-                    st.write(assignment_content)
-
-                    # Save assignment as DOCX and PDF
-                    assignment_docx = f"{student_name}_Assignment.docx"
-                    assignment_pdf = f"{student_name}_Assignment.pdf"
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
-
-                # Buttons for downloading selected documents
-                if include_learning_material:
-                    with open(learning_material_docx, "rb") as file:
-                        st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
-                    with open(learning_material_pdf, "rb") as file:
-                        st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
-                    
-                if include_assignment:
-                    with open(assignment_docx, "rb") as file:
-                        st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
-                    with open(assignment_pdf, "rb") as file:
-                        st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
-                    
-                # Button to send selected documents via email
+                # Button to send selected documents to parent's email
                 if st.button("Send Selected Documents to Parent's Email"):
                     if include_learning_material:
-                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached personalized learning material for your child.", learning_material_docx)
+                        # Generate personalized learning material
+                        learning_material = generate_personalized_material(weak_topics)
+                        st.write("### Personalized Learning Material")
+                        st.write(learning_material)
+
+                        # Save learning material as DOCX and PDF
+                        learning_material_docx = f"{student_name}_Learning_Material.docx"
+                        learning_material_pdf = f"{student_name}_Learning_Material.pdf"
+                        save_content_as_doc(learning_material, learning_material_docx)
+                        generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
+
+                        # Option to download the learning material
+                        with open(learning_material_docx, "rb") as file:
+                            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
+                        with open(learning_material_pdf, "rb") as file:
+                            st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
+
+                        # Send learning material via email
+                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material for your child.", learning_material_docx)
+
                     if include_assignment:
-                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached personalized assignment for your child.", assignment_docx)
-                    st.success("Selected documents have been emailed to the parent.")
+                        # Choose if solutions should be included in the assignment
+                        include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
+                        assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
+                        st.write("### Personalized Assignment")
+                        st.write(assignment_content)
+
+                        # Save assignment as DOCX and PDF
+                        assignment_docx = f"{student_name}_Assignment.docx"
+                        assignment_pdf = f"{student_name}_Assignment.pdf"
+                        save_content_as_doc(assignment_content, assignment_docx)
+                        generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
+
+                        # Option to download the assignment
+                        with open(assignment_docx, "rb") as file:
+                            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
+                        with open(assignment_pdf, "rb") as file:
+                            st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
+
+                        # Send assignment via email
+                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment for your child.", assignment_docx)
             else:
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 
