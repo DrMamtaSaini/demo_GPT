@@ -45,11 +45,7 @@ def login_page():
             st.error("Invalid credentials. Please try again.")
 
 # Display main content if logged in, else show login page
-if st.session_state['logged_in']:
-    st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
-    openai.api_key = st.session_state['api_key']  # Set OpenAI key
-else:
-    login_page()
+
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -372,9 +368,12 @@ def main_app():
 
 def main():
     if st.session_state['logged_in']:
+        st.write(f"Welcome, {st.session_state['school_id']}! API Key: {st.session_state['api_key']}")
+        openai.api_key = st.session_state['api_key']  # Set OpenAI key
         main_app()
     else:
         login_page()  # Show login page if not logged in
+    
 
 if __name__ == "__main__":
     main()
