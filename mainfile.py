@@ -355,9 +355,7 @@ def main():
 
     # Section 2: Lesson Plan Creation
     # Student Assessment Assistant Section
-    # Student Assessment Assistant Section
-    # Student Assessment Assistant Section
-    # Student Assessment Assistant Section
+    
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -429,19 +427,15 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Look for "Topic" and "Subtopic" lines directly above "Concept Clarity: No"
-                    topic = "Unknown Topic"
-                    subtopic = "Unknown Subtopic"
-                    
-                    # Iterate upwards to find Topic and Subtopic lines
+                    # Look for "Topic" and "Subtopic" lines above "Concept Clarity: No"
+                    topic, subtopic = None, None
                     for j in range(i - 1, max(0, i - 5), -1):
-                        if "Topic:" in lines[j]:
+                        if "Topic:" in lines[j] and not topic:
                             topic = lines[j].split("Topic:")[1].strip()
-                        elif "Subtopic:" in lines[j]:
+                        if "Subtopic:" in lines[j] and not subtopic:
                             subtopic = lines[j].split("Subtopic:")[1].strip()
-                    
-                    # Combine topic and subtopic to create a more specific weak topic entry
-                    weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
+
+                    weak_topic = f"{topic or 'Unknown Topic'} - {subtopic or 'General'}"
                     weak_topics.append(weak_topic)
 
             # Ensure unique weak topics to avoid duplicates
@@ -469,18 +463,20 @@ def main():
                 for topic in weak_topics:
                     st.write(f"- {topic}")
 
+                # Generate personalized learning material and assignment content
+                learning_material = generate_personalized_material(weak_topics)
+                include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
+                assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
+
                 # Button for generating and emailing both Personalized Learning Material and Assignment
                 if st.button("Generate and Email All Personalized Documents"):
-                    # Generate personalized learning material
-                    learning_material = generate_personalized_material(weak_topics)
+                    # Save learning material as DOCX and PDF
                     learning_material_docx = f"{student_name}_Learning_Material.docx"
                     learning_material_pdf = f"{student_name}_Learning_Material.pdf"
                     save_content_as_doc(learning_material, learning_material_docx)
                     generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
 
-                    # Generate personalized assignment
-                    include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
-                    assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
+                    # Save assignment as DOCX and PDF
                     assignment_docx = f"{student_name}_Assignment.docx"
                     assignment_pdf = f"{student_name}_Assignment.pdf"
                     save_content_as_doc(assignment_content, assignment_docx)
@@ -496,26 +492,13 @@ def main():
 
                 # Button for downloading both Personalized Learning Material and Assignment
                 if st.button("Download All Personalized Documents"):
-                    # Generate personalized learning material
-                    learning_material = generate_personalized_material(weak_topics)
-                    learning_material_docx = f"{student_name}_Learning_Material.docx"
-                    learning_material_pdf = f"{student_name}_Learning_Material.pdf"
-                    save_content_as_doc(learning_material, learning_material_docx)
-                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
-
-                    # Generate personalized assignment
-                    include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
-                    assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
-                    assignment_docx = f"{student_name}_Assignment.docx"
-                    assignment_pdf = f"{student_name}_Assignment.pdf"
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
-
-                    # Download buttons for both documents
+                    # Save learning material as DOCX and PDF
                     with open(learning_material_docx, "rb") as file:
                         st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
                     with open(learning_material_pdf, "rb") as file:
                         st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
+
+                    # Save assignment as DOCX and PDF
                     with open(assignment_docx, "rb") as file:
                         st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
                     with open(assignment_pdf, "rb") as file:
@@ -525,6 +508,7 @@ def main():
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 
