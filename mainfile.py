@@ -387,7 +387,7 @@ def main():
     
     
     # Updated Student Assessment Assistant Section
-    # Updated in Student Assessment Assistant Section to include Enhanced Weak Topic Extraction
+    # Updated in Student Assessment Assistant Section to include Enhanced Weak Topic Extraction and Debugging
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -459,37 +459,29 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Try to capture the topic and subtopic from previous lines or within the same line
-                    topic_line = lines[i - 1] if i > 0 else ""
-                    subtopic_line = lines[i - 2] if i > 1 else ""
-                    
-                    # Assuming "Topic:" and "Subtopic:" keywords are in lines above
-                    topic = topic_line.split(":")[1].strip() if "Topic" in topic_line else "Unknown Topic"
-                    subtopic = subtopic_line.split(":")[1].strip() if "Subtopic" in subtopic_line else "Unknown Subtopic"
-                    
-                    # Combine topic and subtopic to create a more specific weak topic entry
+                    # Capture the topic and subtopic from lines above or within the same line
+                    topic = "Unknown Topic"
+                    subtopic = "Unknown Subtopic"
+
+                    # Search previous lines for 'Topic' and 'Subtopic' (assuming the format follows this structure)
+                    for j in range(1, 4):  # Look up to 3 lines back for relevant details
+                        if i - j >= 0:
+                            if "Topic:" in lines[i - j]:
+                                topic = lines[i - j].split(":")[1].strip()
+                            elif "Subtopic:" in lines[i - j]:
+                                subtopic = lines[i - j].split(":")[1].strip()
+
+                    # Combine topic and subtopic to form a weak topic entry
                     weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
                     weak_topics.append(weak_topic)
 
-            # Ensure unique weak topics to avoid duplicates
+            # Deduplicate and display weak topics
             weak_topics = list(set(weak_topics))
 
-            # Generate PDF
-            file_name = f"assessment_report_{student_id}.pdf"
-            generate_pdf(report, "Assessment Report", file_name)
-            
-            st.success(f"PDF report generated: {file_name}")
+            # Debug output to verify weak topics
+            st.write("Detected Weak Topics:", weak_topics)
 
-            # Display and download report
-            with open(file_name, "rb") as file:
-                st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
-
-            # Send report via email
-            subject = f"Assessment Report for Student {student_name}"
-            body = "Please find attached the student's assessment report."
-            send_email_with_pdf(email_id, subject, body, file_name)
-
-            # Personalized Learning Material and Assignment Generation
+            # Handle case when weak topics are found
             if weak_topics:
                 st.subheader("Generate Personalized Learning Material and Assignment")
 
@@ -504,13 +496,13 @@ def main():
                 save_content_as_doc(learning_material, learning_material_docx)
                 generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
 
-                # Display and download options
+                # Display download and email buttons
                 with open(learning_material_docx, "rb") as file:
                     st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
                 with open(learning_material_pdf, "rb") as file:
                     st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_pdf)
 
-                # Option to email learning material
+                # Email learning material
                 if st.button("Email Learning Material"):
                     send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material for your child.", learning_material_docx)
                 
@@ -526,31 +518,19 @@ def main():
                 save_content_as_doc(assignment_content, assignment_docx)
                 generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
 
-                # Display and download options
+                # Download and email buttons for assignment
                 with open(assignment_docx, "rb") as file:
                     st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
                 with open(assignment_pdf, "rb") as file:
                     st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
 
-                # Option to email assignment
+                # Email assignment
                 if st.button("Email Assignment"):
                     send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment for your child.", assignment_docx)
             else:
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Ensure the correct module content is shown
     elif task == "Generate Image Based Questions":
