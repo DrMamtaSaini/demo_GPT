@@ -121,7 +121,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Function to read PDF content more accurately
+# Function to read PDF content and display it for debugging
 def read_pdf(file):
     pdf_reader = PdfReader(file)
     text = ""
@@ -130,6 +130,7 @@ def read_pdf(file):
         if page_text:
             text += page_text
     return text
+
 
 # Improved logic to extract weak topics
 def extract_weak_topics(assessment_content):
@@ -395,20 +396,18 @@ def main():
         st.header("Personalized Learning Material")
 
         email_id = st.text_input("Enter Parent's Email ID:")
-        assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
 
-        if st.button("Generate and Send Personalized Learning Material"):
-            if email_id and assessment_pdf:
-                # Read and process the PDF
-                assessment_content = read_pdf(assessment_pdf)
+    if st.button("Generate and Send Personalized Learning Material"):
+        if email_id and assessment_pdf:
+            # Read PDF content
+            assessment_content = read_pdf(assessment_pdf)
 
-                # Identify weak topics based on PDF content
-                weak_topics = extract_weak_topics(assessment_content)
-                st.subheader("Extract Weak Topics")
-                st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
-
+            # Display PDF content for debugging
+            st.subheader("Extracted PDF Content (for Debugging)")
+            st.write(assessment_content)
                 # Generate personalized material and assignment if weak topics found
-                if weak_topics:
+            if weak_topics:
                     learning_material = generate_personalized_material(weak_topics)
                     assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
 
