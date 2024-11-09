@@ -357,6 +357,7 @@ def main():
     # Student Assessment Assistant Section
     
     # Student Assessment Assistant Section
+    # Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -464,38 +465,31 @@ def main():
                 for topic in weak_topics:
                     st.write(f"- {topic}")
 
-                # Generate personalized learning material and assignment content
-                learning_material = generate_personalized_material(weak_topics)
-                include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
-                assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
+                # Button for generating personalized learning material and assignment content
+                generate_documents = st.button("Generate Personalized Learning Material and Assignment")
+                if generate_documents:
+                    # Generate personalized learning material and assignment
+                    learning_material = generate_personalized_material(weak_topics)
+                    include_solutions = st.radio("Include solutions in the assignment?", ["Yes", "No"]) == "Yes"
+                    assignment_content = generate_personalized_assignment(weak_topics, include_solutions)
 
-                # Button for generating and emailing both Personalized Learning Material and Assignment
-                if st.button("Generate and Email All Personalized Documents"):
-                    # Ensure both learning material and assignment are generated before emailing
-                    if learning_material and assignment_content:
-                        # Save learning material as DOCX and PDF
-                        learning_material_docx = f"{student_name}_Learning_Material.docx"
-                        learning_material_pdf = f"{student_name}_Learning_Material.pdf"
-                        save_content_as_doc(learning_material, learning_material_docx)
-                        generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
+                    # Save learning material as DOCX and PDF
+                    learning_material_docx = f"{student_name}_Learning_Material.docx"
+                    learning_material_pdf = f"{student_name}_Learning_Material.pdf"
+                    save_content_as_doc(learning_material, learning_material_docx)
+                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
 
-                        # Save assignment as DOCX and PDF
-                        assignment_docx = f"{student_name}_Assignment.docx"
-                        assignment_pdf = f"{student_name}_Assignment.pdf"
-                        save_content_as_doc(assignment_content, assignment_docx)
-                        generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
+                    # Save assignment as DOCX and PDF
+                    assignment_docx = f"{student_name}_Assignment.docx"
+                    assignment_pdf = f"{student_name}_Assignment.pdf"
+                    save_content_as_doc(assignment_content, assignment_docx)
+                    generate_pdf(assignment_content, "Personalized Assignment", assignment_pdf)
 
-                        # Email both documents to parent
-                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached personalized learning material for your child.", learning_material_docx)
-                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached personalized assignment for your child.", assignment_docx)
-                        
-                        st.success(f"Personalized documents emailed to {email_id}.")
-                    else:
-                        st.error("Personalized materials could not be generated. Please check the weak topics and try again.")
+                    # Buttons for downloading and emailing the generated documents
+                    download_docs = st.button("Download All Personalized Documents")
+                    email_docs = st.button("Generate and Email All Personalized Documents")
 
-                # Button for downloading both Personalized Learning Material and Assignment
-                if st.button("Download All Personalized Documents"):
-                    if learning_material and assignment_content:
+                    if download_docs:
                         # Download learning material
                         with open(learning_material_docx, "rb") as file:
                             st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
@@ -507,13 +501,16 @@ def main():
                             st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
                         with open(assignment_pdf, "rb") as file:
                             st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_pdf)
-                    else:
-                        st.error("Personalized documents are not available for download. Please try generating them again.")
 
+                    if email_docs:
+                        send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached personalized learning material for your child.", learning_material_docx)
+                        send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached personalized assignment for your child.", assignment_docx)
+                        st.success(f"Personalized documents emailed to {email_id}.")
             else:
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 
