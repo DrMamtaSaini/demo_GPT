@@ -14,7 +14,13 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
+import streamlit as st
+import openai
+import json
+from io import BytesIO
+import requests
 
+# Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
 # Initialize session states for login
@@ -24,39 +30,35 @@ if 'school_id' not in st.session_state:
     st.session_state['school_id'] = None
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
-
-def login_page():
-    if not st.session_state.get('logged_in', False):  # Check if not logged in
-        st.title("School Login")
-        school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
-        school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
-        
-        if st.button("Login"):
-            for school_id, credentials in SCHOOL_CREDENTIALS.items():
-                if school_username == credentials["username"] and school_password == credentials["password"]:
-                    # Set session state for successful login and client ID
-                    st.session_state['logged_in'] = True
-                    st.session_state['school_id'] = school_id
-                    st.session_state['api_key'] = credentials["api_key"]
-                    st.session_state['client_id'] = school_id  # Set client_id to match the school_id
-
-                    st.experimental_rerun()  # Rerun to load the client-specific config
-                    return
-            st.error("Invalid credentials. Please try again.")
-
-
-
+if 'client_id' not in st.session_state:
+    st.session_state['client_id'] = None
 
 # Load client configuration from JSON file
 with open("clients_config.json") as config_file:
     clients_config = json.load(config_file)
 
-# Function to get client configuration
 def get_client_config(client_id):
+    """Retrieves client configuration based on client_id or returns default if not found."""
     default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
     return clients_config.get(client_id, default_config)
 
-
+def login_page():
+    """Displays login page and sets session states on successful login."""
+    st.title("School Login")
+    school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
+    school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
+    
+    if st.button("Login"):
+        # Check credentials and set session state
+        for school_id, credentials in SCHOOL_CREDENTIALS.items():
+            if school_username == credentials["username"] and school_password == credentials["password"]:
+                st.session_state['logged_in'] = True
+                st.session_state['school_id'] = school_id
+                st.session_state['api_key'] = credentials["api_key"]
+                st.session_state['client_id'] = school_id  # Set client_id to match the school_id
+                st.experimental_rerun()
+                return
+        st.error("Invalid credentials. Please try again.")
 
 
 
@@ -287,16 +289,28 @@ def main_app():
         .center { text-align: center; }
     </style>
     """, unsafe_allow_html=True)
+#Main application logic after successful login."""
+    # Load client configuration using the stored client_id
+    client_config = get_client_config(st.session_state['client_id'])
+    
+    # Display client-specific information
+    st.image(client_config["logo"], width=120)
+    st.markdown(f"""
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+        </div>
+    """, unsafe_allow_html=True)
 
+    # Sidebar and main content
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Personalized Learning Material", "Generate Image Based Questions"])
 
-    # Logout functionality
     if st.sidebar.button("Logout"):
-        st.session_state['logged_in'] = False
-        st.session_state['school_id'] = None
-        st.session_state['api_key'] = None
+        # Reset session state on logout
+        for key in ['logged_in', 'school_id', 'api_key', 'client_id']:
+            st.session_state[key] = None
         st.experimental_rerun()
+
 
     # Home Page Layout with Cards
     if task == "Home":
@@ -524,21 +538,7 @@ def main():
     else:
         login_page()  # Show login page if not logged in
     
-    # Retrieve client configuration using the session-stored client_id after login
-if 'client_id' in st.session_state:
-    client_config = get_client_config(st.session_state['client_id'])
-
-    # Display logo with smaller width and reduce spacing
-    st.image(client_config["logo"], width=120)
-
-    # Display client-specific name with gradient background
-    st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-        </div>
-    """, unsafe_allow_html=True)
-else:
-    login_page()  # Show login page if client_id is not set
+   
 if __name__ == "__main__":
     main()
   
