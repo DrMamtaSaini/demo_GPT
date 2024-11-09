@@ -135,26 +135,15 @@ def wrap_text(text, pdf, max_line_length=90):
     wrapped_lines.append(current_line.strip())  # Add the last line
     return wrapped_lines
 
-# Generalized function to generate a PDF file for lesson plans or assessment reports
+# Generalized function to generate a PDF file for reports
 def generate_pdf(content, title, file_name):
     pdf = FPDF()
     pdf.add_page()
-
-    # Set font and add a title with borders
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, title, ln=True, align='C', border=1)
-
-    # Leave a space after the title
+    pdf.cell(0, 10, title, ln=True, align='C')
     pdf.ln(10)
-
-    # Set font for the content
     pdf.set_font("Arial", size=12)
-    for line in content.split('\n'):
-        wrapped_lines = wrap_text(line, pdf)
-        for wrapped_line in wrapped_lines:
-            pdf.cell(0, 10, txt=sanitize_text(wrapped_line), ln=True, border=0)
-
-    # Save the PDF
+    pdf.multi_cell(0, 10, content)
     pdf.output(file_name)
 
 # Function to send an email with PDF attachment
@@ -232,11 +221,16 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
         messages=[{"role": "system", "content": prompt}]
     )
     return response['choices'][0]['message']['content']
+# Function to read content from a DOCX file
+def read_docx(file):
+    doc = Document(file)
+    full_text = [para.text for para in doc.paragraphs]
+    return "\n".join(full_text)
 
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
     doc = Document()
-    for line in content.split('\n'):
+    for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
 
@@ -386,8 +380,7 @@ def main():
 
     
     
-    # Updated Student Assessment Assistant Section
-   # Student Assessment Assistant Section
+      # Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -398,22 +391,22 @@ def main():
     class_name = st.text_input("Enter Class:")
     email_id = st.text_input("Enter Parent's Email ID:")
 
-    # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
+    # Upload files
     question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
     marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
     answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
-    # Generate Assessment Report and Email PDF
+    # Generate assessment report
     if st.button("Generate and Send PDF Report"):
-        if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
-            # Read DOC files
+        if student_name and student_id and assessment_id and class_name and email_id and question_paper and marking_scheme and answer_sheet:
+            # Read uploaded DOCX files
             question_paper_content = read_docx(question_paper)
             marking_scheme_content = read_docx(marking_scheme)
             answer_sheet_content = read_docx(answer_sheet)
 
-            # Enhanced GPT-4 prompt with explicit structure for the report
+            # Define prompt for generating assessment report
             prompt = f"""
-            You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+            You are an educational assessment assistant. Evaluate the student's answers based on the question paper, marking scheme, and answer sheet provided.
 
             Student Name: {student_name}
             Student ID: {student_id}
@@ -429,23 +422,12 @@ def main():
             Student's Answer Sheet:
             {answer_sheet_content}
 
-            Please provide the following in the assessment report:
-            1. Question Analysis - Each question should include:
-                - Topic
-                - Subtopic
-                - Question Number
-                - Score for the answer based on accuracy and relevance
-                - Concept Clarity (Yes/No)
-                - Feedback and Suggestions
-
-            2. Summary Report - Include:
-                - Final Score
-                - Grade
-                - Areas of Strength
-                - Areas for Improvement (Concepts not cleared)
-                - Final Remarks
+            Provide:
+            1. Question Analysis: Topic, Subtopic, Question Number, Score, Concept Clarity (Yes/No), Feedback.
+            2. Summary Report: Final Score, Grade, Areas of Strength, Areas for Improvement (Concepts not cleared), and Final Remarks.
             """
-            
+
+            # Generate report
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": prompt}]
@@ -453,81 +435,60 @@ def main():
             report = response['choices'][0]['message']['content']
             st.write("### Assessment Report")
             st.write(report)
-            
-            # Enhanced weak topics extraction from the report content
+
+            # Extract weak topics based on "Concepts not cleared"
             weak_topics = []
-            in_weak_section = False
             for line in report.splitlines():
-                if "Areas for Improvement" in line:
-                    in_weak_section = True
-                    continue
-                if in_weak_section and "Concept Clarity: No" in line:
-                    # Look back a few lines for "Topic:" or "Subtopic:"
-                    topic = "Unknown Topic"
-                    subtopic = "Unknown Subtopic"
-                    for j in range(max(0, report.splitlines().index(line)-3), report.splitlines().index(line)):
-                        if "Topic:" in report.splitlines()[j]:
-                            topic = report.splitlines()[j].split("Topic:")[1].strip()
-                        elif "Subtopic:" in report.splitlines()[j]:
-                            subtopic = report.splitlines()[j].split("Subtopic:")[1].strip()
-                    weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
-                    weak_topics.append(weak_topic)
-                    
-            # Remove duplicates
+                if "Concepts not cleared" in line or "needs improvement" in line:
+                    parts = line.split(":")
+                    if len(parts) > 1:
+                        weak_topics += [topic.strip() for topic in parts[1].split(",")]
+
+            # Ensure unique weak topics
             weak_topics = list(set(weak_topics))
+            st.subheader("Identified Weak Topics")
+            st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")
 
-            # Generate PDF
-            file_name = f"assessment_report_{student_id}.pdf"
-            generate_pdf(report, "Assessment Report", file_name)
-            
-            # Download and email options
-            with open(file_name, "rb") as file:
-                st.download_button(label="Download Report as PDF", data=file.read(), file_name=file_name)
-            send_email_with_pdf(email_id, "Assessment Report", "Here is the student's assessment report.", file_name)
+            # Save assessment report as PDF
+            report_pdf_file = f"assessment_report_{student_id}.pdf"
+            generate_pdf(report, "Assessment Report", report_pdf_file)
 
-            # Display weak topics
-            if weak_topics:
-                st.subheader("Identified Weak Topics for Personalized Material")
-                st.write(", ".join(weak_topics))
-                
-                # Generate and Download/Email Personalized Material and Assignment
-                st.subheader("Generate Personalized Learning Material and Assignment")
-                if st.button("Download Personalized Documents"):
-                    if weak_topics:
-                        learning_material = generate_personalized_material(weak_topics)
-                        assignment_content = generate_personalized_assignment(weak_topics, include_solutions=True)
-                        
-                        # Save files
-                        learning_material_docx = f"{student_name}_Learning_Material.docx"
-                        assignment_docx = f"{student_name}_Assignment.docx"
-                        save_content_as_doc(learning_material, learning_material_docx)
-                        save_content_as_doc(assignment_content, assignment_docx)
-                        
-                        # Download options for both files
-                        with open(learning_material_docx, "rb") as file:
-                            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_docx)
-                        with open(assignment_docx, "rb") as file:
-                            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_docx)
-                elif st.button("Generate and Email Personalized Documents"):
-                    if weak_topics:
-                        learning_material = generate_personalized_material(weak_topics)
-                        assignment_content = generate_personalized_assignment(weak_topics, include_solutions=True)
-                        
-                        # Save files
-                        learning_material_docx = f"{student_name}_Learning_Material.docx"
-                        assignment_docx = f"{student_name}_Assignment.docx"
-                        save_content_as_doc(learning_material, learning_material_docx)
-                        save_content_as_doc(assignment_content, assignment_docx)
-                        
-                        # Send emails for both files
-                        send_email_with_pdf(email_id, "Personalized Learning Material", "Here is the learning material.", learning_material_docx)
-                        send_email_with_pdf(email_id, "Personalized Assignment", "Here is the personalized assignment.", assignment_docx)
-                        st.success(f"Personalized documents have been sent to {email_id}.")
+            # Display download and email options
+            st.subheader("Personalized Material Options")
 
-            else:
-                st.info("No weak topics identified for personalized material.")
-        else:
-            st.error("Please provide all required inputs.")
+            if st.button("Download Personalized Material and Assignment"):
+                if weak_topics:
+                    # Generate personalized learning material and assignment based on weak topics
+                    learning_material_content = f"Personalized material for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
+                    assignment_content = f"Personalized assignment for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
+                    
+                    # Save files
+                    learning_material_docx = f"{student_name}_Learning_Material.docx"
+                    assignment_docx = f"{student_name}_Assignment.docx"
+                    save_content_as_doc(learning_material_content, learning_material_docx)
+                    save_content_as_doc(assignment_content, assignment_docx)
+
+                    # Download buttons for both files
+                    with open(learning_material_docx, "rb") as file:
+                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
+                    with open(assignment_docx, "rb") as file:
+                        st.download_button(label="Download Assignment", data=file, file_name=assignment_docx)
+
+            if st.button("Generate and Email Personalized Material and Assignment"):
+                if weak_topics:
+                    # Generate and save learning material and assignment files for email
+                    learning_material_content = f"Personalized material for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
+                    assignment_content = f"Personalized assignment for {student_name} based on the following weak topics: {', '.join(weak_topics)}."
+                    
+                    learning_material_docx = f"{student_name}_Learning_Material.docx"
+                    assignment_docx = f"{student_name}_Assignment.docx"
+                    save_content_as_doc(learning_material_content, learning_material_docx)
+                    save_content_as_doc(assignment_content, assignment_docx)
+                    
+                    # Send email for both files
+                    send_email_with_pdf(email_id, "Personalized Learning Material", "Please find the attached learning material.", learning_material_docx)
+                    send_email_with_pdf(email_id, "Personalized Assignment", "Please find the attached assignment.", assignment_docx)
+                    st.success(f"Personalized documents have been sent to {email_id}.")
 
 
 
