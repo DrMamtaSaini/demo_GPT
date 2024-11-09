@@ -132,17 +132,14 @@ def read_pdf(file):
     return text
 
 
-# Improved logic to extract weak topics
 def extract_weak_topics(assessment_content):
     weak_topics = []
-    # Scan for keywords indicating weak topics; adjust phrases based on report language
+    # Adjust keywords here based on report language
     for line in assessment_content.splitlines():
         if "Areas for Improvement" in line or "Concept Clarity: No" in line:
             parts = line.split(":")
             if len(parts) > 1:
                 weak_topics += [topic.strip() for topic in parts[1].split(",")]
-    
-    # Ensure unique weak topics
     return list(set(weak_topics))
 
 
@@ -401,14 +398,14 @@ def main():
 
     if st.button("Generate and Send Personalized Learning Material"):
         if email_id and assessment_pdf:
-            # Read PDF content
+            # Step 1: Read PDF content
             assessment_content = read_pdf(assessment_pdf)
 
-            # Display extracted content for debugging
+            # Step 2: Display extracted content for debugging
             st.subheader("Extracted PDF Content (for Debugging)")
-            st.write(assessment_content)  # Verify content has expected phrases
+            st.write(assessment_content)  # Check if content has expected phrases
 
-            # Extract weak topics based on defined keywords
+            # Step 3: Extract weak topics based on extracted content and defined keywords
             weak_topics = extract_weak_topics(assessment_content)
             st.subheader("Identified Weak Topics")
             st.write("\n".join(weak_topics) if weak_topics else "No weak topics identified.")  # Check extracted topics
@@ -418,7 +415,7 @@ def main():
                 learning_material = generate_personalized_material(weak_topics)
                 assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
 
-                # Display and save generated materials
+                # Display generated materials
                 st.subheader("Generated Learning Material")
                 st.write(learning_material)
                 st.subheader("Generated Assignment")
