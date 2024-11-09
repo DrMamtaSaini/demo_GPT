@@ -357,6 +357,7 @@ def main():
     # Student Assessment Assistant Section
     # Student Assessment Assistant Section
     # Student Assessment Assistant Section
+    # Student Assessment Assistant Section
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -428,14 +429,18 @@ def main():
             lines = report.splitlines()
             for i, line in enumerate(lines):
                 if "Concept Clarity: No" in line:
-                    # Extract topic and subtopic from lines above "Concept Clarity"
+                    # Look for "Topic" and "Subtopic" lines directly above "Concept Clarity: No"
                     topic = "Unknown Topic"
                     subtopic = "Unknown Subtopic"
-                    for j in range(max(0, i-3), i):
+                    
+                    # Iterate upwards to find Topic and Subtopic lines
+                    for j in range(i - 1, max(0, i - 5), -1):
                         if "Topic:" in lines[j]:
                             topic = lines[j].split("Topic:")[1].strip()
                         elif "Subtopic:" in lines[j]:
                             subtopic = lines[j].split("Subtopic:")[1].strip()
+                    
+                    # Combine topic and subtopic to create a more specific weak topic entry
                     weak_topic = f"{topic} - {subtopic}" if subtopic != "Unknown Subtopic" else topic
                     weak_topics.append(weak_topic)
 
@@ -461,7 +466,8 @@ def main():
             # Display identified weak topics in a clean, text format
             if weak_topics:
                 st.subheader("Identified Weak Topics for Personalized Material")
-                st.write("\n".join(weak_topics))
+                for topic in weak_topics:
+                    st.write(f"- {topic}")
 
                 # Button for generating and emailing both Personalized Learning Material and Assignment
                 if st.button("Generate and Email All Personalized Documents"):
@@ -519,6 +525,7 @@ def main():
                 st.info("No weak topics identified for personalized material.")
         else:
             st.error("Please provide all required inputs.")
+
 
 
 
