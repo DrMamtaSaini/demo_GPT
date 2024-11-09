@@ -25,8 +25,27 @@ if 'school_id' not in st.session_state:
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 
-import json
-import streamlit as st
+def login_page():
+    if not st.session_state.get('logged_in', False):  # Check if not logged in
+        st.title("School Login")
+        school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
+        school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
+        
+        if st.button("Login"):
+            for school_id, credentials in SCHOOL_CREDENTIALS.items():
+                if school_username == credentials["username"] and school_password == credentials["password"]:
+                    # Set session state for successful login and client ID
+                    st.session_state['logged_in'] = True
+                    st.session_state['school_id'] = school_id
+                    st.session_state['api_key'] = credentials["api_key"]
+                    st.session_state['client_id'] = school_id  # Set client_id to match the school_id
+
+                    st.experimental_rerun()  # Rerun to load the client-specific config
+                    return
+            st.error("Invalid credentials. Please try again.")
+
+
+
 
 # Load client configuration from JSON file
 with open("clients_config.json") as config_file:
@@ -37,26 +56,24 @@ def get_client_config(client_id):
     default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
     return clients_config.get(client_id, default_config)
 
-# Login function to set client_id in session state
-def login_page():
-    if not st.session_state.get('logged_in', False):
-        st.title("School Login")
-        school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
-        school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
-        
-        if st.button("Login"):
-            # Check credentials
-            for school_id, credentials in SCHOOL_CREDENTIALS.items():
-                if school_username == credentials["username"] and school_password == credentials["password"]:
-                    # Successful login
-                    st.session_state['logged_in'] = True
-                    st.session_state['school_id'] = school_id
-                    st.session_state['api_key'] = credentials["api_key"]
-                    st.session_state['client_id'] = school_id  # Set client_id to school_id to fetch correct config
-                    st.experimental_rerun()  # Rerun to apply new client_id
-                    return
-            st.error("Invalid credentials. Please try again.")
 
+
+
+# Retrieve client configuration using the session-stored client_id after login
+if 'client_id' in st.session_state:
+    client_config = get_client_config(st.session_state['client_id'])
+
+    # Display logo with smaller width and reduce spacing
+    st.image(client_config["logo"], width=120)
+
+    # Display client-specific name with gradient background
+    st.markdown(f"""
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+        </div>
+    """, unsafe_allow_html=True)
+else:
+    login_page()  # Show login page if client_id is not set
 
 
 
@@ -521,21 +538,6 @@ def main():
     else:
         login_page()  # Show login page if not logged in
     
-    # Check if client_id is in session state; if not, show login page
-if 'client_id' not in st.session_state:
-    login_page()
-else:
-    # Retrieve client configuration based on logged-in client's ID
-    client_config = get_client_config(st.session_state['client_id'])
-
-    # Display client-specific logo and title with smaller spacing and fixed colors
-    st.image(client_config["logo"], width=120)
-
-    st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-        </div>
-    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
