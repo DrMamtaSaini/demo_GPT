@@ -286,7 +286,7 @@ def main_app():
         st.experimental_rerun()
 
     # Home Page UI and Layout Improvements
-    elif task == "Home":
+    if task == "Home":
         st.markdown(
         """
         <style>
