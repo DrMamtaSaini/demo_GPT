@@ -392,23 +392,34 @@ def main_app():
                     st.warning("No weak topics identified. Please ensure the assessment report is properly formatted.")
     elif task == "Personalized Learning Material":
         st.header("Personalized Learning Material")
-        assessment_report = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
+    assessment_report = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
 
-        if st.button("Generate Personalized Material and Assignment"):
-            if assessment_report:
-                report_content = read_docx(assessment_report)
-                weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
-                if weak_topics:
-                    learning_material = generate_personalized_material(weak_topics)
-                    assignment_content = generate_personalized_material(weak_topics)
-                    learning_material_docx = f"Learning_Material.docx"
-                    assignment_docx = f"Assignment.docx"
-                    save_content_as_doc(learning_material, learning_material_docx)
-                    save_content_as_doc(assignment_content, assignment_docx)
-                    with open(learning_material_docx, "rb") as file:
-                        st.download_button(label="Download Learning Material", data=file, file_name=learning_material_docx)
-                    with open(assignment_docx, "rb") as file:
-                        st.download_button(label="Download Assignment", data=file, file_name=assignment_docx)
+    if st.button("Generate Personalized Material and Assignment"):
+        if assessment_report:
+            # Step 1: Read the PDF content
+            report_content = read_pdf(assessment_report)
+            
+            # Step 2: Extract weak topics based on specific keyword
+            weak_topics = [line.split(":")[1].strip() for line in report_content.splitlines() if "needs improvement" in line]
+            
+            if weak_topics:
+                # Step 3: Generate learning material and assignment based on weak topics
+                learning_material = generate_personalized_material(weak_topics)
+                assignment_content = generate_personalized_assignment(weak_topics, include_solutions=True)
+
+                # Step 4: Save learning material and assignment as PDF files
+                learning_material_pdf = f"Learning_Material.pdf"
+                assignment_pdf = f"Assignment.pdf"
+                generate_pdf(learning_material, "Learning Material", learning_material_pdf)
+                generate_pdf(assignment_content, "Assignment", assignment_pdf)
+
+                # Step 5: Provide download buttons for both generated PDFs
+                with open(learning_material_pdf, "rb") as file:
+                    st.download_button(label="Download Learning Material", data=file, file_name=learning_material_pdf)
+                with open(assignment_pdf, "rb") as file:
+                    st.download_button(label="Download Assignment", data=file, file_name=assignment_pdf)
+            else:
+                st.warning("No weak topics identified in the assessment report.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
