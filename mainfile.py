@@ -109,13 +109,18 @@ client_config = get_client_config(client_id)
 # Display logo with smaller width and reduce spacing
 st.image(client_config["logo"], width=120)  # Reduced width to 120 from 200
 
-# Custom HTML and CSS to make title smaller and reduce space
-st.markdown(f"""
-    <div style="text-align: center; background-color: {client_config['theme_color']}; padding: 5px 0;">
-        <h2 style="margin: 0; font-size: 24px;">{client_config['name']}</h2>
-    </div>
-""", unsafe_allow_html=True)
+client_config = get_client_config(client_id)
 
+# Display the logo and title with reduced spacing and fixed colors
+st.image(client_config["logo"], width=120)  # Adjusted logo width
+
+# Custom HTML and CSS to make the title smaller and reduce space with fixed colors
+st.markdown(f"""
+    <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+        <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+    </div>
+    
+""", unsafe_allow_html=True)
 # Function to generate a PDF file for reports
 def generate_pdf(content, title, file_name):
     pdf = FPDF()
