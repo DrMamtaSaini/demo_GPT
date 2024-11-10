@@ -561,7 +561,8 @@ def main_app():
             # Extract text from PDF
             assessment_content = read_pdf(assessment_pdf)
             st.write("Assessment content extracted successfully.")
-            
+            st.write("Extracted Assessment Content:", assessment_content)  # Add this line to display the content
+
             # Extract weak topics
             weak_topics = extract_weak_topics(assessment_content)
             st.write(f"Weak topics identified: {weak_topics}")
@@ -598,6 +599,7 @@ def main_app():
                 st.warning("No weak topics identified. Please review the assessment content.")
         else:
             st.error("Please provide both an email ID and upload an assessment PDF.")
+
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
