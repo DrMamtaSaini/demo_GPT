@@ -163,16 +163,21 @@ def read_pdf(file):
             text += page_text
     return text
 
-# Improved function to extract weak topics
 def extract_weak_topics(assessment_content):
     weak_topics = []
-    # Adjust keywords here based on report language
-    for line in assessment_content.splitlines():
-        if "Concept Clarity: No" in line:
-            topic_line = line.split("Concept Clarity: No")[0].strip()
-            topic = topic_line.split("- Subtopic:")[0].replace("Topic:", "").strip()
-            weak_topics.append(topic)
-    return list(set(weak_topics))
+    lines = assessment_content.splitlines()
+
+    for i in range(len(lines)):
+        if "Concept Clarity: No" in lines[i]:
+            # Look backwards for the topic line preceding "Concept Clarity: No"
+            for j in range(i - 1, -1, -1):
+                if "Topic:" in lines[j]:
+                    topic = lines[j].split("Topic:")[1].strip()
+                    weak_topics.append(topic)
+                    break  # Stop after finding the first relevant topic
+
+    return list(set(weak_topics))  # Return unique topics only
+
 
 # Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
@@ -544,12 +549,14 @@ def main_app():
                 st.error("Please provide all required inputs.")
 
     
+    
     elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
-    email_id = st.text_input("Enter Parent's Email ID:")
-    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+    
+    email_id = st.text_input("Enter Parent's Email ID:", key="parent_email")
+    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"], key="assessment_pdf")
 
-    if st.button("Generate and Send Personalized Learning Material"):
+    if st.button("Generate and Send Personalized Learning Material", key="generate_material"):
         if email_id and assessment_pdf:
             # Extract text from PDF
             assessment_content = read_pdf(assessment_pdf)
@@ -591,41 +598,6 @@ def main_app():
                 st.warning("No weak topics identified. Please review the assessment content.")
         else:
             st.error("Please provide both an email ID and upload an assessment PDF.")
-
-        st.header("Generate and Send Personalized Learning Material")
-    email_id = st.text_input("Enter Parent's Email ID:")
-    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
-
-    if st.button("Generate and Send Personalized Learning Material"):
-        if email_id and assessment_pdf:
-            # Extract text from PDF
-            assessment_content = read_pdf(assessment_pdf)
-            weak_topics = extract_weak_topics(assessment_content)
-
-            if weak_topics:
-                # Generate learning material and assignments
-                learning_material = generate_personalized_material(weak_topics)
-                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
-
-                # Save as DOCX only
-                learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
-                assignment_doc = save_content_as_doc(assignment, "Assignment")
-
-                # Email body text
-                email_body = """
-                Dear Parent/Guardian,
-
-                Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
-
-                Best regards,
-                Your School Name
-                """
-
-                # Send email with DOCX attachments only
-                attachments = [learning_material_doc, assignment_doc]
-                send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
-
-                st.success(f"Personalized materials have been sent to {email_id}.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
