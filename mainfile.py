@@ -5,26 +5,16 @@ from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
-from email import encoders
 from email.mime.text import MIMEText
+from email import encoders
 import os
-from docx import Document
 import json
+from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
-import streamlit as st
-import openai
-import json
-from io import BytesIO
-import requests
-
-import streamlit as st
-import openai
-import json
-from io import BytesIO
-import requests
+import pdfkit
 
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
@@ -203,6 +193,54 @@ def generate_personalized_assignment(weak_topics, include_solutions):
     )
     return response['choices'][0]['message']['content']
 
+# Function to save content as DOC and PDF
+def save_content_as_doc_and_pdf(content, filename):
+    # Save as DOC
+    doc = Document()
+    doc.add_paragraph(content)
+    doc_path = f"{filename}.docx"
+    doc.save(doc_path)
+
+    # Save as PDF
+    pdf_path = f"{filename}.pdf"
+    pdfkit.from_string(content, pdf_path)
+
+    return doc_path, pdf_path
+
+# Function to send an email with attachments
+def send_email_with_attachments(email_id, subject, body, attachments):
+    sender_email = "your_email@example.com"
+    password = "your_password"
+
+    # Create the email message
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = email_id
+    message["Subject"] = subject
+
+    # Attach body text
+    message.attach(MIMEText(body, "plain"))
+
+    # Attach each file
+    for file_path in attachments:
+        with open(file_path, "rb") as attachment:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", f"attachment; filename= {file_path}")
+            message.attach(part)
+
+    # Send the email
+    try:
+        server = smtplib.SMTP("smtp.example.com", 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.sendmail(sender_email, email_id, message.as_string())
+        server.quit()
+        print(f"Email sent to {email_id} successfully!")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
     doc = Document()
@@ -292,9 +330,10 @@ def main_app():
         .center { text-align: center; }
     </style>
     """, unsafe_allow_html=True)
-## Load client configuration using the stored client_id
+
+    # Load client configuration using the stored client_id
     client_config = get_client_config(st.session_state['client_id'])
-    
+
     # Display client-specific information
     st.image(client_config["logo"], width=120)
     st.markdown(f"""
@@ -312,7 +351,6 @@ def main_app():
         for key in ['logged_in', 'school_id', 'api_key', 'client_id']:
             st.session_state[key] = None
         st.experimental_rerun()
-
 
     # Home Page Layout with Cards
     if task == "Home":
@@ -366,7 +404,6 @@ def main_app():
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
-        
         # Collect basic information
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
         standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
@@ -401,7 +438,6 @@ def main_app():
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
-
         # Collect lesson plan details
         subject = st.text_input("Enter Subject:")
         grade = st.text_input("Enter Class/Grade:")
@@ -432,7 +468,6 @@ def main_app():
     # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
-
         # Collect student information
         student_name = st.text_input("Enter Student Name:")
         student_id = st.text_input("Enter Student ID:")
@@ -512,7 +547,42 @@ def main_app():
                 send_email_with_pdf(email_id, subject, body, file_name)
             else:
                 st.error("Please provide all required inputs.")
-    
+
+    elif task == "Personalized Learning Material":
+        st.header("Generate and Send Personalized Learning Material")
+        email_id = st.text_input("Enter Parent's Email ID:")
+        assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+
+        if st.button("Generate and Send Personalized Learning Material"):
+            if email_id and assessment_pdf:
+                # Extract text from PDF
+                assessment_content = read_pdf(assessment_pdf)
+                weak_topics = extract_weak_topics(assessment_content)
+
+                if weak_topics:
+                    # Generate learning material and assignments
+                    learning_material = generate_personalized_material(weak_topics)
+                    assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+
+                    # Save as DOC and PDF
+                    learning_material_doc, learning_material_pdf = save_content_as_doc_and_pdf(learning_material, "Learning_Material")
+                    assignment_doc, assignment_pdf = save_content_as_doc_and_pdf(assignment, "Assignment")
+
+                    # Email body text
+                    email_body = """
+                    Dear Parent/Guardian,
+
+                    Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
+
+                    Best regards,
+                    Your School Name
+                    """
+
+                    # Send email with attachments
+                    attachments = [learning_material_doc, learning_material_pdf, assignment_doc, assignment_pdf]
+                    send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
+
+                    st.success(f"Personalized materials have been sent to {email_id}.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
@@ -529,17 +599,16 @@ def main_app():
             st.success(f"Quiz generated and saved as '{quiz_filename}'")
             with open(quiz_filename, "rb") as file:
                 st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
-   
+
 
 def main():
     if st.session_state.get('logged_in', False):
-
         # If logged in, load client-specific configuration and run main app
         openai.api_key = st.session_state['api_key']
         main_app()
     else:
         # Display login page if not logged in
         login_page()
+
 if __name__ == "__main__":
     main()
-  
