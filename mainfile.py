@@ -164,19 +164,22 @@ def read_pdf(file):
     return text
 
 def extract_weak_topics(assessment_content):
-    weak_topics = []
-    lines = assessment_content.splitlines()
+    weak_topics = set()
+    current_topic = None
 
-    for i in range(len(lines)):
-        if "Concept Clarity: No" in lines[i]:
-            # Look backwards for the topic line preceding "Concept Clarity: No"
-            for j in range(i - 1, -1, -1):
-                if "Topic:" in lines[j]:
-                    topic = lines[j].split("Topic:")[1].strip()
-                    weak_topics.append(topic)
-                    break  # Stop after finding the first relevant topic
+    for line in assessment_content.splitlines():
+        line = line.strip()
 
-    return list(set(weak_topics))  # Return unique topics only
+        # Check for topic line
+        if line.startswith("Topic:"):
+            current_topic = line.split("Topic:")[-1].split("-")[0].strip()
+
+        # Check for Concept Clarity: No in the line and capture current topic as weak
+        if "Concept Clarity: No" in line and current_topic:
+            weak_topics.add(current_topic)
+    
+    return list(weak_topics)
+
 
 
 # Function to generate personalized learning material based on weak topics
