@@ -193,19 +193,7 @@ def generate_personalized_assignment(weak_topics, include_solutions):
     )
     return response['choices'][0]['message']['content']
 
-# Function to save content as DOC and PDF
-def save_content_as_doc_and_pdf(content, filename):
-    # Save as DOC
-    doc = Document()
-    doc.add_paragraph(content)
-    doc_path = f"{filename}.docx"
-    doc.save(doc_path)
 
-    # Save as PDF
-    pdf_path = f"{filename}.pdf"
-    pdfkit.from_string(content, pdf_path)
-
-    return doc_path, pdf_path
 
 # Function to send an email with attachments
 def send_email_with_attachments(email_id, subject, body, attachments):
@@ -247,6 +235,13 @@ def save_content_as_doc(content, file_name):
     for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
+def save_content_as_doc(content, filename):
+    # Save content as DOCX only
+    doc = Document()
+    doc.add_paragraph(content)
+    doc_path = f"{filename}.docx"
+    doc.save(doc_path)
+    return doc_path
 
 # Function to read Word document content
 def read_docx(file):
@@ -548,41 +543,42 @@ def main_app():
             else:
                 st.error("Please provide all required inputs.")
 
+    
     elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
-        email_id = st.text_input("Enter Parent's Email ID:")
-        assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+    email_id = st.text_input("Enter Parent's Email ID:")
+    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
 
-        if st.button("Generate and Send Personalized Learning Material"):
-            if email_id and assessment_pdf:
-                # Extract text from PDF
-                assessment_content = read_pdf(assessment_pdf)
-                weak_topics = extract_weak_topics(assessment_content)
+    if st.button("Generate and Send Personalized Learning Material"):
+        if email_id and assessment_pdf:
+            # Extract text from PDF
+            assessment_content = read_pdf(assessment_pdf)
+            weak_topics = extract_weak_topics(assessment_content)
 
-                if weak_topics:
-                    # Generate learning material and assignments
-                    learning_material = generate_personalized_material(weak_topics)
-                    assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+            if weak_topics:
+                # Generate learning material and assignments
+                learning_material = generate_personalized_material(weak_topics)
+                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
 
-                    # Save as DOC and PDF
-                    learning_material_doc, learning_material_pdf = save_content_as_doc_and_pdf(learning_material, "Learning_Material")
-                    assignment_doc, assignment_pdf = save_content_as_doc_and_pdf(assignment, "Assignment")
+                # Save as DOCX only
+                learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
+                assignment_doc = save_content_as_doc(assignment, "Assignment")
 
-                    # Email body text
-                    email_body = """
-                    Dear Parent/Guardian,
+                # Email body text
+                email_body = """
+                Dear Parent/Guardian,
 
-                    Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
+                Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
 
-                    Best regards,
-                    Your School Name
-                    """
+                Best regards,
+                Your School Name
+                """
 
-                    # Send email with attachments
-                    attachments = [learning_material_doc, learning_material_pdf, assignment_doc, assignment_pdf]
-                    send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
+                # Send email with DOCX attachments only
+                attachments = [learning_material_doc, assignment_doc]
+                send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
 
-                    st.success(f"Personalized materials have been sent to {email_id}.")
+                st.success(f"Personalized materials have been sent to {email_id}.")
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
