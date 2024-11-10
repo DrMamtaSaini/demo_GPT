@@ -553,6 +553,53 @@ def main_app():
         if email_id and assessment_pdf:
             # Extract text from PDF
             assessment_content = read_pdf(assessment_pdf)
+            st.write("Assessment content extracted successfully.")
+            
+            # Extract weak topics
+            weak_topics = extract_weak_topics(assessment_content)
+            st.write(f"Weak topics identified: {weak_topics}")
+
+            if weak_topics:
+                # Generate learning material and assignments
+                learning_material = generate_personalized_material(weak_topics)
+                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
+                
+                # Output generated content for verification
+                st.write("Generated Learning Material:", learning_material)
+                st.write("Generated Assignment:", assignment)
+
+                # Save as DOCX only
+                learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
+                assignment_doc = save_content_as_doc(assignment, "Assignment")
+                st.write("Documents saved as .docx files.")
+
+                # Email body text
+                email_body = """
+                Dear Parent/Guardian,
+
+                Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
+
+                Best regards,
+                Your School Name
+                """
+
+                # Send email with DOCX attachments only
+                attachments = [learning_material_doc, assignment_doc]
+                send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
+                st.success(f"Personalized materials have been sent to {email_id}.")
+            else:
+                st.warning("No weak topics identified. Please review the assessment content.")
+        else:
+            st.error("Please provide both an email ID and upload an assessment PDF.")
+
+        st.header("Generate and Send Personalized Learning Material")
+    email_id = st.text_input("Enter Parent's Email ID:")
+    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+
+    if st.button("Generate and Send Personalized Learning Material"):
+        if email_id and assessment_pdf:
+            # Extract text from PDF
+            assessment_content = read_pdf(assessment_pdf)
             weak_topics = extract_weak_topics(assessment_content)
 
             if weak_topics:
