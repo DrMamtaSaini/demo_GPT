@@ -100,7 +100,8 @@ def create_quiz_document(topic, class_level, num_questions, question_type):
         question_text = generate_question(topic, class_level, question_type, subtopic)
         #image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
         #image_prompt = f"HD, realistic image in English text of {subtopic} for a quiz question suitable for {class_level} students, related to the topic {topic}. Display a detailed and visually appealing depiction of {subtopic}."
-        image_prompt = f"HD, realistic image of {subtopic} suitable for {class_level} students, related to the topic {topic}. Any text in the image should be in English."
+        #image_prompt = f"HD, realistic image of {subtopic} suitable for {class_level} students, related to the topic {topic}. Any text in the image should be in English."
+        image_prompt = f"HD, realistic image of {subtopic} for a {class_level} level quiz related to {topic}. Ensure any text or labels are in clear English language only, avoiding non-English characters."
 
         image = fetch_image(image_prompt)
         document.add_picture(image, width=Inches(2))
