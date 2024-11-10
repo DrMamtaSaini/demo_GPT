@@ -153,43 +153,21 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Function to read PDF content and display it for debugging
-def read_pdf(file):
-    pdf_reader = PdfReader(file)
-    text = ""
-    for page in pdf_reader.pages:
-        page_text = page.extract_text()
-        if page_text:
-            text += page_text
+# Function to read DOCX content and extract text
+def read_docx(file):
+    doc = Document(file)
+    text = "\n".join([para.text for para in doc.paragraphs])
     return text
 
-import re
-
+# Update extract_weak_topics function to identify weak topics based on DOCX content
 def extract_weak_topics(assessment_content):
-    weak_topics = set()
-    topic_pattern = re.compile(r"Topic:\s*(.*?)\s*- Subtopic:")  # Capture topic names
-    concept_clarity_pattern = re.compile(r"Concept Clarity:\s*No")  # Detect lack of concept clarity
-
-    current_topic = None
-
+    weak_topics = []
     for line in assessment_content.splitlines():
-        line = line.strip()
-
-        # Look for a topic line and store the current topic if found
-        topic_match = topic_pattern.search(line)
-        if topic_match:
-            current_topic = topic_match.group(1).strip()  # Capture and strip whitespace
-            print(f"Detected topic: {current_topic}")  # Debug output
-
-        # Look for a lack of concept clarity and add current topic to weak topics if found
-        if concept_clarity_pattern.search(line) and current_topic:
-            print(f"Adding weak topic due to 'Concept Clarity: No': {current_topic}")  # Debug output
-            weak_topics.add(current_topic)
-
-    print(f"Final list of weak topics: {list(weak_topics)}")  # Final debug output
-    return list(weak_topics)
-
-
+        if "Concept Clarity: No" in line:
+            topic_line = line.split("Concept Clarity: No")[0].strip()
+            topic = topic_line.split("- Subtopic:")[0].replace("Topic:", "").strip()
+            weak_topics.append(topic)
+    return list(set(weak_topics))
 
 
 
@@ -566,17 +544,15 @@ def main_app():
     
     elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
-    
-    email_id = st.text_input("Enter Parent's Email ID:", key="parent_email")
-    assessment_pdf = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"], key="assessment_pdf")
+    email_id = st.text_input("Enter Parent's Email ID:")
+    assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
-    if st.button("Generate and Send Personalized Learning Material", key="generate_material"):
-        if email_id and assessment_pdf:
-            # Extract text from PDF
-            assessment_content = read_pdf(assessment_pdf)
+    if st.button("Generate and Send Personalized Learning Material"):
+        if email_id and assessment_docx:
+            # Extract text from DOCX
+            assessment_content = read_docx(assessment_docx)
             st.write("Assessment content extracted successfully.")
-            st.write("Extracted Assessment Content:", assessment_content)  # Add this line to display the content
-
+            
             # Extract weak topics
             weak_topics = extract_weak_topics(assessment_content)
             st.write(f"Weak topics identified: {weak_topics}")
@@ -612,7 +588,8 @@ def main_app():
             else:
                 st.warning("No weak topics identified. Please review the assessment content.")
         else:
-            st.error("Please provide both an email ID and upload an assessment PDF.")
+            st.error("Please provide both an email ID and upload an assessment DOCX file.")
+
 
 
     elif task == "Generate Image Based Questions":
