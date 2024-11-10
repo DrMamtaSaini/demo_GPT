@@ -63,12 +63,9 @@ def login_page():
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
                 st.session_state['client_id'] = school_id
-
-                # Trigger rerun only if the login is successful and the state has changed
-                st.experimental_rerun()
-                return
+                return  # No need to rerun if state is set; flow control will handle display
+    
         st.error("Invalid credentials. Please try again.")
-
 
 
 
@@ -538,11 +535,13 @@ def main_app():
 
 def main():
     if st.session_state.get('logged_in', False):
+
+        # If logged in, load client-specific configuration and run main app
         openai.api_key = st.session_state['api_key']
         main_app()
     else:
+        # Display login page if not logged in
         login_page()
-   
 if __name__ == "__main__":
     main()
   
