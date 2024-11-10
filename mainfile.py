@@ -163,24 +163,32 @@ def read_pdf(file):
             text += page_text
     return text
 
+import re
+
 def extract_weak_topics(assessment_content):
     weak_topics = set()
+    topic_pattern = re.compile(r"Topic:\s*(.*?)\s*- Subtopic:")  # Capture topic names
+    concept_clarity_pattern = re.compile(r"Concept Clarity:\s*No")  # Detect lack of concept clarity
+
     current_topic = None
 
     for line in assessment_content.splitlines():
         line = line.strip()
 
-        # Capture current topic if line contains "Topic:" keyword
-        if "Topic:" in line:
-            # Extract everything after "Topic:" and ignore other parts
-            topic_parts = line.split("Topic:")[-1].split("Subtopic:")
-            current_topic = topic_parts[0].strip()  # Capture the topic name
+        # Look for a topic line and store the current topic if found
+        topic_match = topic_pattern.search(line)
+        if topic_match:
+            current_topic = topic_match.group(1).strip()  # Capture and strip whitespace
+            print(f"Detected topic: {current_topic}")  # Debug output
 
-        # Check if "Concept Clarity: No" appears on the line
-        if "Concept Clarity: No" in line and current_topic:
+        # Look for a lack of concept clarity and add current topic to weak topics if found
+        if concept_clarity_pattern.search(line) and current_topic:
+            print(f"Adding weak topic due to 'Concept Clarity: No': {current_topic}")  # Debug output
             weak_topics.add(current_topic)
-    
+
+    print(f"Final list of weak topics: {list(weak_topics)}")  # Final debug output
     return list(weak_topics)
+
 
 
 
