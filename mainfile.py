@@ -58,10 +58,13 @@ def login_page():
         # Check credentials and set session state
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
+                # Set session states
                 st.session_state['logged_in'] = True
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
-                st.session_state['client_id'] = school_id  # Set client_id to match the school_id
+                st.session_state['client_id'] = school_id
+
+                # Trigger rerun only if the login is successful and the state has changed
                 st.experimental_rerun()
                 return
         st.error("Invalid credentials. Please try again.")
@@ -534,12 +537,11 @@ def main_app():
    
 
 def main():
-    if st.session_state['logged_in']:
+    if st.session_state.get('logged_in', False):
         openai.api_key = st.session_state['api_key']
         main_app()
     else:
         login_page()
-
    
 if __name__ == "__main__":
     main()
