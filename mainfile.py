@@ -14,7 +14,7 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
-import pdfkit
+
 
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
