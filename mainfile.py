@@ -90,60 +90,36 @@ def generate_question(topic, class_level, question_type, subtopic):
     return response['choices'][0]['message']['content']
 
 # Function to create quiz document
-from docx import Document
-from docx.shared import Inches
-
-# Function to create quiz document
-def create_quiz_document(topic, class_level, num_questions, question_type, include_answers=False):
+def create_quiz_document(topic, class_level, num_questions, question_type):
     document = Document()
     document.add_heading(f'{topic} Quiz for {class_level}', level=1)
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
     
-    # Sample correct answers for demonstration purposes
-    correct_answers = ["a", "b", "b"]  # Assuming these are the correct answers for each question
-
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
         question_text = generate_question(topic, class_level, question_type, subtopic)
-        
-        # Enhanced image prompt without text
-        image_prompt = f"High-definition, realistic image of {subtopic} related to {topic}, suitable for educational purposes for {class_level} students. Avoid any text or labels."
+        #image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
+        #image_prompt = f"HD, realistic image in English text of {subtopic} for a quiz question suitable for {class_level} students, related to the topic {topic}. Display a detailed and visually appealing depiction of {subtopic}."
+        image_prompt = f"HD, realistic image of {subtopic} suitable for {class_level} students, related to the topic {topic}. Any text in the image should be in English."
+        #image_prompt = f"HD, realistic image of {subtopic} for a {class_level} level quiz related to {topic}. Ensure any text or labels are in clear English language only, avoiding non-English characters."
+        #image_prompt = f"A high-definition, realistic image of {subtopic} related to the topic {topic}. The image should be visually detailed and engaging, suitable for educational purposes for {class_level} students. Avoid any text or labels."
+
         image = fetch_image(image_prompt)
-        
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
-        
-        # Adding answer options based on question type
         if question_type == "MCQ":
             document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
         elif question_type == "true/false":
             document.add_paragraph("a) True\nb) False")
         elif question_type == "yes/no":
             document.add_paragraph("a) Yes\nb) No")
-        
-        if include_answers:
-            # Display correct answer in the teacher's version
-            document.add_paragraph(f"Answer: {correct_answers[i]}\n", style='Intense Quote')
-        
         document.add_paragraph("\n")
-
-    # Add a section for answers at the end for the student version
-    if not include_answers:
-        document.add_paragraph("\nAnswers:\n")
-        for i in range(num_questions):
-            document.add_paragraph(f'Q{i+1}: ________________')
-    
-    # Define file names for both versions
-    filename = f'{topic}_Quiz_{class_level}{"_with_answers" if include_answers else ""}.docx'
+    document.add_paragraph("\nAnswers:\n")
+    for i in range(num_questions):
+        document.add_paragraph(f'Q{i+1}: ________________')
+    filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
-
-# Generate quiz without answers (for students)
-create_quiz_document("Animals", "3", 3, "MCQ", include_answers=False)
-
-# Generate quiz with answers (for teachers)
-create_quiz_document("Animals", "3", 3, "MCQ", include_answers=True)
-
 
 
 
