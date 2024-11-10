@@ -153,23 +153,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+import openai
+from docx import Document
+import re
+
 # Function to read DOCX content and extract text
 def read_docx(file):
     doc = Document(file)
     text = "\n".join([para.text for para in doc.paragraphs])
     return text
 
-# Update extract_weak_topics function to identify weak topics based on DOCX content
+# Function to extract weak topics with regex pattern matching
 def extract_weak_topics(assessment_content):
-    weak_topics = []
-    for line in assessment_content.splitlines():
-        if "Concept Clarity: No" in line:
-            topic_line = line.split("Concept Clarity: No")[0].strip()
-            topic = topic_line.split("- Subtopic:")[0].replace("Topic:", "").strip()
-            weak_topics.append(topic)
+    # Define regex pattern to match lines with "Concept Clarity: No"
+    pattern = r"Topic:\s*(.*?)\s*- Subtopic:.*?Concept Clarity:\s*No"
+    weak_topics = re.findall(pattern, assessment_content, re.IGNORECASE)
     return list(set(weak_topics))
-
-
 
 # Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
@@ -542,8 +541,7 @@ def main_app():
 
     
     
-    elif task == "Personalized Learning Material":
-        st.header("Generate and Send Personalized Learning Material")
+    st.header("Generate and Send Personalized Learning Material")
     email_id = st.text_input("Enter Parent's Email ID:")
     assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
@@ -562,14 +560,9 @@ def main_app():
                 learning_material = generate_personalized_material(weak_topics)
                 assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
                 
-                # Output generated content for verification
-                st.write("Generated Learning Material:", learning_material)
-                st.write("Generated Assignment:", assignment)
-
-                # Save as DOCX only
+                # Save as DOCX
                 learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
                 assignment_doc = save_content_as_doc(assignment, "Assignment")
-                st.write("Documents saved as .docx files.")
 
                 # Email body text
                 email_body = """
@@ -580,8 +573,6 @@ def main_app():
                 Best regards,
                 Your School Name
                 """
-
-                # Send email with DOCX attachments only
                 attachments = [learning_material_doc, assignment_doc]
                 send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
                 st.success(f"Personalized materials have been sent to {email_id}.")
@@ -589,7 +580,6 @@ def main_app():
                 st.warning("No weak topics identified. Please review the assessment content.")
         else:
             st.error("Please provide both an email ID and upload an assessment DOCX file.")
-
 
 
     elif task == "Generate Image Based Questions":
