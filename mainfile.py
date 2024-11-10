@@ -170,15 +170,18 @@ def extract_weak_topics(assessment_content):
     for line in assessment_content.splitlines():
         line = line.strip()
 
-        # Check for topic line
-        if line.startswith("Topic:"):
-            current_topic = line.split("Topic:")[-1].split("-")[0].strip()
+        # Capture current topic if line contains "Topic:" keyword
+        if "Topic:" in line:
+            # Extract everything after "Topic:" and ignore other parts
+            topic_parts = line.split("Topic:")[-1].split("Subtopic:")
+            current_topic = topic_parts[0].strip()  # Capture the topic name
 
-        # Check for Concept Clarity: No in the line and capture current topic as weak
+        # Check if "Concept Clarity: No" appears on the line
         if "Concept Clarity: No" in line and current_topic:
             weak_topics.add(current_topic)
     
     return list(weak_topics)
+
 
 
 
