@@ -89,19 +89,18 @@ def generate_question(topic, class_level, question_type, subtopic):
     )
     return response['choices'][0]['message']['content']
 
-
+# Function to create quiz document
 from docx import Document
 from docx.shared import Inches
 
-# Function to create image quiz document
+# Function to create quiz document
 def create_quiz_document(topic, class_level, num_questions, question_type, include_answers=False):
     document = Document()
-    document_title = f'{topic} Image-Based Questionnaire for {class_level}'
-    document.add_heading(document_title, level=1)
+    document.add_heading(f'{topic} Quiz for {class_level}', level=1)
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
     
     # Sample correct answers for demonstration purposes
-    correct_answers = ["a", "b", "b"]  # Replace with actual answers
+    correct_answers = ["a", "b", "b"]  # Assuming these are the correct answers for each question
 
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
@@ -135,15 +134,16 @@ def create_quiz_document(topic, class_level, num_questions, question_type, inclu
             document.add_paragraph(f'Q{i+1}: ________________')
     
     # Define file names for both versions
-    filename = f'{topic}_Image_Based_Questionnaire_{class_level}{"_with_answers" if include_answers else ""}.docx'
+    filename = f'{topic}_Quiz_{class_level}{"_with_answers" if include_answers else ""}.docx'
     document.save(filename)
     return filename
 
-# Generate questionnaire without answers (for students)
+# Generate quiz without answers (for students)
 create_quiz_document("Animals", "3", 3, "MCQ", include_answers=False)
 
-# Generate questionnaire with answers (for teachers)
+# Generate quiz with answers (for teachers)
 create_quiz_document("Animals", "3", 3, "MCQ", include_answers=True)
+
 
 
 
