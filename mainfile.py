@@ -89,9 +89,12 @@ def generate_question(topic, class_level, question_type, subtopic):
     )
     return response['choices'][0]['message']['content']
 
-# Function to create quiz document
-# Function to create image quiz document
-def create_quiz_document(topic, class_level, num_questions, question_type):
+from docx import Document
+from docx.shared import Inches
+import os
+
+# Function to create quiz document with or without answers
+def create_quiz_document(topic, class_level, num_questions, question_type, include_answers=True):
     document = Document()
     document.add_heading(f'{topic} Quiz for {class_level}', level=1)
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
@@ -104,23 +107,49 @@ def create_quiz_document(topic, class_level, num_questions, question_type):
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
         
-        # Add answer options only if they are relevant for the question type
+        # Add answer options based on question type
         if question_type == "MCQ":
-            document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
+            document.add_paragraph("A) Option 1\nB) Option 2\nC) Option 3\nD) Option 4")
         elif question_type == "true/false":
-            document.add_paragraph("a) True\nb) False")
+            document.add_paragraph("A) True\nB) False")
         elif question_type == "yes/no":
-            document.add_paragraph("a) Yes\nb) No")
+            document.add_paragraph("A) Yes\nB) No")
+        
+        # Add correct answer if include_answers is True
+        if include_answers:
+            correct_answer = "Your correct answer here"  # Customize as per your logic
+            document.add_paragraph(f'Answer: {correct_answer}')
         
         document.add_paragraph("\n")
     
-    document.add_paragraph("\nAnswers:\n")
-    for i in range(num_questions):
-        document.add_paragraph(f'Q{i+1}: ________________')
+    # Add blank answers section for quiz version without answers
+    if not include_answers:
+        document.add_paragraph("\nAnswers:\n")
+        for i in range(num_questions):
+            document.add_paragraph(f'Q{i+1}: ________________')
     
-    filename = f'{topic}_Quiz_{class_level}.docx'
+    # Save the document
+    filename = f'{topic}_Quiz_{class_level}{"_with_answers" if include_answers else "_without_answers"}.docx'
     document.save(filename)
     return filename
+
+# Function to generate both versions of the quiz and display download buttons
+def generate_quiz_with_buttons(topic, class_level, num_questions, question_type):
+    # Generate quiz with answers
+    quiz_with_answers = create_quiz_document(topic, class_level, num_questions, question_type, include_answers=True)
+    
+    # Generate quiz without answers
+    quiz_without_answers = create_quiz_document(topic, class_level, num_questions, question_type, include_answers=False)
+    
+    # Display download buttons (assuming you’re in a web or notebook environment)
+    display_buttons(quiz_with_answers, quiz_without_answers)
+
+def display_buttons(quiz_with_answers, quiz_without_answers):
+    print(f"Download Quiz with Answers: {quiz_with_answers}")
+    print(f"Download Quiz without Answers: {quiz_without_answers}")
+
+# Example usage:
+generate_quiz_with_buttons("Plants", "3", 5, "MCQ")
 
 
 # Function to generate a PDF file for reports
@@ -523,19 +552,31 @@ def main_app():
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
-        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
-        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
-        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
-        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
+    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
+    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):")
+    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5)
+    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"])
 
-        if st.button("Generate Quiz Document"):
-            if num_questions < 5:
-                st.warning("Minimum number of questions is 5. Setting to 5.")
-                num_questions = 5
-            quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
-            st.success(f"Quiz generated and saved as '{quiz_filename}'")
-            with open(quiz_filename, "rb") as file:
-                st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+    if st.button("Generate Quiz Document"):
+        if num_questions < 5:
+            st.warning("Minimum number of questions is 5. Setting to 5.")
+            num_questions = 5
+        
+        # Generate quiz document with answers
+        quiz_with_answers = create_quiz_document(topic, class_level, num_questions, question_type, include_answers=True)
+        # Generate quiz document without answers
+        quiz_without_answers = create_quiz_document(topic, class_level, num_questions, question_type, include_answers=False)
+        
+        # Notify user of successful generation
+        st.success("Quiz documents generated successfully!")
+        
+        # Provide download buttons for both versions
+        with open(quiz_with_answers, "rb") as file_with_answers:
+            st.download_button(label="Download Quiz Document with Answers", data=file_with_answers.read(), file_name=quiz_with_answers)
+        
+        with open(quiz_without_answers, "rb") as file_without_answers:
+            st.download_button(label="Download Quiz Document without Answers", data=file_without_answers.read(), file_name=quiz_without_answers)
+
    
 
 def main():
