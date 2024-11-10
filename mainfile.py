@@ -26,10 +26,10 @@ import json
 from io import BytesIO
 import requests
 
-# Simulated school credentials for login
+# Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
-# Initialize session state variables for login and client info
+# Initialize session states for login
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 if 'school_id' not in st.session_state:
@@ -37,7 +37,16 @@ if 'school_id' not in st.session_state:
 if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 if 'client_id' not in st.session_state:
-    st.session_state['client_id'] = None  # Initialize client_id
+    st.session_state['client_id'] = None
+
+# Load client configuration from JSON file
+with open("clients_config.json") as config_file:
+    clients_config = json.load(config_file)
+
+def get_client_config(client_id):
+    """Retrieves client configuration based on client_id or returns default if not found."""
+    default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
+    return clients_config.get(client_id, default_config)
 
 def login_page():
     """Displays login page and sets session states on successful login."""
@@ -53,19 +62,11 @@ def login_page():
                 st.session_state['logged_in'] = True
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
-                st.session_state['client_id'] = school_id  # Set client_id for client-specific config
-                return  # Exit login_page on successful login to avoid rerun
-
+                st.session_state['client_id'] = school_id
+                return  # No need to rerun if state is set; flow control will handle display
+    
         st.error("Invalid credentials. Please try again.")
 
-# Load client configuration from JSON file
-with open("clients_config.json") as config_file:
-    clients_config = json.load(config_file)
-
-# Function to get client configuration based on client_id
-def get_client_config(client_id):
-    default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
-    return clients_config.get(client_id, default_config)
 
 
 
@@ -533,26 +534,14 @@ def main_app():
    
 
 def main():
-    """Main entry point for the Streamlit app."""
     if st.session_state.get('logged_in', False):
-        # Load client-specific configuration based on session-stored client_id
-        client_config = get_client_config(st.session_state['client_id'])
 
-        # Display logo with smaller width and reduce spacing
-        st.image(client_config["logo"], width=120)
-
-        # Display client-specific name with gradient background
-        st.markdown(f"""
-            <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-                <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Run the main app logic here
-        # Example:
-        # main_app()  # Uncomment when main_app is defined
+        # If logged in, load client-specific configuration and run main app
+        openai.api_key = st.session_state['api_key']
+        main_app()
     else:
-        login_page()  # Show login page if not logged in
-
+        # Display login page if not logged in
+        login_page()
 if __name__ == "__main__":
     main()
+  
