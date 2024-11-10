@@ -25,8 +25,7 @@ import openai
 import json
 from io import BytesIO
 import requests
-from docx import Document
-from docx.shared import Inches
+
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
@@ -91,7 +90,8 @@ def generate_question(topic, class_level, question_type, subtopic):
     return response['choices'][0]['message']['content']
 
 
-
+from docx import Document
+from docx.shared import Inches
 
 # Function to create image quiz document
 def create_quiz_document(topic, class_level, num_questions, question_type, include_answers=False):
