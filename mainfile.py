@@ -164,25 +164,17 @@ def read_docx(file):
     return text
 
 # Function to extract weak topics with regex pattern matching
+import re
+
+# Function to extract weak topics using regex for consistent pattern matching
 def extract_weak_topics(assessment_content):
     weak_topics = []
-    lines = assessment_content.splitlines()
-    
-    for line in lines:
-        # Check for "Concept Clarity: No" in each line
-        if "Concept Clarity: No" in line:
-            # Extract preceding topic and subtopic if available
-            topic = ""
-            if "Topic:" in line:
-                topic_start = line.find("Topic:") + len("Topic:")
-                topic_end = line.find("- Subtopic:")
-                if topic_end == -1:
-                    topic_end = line.find("Concept Clarity: No")
-                topic = line[topic_start:topic_end].strip()
-            if topic and topic not in weak_topics:
-                weak_topics.append(topic)
-    
-    return list(set(weak_topics))
+    pattern = r"Topic:\s*(.*?)\s*- Subtopic:.*?Concept Clarity:\s*No"  # Regex pattern for topics with "Concept Clarity: No"
+
+    matches = re.findall(pattern, assessment_content, re.DOTALL)  # Match across lines
+    weak_topics = list(set(matches))  # Remove duplicates
+
+    return weak_topics
 
 # Function to generate personalized learning material based on weak topics
 def generate_personalized_material(weak_topics):
