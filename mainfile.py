@@ -164,31 +164,20 @@ def read_docx(file):
     return text
 
 def extract_weak_topics(assessment_content):
-    # Step 1: Print full content for verification
-    print("Extracted Assessment Content:\n", assessment_content)  # Debug: Full extracted content
+    weak_topics = set()
+    current_topic = ''
+    lines = assessment_content.splitlines()
+    for line in lines:
+        line = line.strip()
+        # Check if the line starts with 'Topic:'
+        if line.startswith('Topic:'):
+            current_topic = line.replace('Topic:', '').strip()
+        # Check if the line contains 'Concept Clarity: No'
+        elif 'Concept Clarity: No' in line:
+            if current_topic:
+                weak_topics.add(current_topic)
+    return list(weak_topics)
 
-    weak_topics = []
-    current_topic = None
-
-    # Split content by lines
-    for line in assessment_content.splitlines():
-        # Identify topic line
-        if "Topic:" in line:
-            # Extract topic name
-            current_topic = line.split("Topic:")[1].split("-")[0].strip()
-            print(f"Found Topic: {current_topic}")  # Debug: Topic found
-
-        # Identify if Concept Clarity is marked as "No" for current topic
-        if "Concept Clarity: No" in line and current_topic:
-            weak_topics.append(current_topic)
-            print(f"Weak Topic Added: {current_topic}")  # Debug: Weak topic added
-            current_topic = None  # Reset topic to avoid duplicates
-
-    # Deduplicate and return weak topics list
-    weak_topics = list(set(weak_topics))
-    print("Final Weak Topics List:", weak_topics)  # Debug: Final weak topics list
-
-    return weak_topics
 
 
 
