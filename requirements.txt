@@ -5,3 +5,15 @@ fpdf==1.7.2
 python-docx==1.1.2
 PyPDF2
 
+streamlit
+openai
+pandas
+fpdf
+smtplib
+email
+os
+json
+python-docx
+requests
+PyPDF2
+docx2pdf
