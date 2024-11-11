@@ -159,11 +159,14 @@ import re
 
 def read_docx(file):
     doc = Document(file)
-    full_text = "\n".join([para.text for para in doc.paragraphs])
-    print("DEBUG - Full Document Content Read:\n", full_text)  # Verify document content
+    full_text = "\n".join([repr(para.text) for para in doc.paragraphs])  # Use repr to show hidden characters
+    print("DEBUG - Full Document Content with Hidden Characters:\n", full_text)  # Show all text details
     return full_text
 
 
+
+
+import re
 
 def extract_weak_topics(assessment_content):
     weak_topics = set()
@@ -172,22 +175,25 @@ def extract_weak_topics(assessment_content):
 
     print("DEBUG - Starting Topic Extraction...")
 
+    # Split content by lines
     lines = assessment_content.splitlines()
     for line in lines:
         line = line.strip()
 
-        # Check for "Topic:" case-insensitively
-        if "topic:" in line.lower():
-            current_topic = line.split(":", 1)[1].strip()
+        # Use regex for flexible matching with case-insensitive and optional spaces
+        topic_match = re.search(r"(?i)topic\s*:\s*(.*)", line)
+        subtopic_match = re.search(r"(?i)subtopic\s*:\s*(.*)", line)
+        concept_clarity_match = re.search(r"(?i)concept clarity\s*:\s*no", line)
+
+        if topic_match:
+            current_topic = topic_match.group(1).strip()
             print(f"DEBUG - Detected Topic: {current_topic}")
 
-        # Check for "Subtopic:" case-insensitively
-        elif "subtopic:" in line.lower():
-            current_subtopic = line.split(":", 1)[1].strip()
+        elif subtopic_match:
+            current_subtopic = subtopic_match.group(1).strip()
             print(f"DEBUG - Detected Subtopic: {current_subtopic}")
 
-        # Check for "Concept Clarity: No" case-insensitively
-        elif "concept clarity: no" in line.lower():
+        elif concept_clarity_match:
             if current_topic and current_subtopic:
                 weak_topics.add(f"{current_topic} - {current_subtopic}")
                 print(f"DEBUG - Weak Topic Added: {current_topic} - {current_subtopic}")
