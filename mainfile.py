@@ -157,11 +157,12 @@ import openai
 from docx import Document
 import re
 
-# Function to read DOCX content and extract text
 def read_docx(file):
     doc = Document(file)
-    full_text = [para.text for para in doc.paragraphs]
-    return "\n".join(full_text)
+    full_text = "\n".join([para.text for para in doc.paragraphs])
+    print("DEBUG - Full Document Content Read:\n", full_text)  # Verify document content
+    return full_text
+
 
 
 def extract_weak_topics(assessment_content):
@@ -169,37 +170,32 @@ def extract_weak_topics(assessment_content):
     current_topic = ""
     current_subtopic = ""
 
-    # Print entire content for review
-    print("DEBUG - Full Assessment Content Extracted:")
-    print(assessment_content)
+    print("DEBUG - Starting Topic Extraction...")
 
-    # Split content into lines
     lines = assessment_content.splitlines()
-
     for line in lines:
-        line = line.strip()  # Clean up each line
-        print(f"DEBUG - Processing line: {line}")
+        line = line.strip()
 
-        # Identify Topic lines
-        if "Topic:" in line:
-            current_topic = line.split("Topic:")[1].strip()
+        # Check for "Topic:" case-insensitively
+        if "topic:" in line.lower():
+            current_topic = line.split(":", 1)[1].strip()
             print(f"DEBUG - Detected Topic: {current_topic}")
 
-        # Identify Subtopic lines
-        elif "Subtopic:" in line:
-            current_subtopic = line.split("Subtopic:")[1].strip()
+        # Check for "Subtopic:" case-insensitively
+        elif "subtopic:" in line.lower():
+            current_subtopic = line.split(":", 1)[1].strip()
             print(f"DEBUG - Detected Subtopic: {current_subtopic}")
 
-        # Look for 'Concept Clarity: No'
-        elif "Concept Clarity: No" in line:
-            print(f"DEBUG - 'Concept Clarity: No' found for {current_topic} - {current_subtopic}")
+        # Check for "Concept Clarity: No" case-insensitively
+        elif "concept clarity: no" in line.lower():
             if current_topic and current_subtopic:
                 weak_topics.add(f"{current_topic} - {current_subtopic}")
+                print(f"DEBUG - Weak Topic Added: {current_topic} - {current_subtopic}")
 
-    # Convert to list for final output
     weak_topics_list = list(weak_topics)
     print("DEBUG - Identified Weak Topics:", weak_topics_list)
     return weak_topics_list
+
 
 
 
