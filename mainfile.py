@@ -169,30 +169,38 @@ def extract_weak_topics(assessment_content):
     current_topic = ""
     current_subtopic = ""
 
-    # Print entire content to debug
-    print("Full Assessment Content Extracted:\n", assessment_content)
+    # Print entire content for review
+    print("DEBUG - Full Assessment Content Extracted:")
+    print(assessment_content)
 
-    # Split the content into lines
+    # Split content into lines
     lines = assessment_content.splitlines()
 
     for line in lines:
-        line = line.strip()
+        line = line.strip()  # Clean up each line
+        print(f"DEBUG - Processing line: {line}")
 
-        # Check for Topic and Subtopic
-        if line.startswith("Topic:"):
+        # Identify Topic lines
+        if "Topic:" in line:
             current_topic = line.split("Topic:")[1].strip()
-        elif line.startswith("Subtopic:"):
-            current_subtopic = line.split("Subtopic:")[1].strip()
+            print(f"DEBUG - Detected Topic: {current_topic}")
 
-        # Identify weak topics by finding "Concept Clarity: No"
+        # Identify Subtopic lines
+        elif "Subtopic:" in line:
+            current_subtopic = line.split("Subtopic:")[1].strip()
+            print(f"DEBUG - Detected Subtopic: {current_subtopic}")
+
+        # Look for 'Concept Clarity: No'
         elif "Concept Clarity: No" in line:
+            print(f"DEBUG - 'Concept Clarity: No' found for {current_topic} - {current_subtopic}")
             if current_topic and current_subtopic:
                 weak_topics.add(f"{current_topic} - {current_subtopic}")
 
-    # Convert set to list
+    # Convert to list for final output
     weak_topics_list = list(weak_topics)
-    print("Identified Weak Topics:", weak_topics_list)  # For debugging
+    print("DEBUG - Identified Weak Topics:", weak_topics_list)
     return weak_topics_list
+
 
 
 
