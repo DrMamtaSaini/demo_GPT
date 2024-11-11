@@ -163,39 +163,41 @@ def read_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text
 
-from docx import Document
-import re
-
-def extract_weak_topics(doc_path):
-    # Load the document
-    doc = Document(doc_path)
-    weak_topics = []
-
-    # Initialize variables to track the current topic and subtopic
-    current_topic = None
-    current_subtopic = None
-
-    # Iterate through paragraphs in the document
-    for paragraph in doc.paragraphs:
-        text = paragraph.text.strip()
-
-        # Use regular expressions to match "Topic" and "Subtopic" patterns
-        topic_match = re.search(r"Topic:\s*(.*)", text, re.IGNORECASE)
-        subtopic_match = re.search(r"Subtopic:\s*(.*)", text, re.IGNORECASE)
-
-        # Update current topic and subtopic if matched
-        if topic_match:
-            current_topic = topic_match.group(1).strip()
-        elif subtopic_match:
-            current_subtopic = subtopic_match.group(1).strip()
+def extract_weak_topics(assessment_content):
+    weak_topics = set()
+    current_subtopic = ''
+    
+    # Step 1: Print entire content for verification
+    print("Full Assessment Content Extracted:")
+    print(assessment_content)  # Debug: Verify extracted content
+    
+    # Step 2: Clean up content and split into lines
+    lines = assessment_content.strip().splitlines()
+    
+    # Step 3: Process each line for weak topic extraction
+    for line in lines:
+        # Remove extra spaces and special characters for consistency
+        line = line.strip().replace('\n', '').replace('\r', '')
         
-        # Look for "Concept Clarity: No" to identify weak topics
-        if "Concept Clarity: No" in text:
-            if current_topic and current_subtopic:
-                weak_topics.append((current_topic, current_subtopic))
-                print(f"Identified Weak Topic: Topic: {current_topic}, Subtopic: {current_subtopic}")
-
-    return weak_topics
+        # Debug: Print each cleaned line
+        print(f"Processed Line: '{line}'")
+        
+        # Detect subtopics
+        if 'Subtopic:' in line:
+            current_subtopic = line.split('Subtopic:')[1].strip()
+            print(f"Detected Subtopic: {current_subtopic}")  # Debug: Log subtopic
+        
+        # Check for Concept Clarity
+        elif 'Concept Clarity: No' in line:
+            print(f"Concept Clarity Issue Found in Subtopic: {current_subtopic}")  # Debug: Log Concept Clarity
+            if current_subtopic:
+                weak_topics.add(current_subtopic)
+                print(f"Weak Topic Added: {current_subtopic}")  # Debug: Confirm weak topic added
+    
+    # Final weak topics output
+    weak_topics_list = list(weak_topics)
+    print(f"Identified Weak Topics: {weak_topics_list}")
+    return weak_topics_list
 
 
 
