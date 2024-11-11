@@ -169,14 +169,18 @@ def extract_weak_topics(assessment_content):
     lines = assessment_content.splitlines()
     for line in lines:
         line = line.strip()
-        # Check if the line starts with 'Topic:'
+        print(f"Processing line: {line}")  # Debug statement
         if line.startswith('Topic:'):
             current_topic = line.replace('Topic:', '').strip()
-        # Check if the line contains 'Concept Clarity: No'
+            print(f"Current topic set to: {current_topic}")  # Debug statement
         elif 'Concept Clarity: No' in line:
+            print(f"'Concept Clarity: No' found in line: {line}")  # Debug statement
             if current_topic:
                 weak_topics.add(current_topic)
+                print(f"Weak topic added: {current_topic}")  # Debug statement
+    print(f"Final weak topics: {list(weak_topics)}")  # Debug statement
     return list(weak_topics)
+
 
 
 
