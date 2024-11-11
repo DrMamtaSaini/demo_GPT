@@ -163,34 +163,39 @@ def read_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text
 
-def extract_weak_topics(assessment_content):
-    weak_topics = set()
-    current_subtopic = ''
-    lines = assessment_content.splitlines()
-    
-    print("Starting line-by-line analysis:")
-    
-    for line in lines:
-        line = line.strip()
-        print(f"Processing line: {line}")  # Debug: Print each line to inspect its structure
-        
-        # Detect and log the current subtopic
-        if line.startswith('Subtopic:'):
-            current_subtopic = line.replace('Subtopic:', '').strip()
-            print(f"Detected Subtopic: {current_subtopic}")  # Debug: Log the detected subtopic
-        
-        # Detect and log when Concept Clarity is "No"
-        elif 'Concept Clarity: No' in line:
-            print(f"Detected 'Concept Clarity: No' for Subtopic: {current_subtopic}")  # Debug: Log Concept Clarity
-            if current_subtopic:
-                weak_topics.add(current_subtopic)
-                print(f"Weak Subtopic Added: {current_subtopic}")  # Debug: Log weak subtopic addition
-    
-    # Print the final list of weak subtopics for verification
-    print(f"Final weak subtopics list: {list(weak_topics)}")
-    return list(weak_topics)
+from docx import Document
+import re
 
+def extract_weak_topics(doc_path):
+    # Load the document
+    doc = Document(doc_path)
+    weak_topics = []
 
+    # Initialize variables to track the current topic and subtopic
+    current_topic = None
+    current_subtopic = None
+
+    # Iterate through paragraphs in the document
+    for paragraph in doc.paragraphs:
+        text = paragraph.text.strip()
+
+        # Use regular expressions to match "Topic" and "Subtopic" patterns
+        topic_match = re.search(r"Topic:\s*(.*)", text, re.IGNORECASE)
+        subtopic_match = re.search(r"Subtopic:\s*(.*)", text, re.IGNORECASE)
+
+        # Update current topic and subtopic if matched
+        if topic_match:
+            current_topic = topic_match.group(1).strip()
+        elif subtopic_match:
+            current_subtopic = subtopic_match.group(1).strip()
+        
+        # Look for "Concept Clarity: No" to identify weak topics
+        if "Concept Clarity: No" in text:
+            if current_topic and current_subtopic:
+                weak_topics.append((current_topic, current_subtopic))
+                print(f"Identified Weak Topic: Topic: {current_topic}, Subtopic: {current_subtopic}")
+
+    return weak_topics
 
 
 
