@@ -484,6 +484,7 @@ def main_app():
     # Section 3: Student Assessment Assistant
     # Section 3: Student Assessment Assistant
     # Section 3: Student Assessment Assistant
+    # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -500,7 +501,7 @@ def main_app():
     answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
 
     # Generate Assessment Report, Identify Weak Areas, and Send Reports
-    if st.button("Generate Reports and Send via Email"):
+    if st.button("Generate and Send PDF Report with Personalized Material"):
         if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
             # Read DOC files
             question_paper_content = read_docx(question_paper)
@@ -581,27 +582,23 @@ def main_app():
             generate_pdf(learning_material, "Personalized Learning Material", learning_material_file)
             generate_pdf(assignment, "Personalized Assignment", assignment_file)
 
-            # Step 5: Display reports, learning material, and assignment with download buttons
-
-            # Display assessment report and download button
-            st.subheader("Assessment Report")
+            # Display and download all reports
+            st.write("### Assessment Report")
             st.write(report)
             with open(assessment_report_file, "rb") as file:
-                st.download_button(label="Download Assessment Report as PDF", data=file, file_name=assessment_report_file)
+                st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=assessment_report_file)
 
-            # Display learning material and download button
-            st.subheader("Personalized Learning Material")
+            st.write("### Personalized Learning Material")
             st.write(learning_material)
             with open(learning_material_file, "rb") as file:
-                st.download_button(label="Download Learning Material as PDF", data=file, file_name=learning_material_file)
+                st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=learning_material_file)
 
-            # Display assignment and download button
-            st.subheader("Personalized Assignment")
+            st.write("### Personalized Assignment")
             st.write(assignment)
             with open(assignment_file, "rb") as file:
-                st.download_button(label="Download Assignment as PDF", data=file, file_name=assignment_file)
+                st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=assignment_file)
 
-            # Step 6: Email all generated reports
+            # Step 5: Email all generated reports
             subject = f"Assessment Report and Personalized Material for {student_name}"
             body = f"Attached are the assessment report, personalized learning materials, and assignment for {student_name}."
 
