@@ -20,6 +20,35 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.section import WD_ORIENTATION
+from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from fpdf import FPDF
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+import os
+import openai
+from docx import Document
+import re
+import streamlit as st
+import openai
+from fpdf import FPDF
+from docx import Document
+from docx2pdf import convert  # Library to convert DOCX to PDF
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+from io import BytesIO
+import os
+from docx2pdf import convert  # Importing the library for DOCX to PDF conversion
+
+# Function to convert DOCX to PDF
+def convert_docx_to_pdf(docx_file, pdf_file):
+    convert(docx_file, pdf_file)
 
 
 # Constants and Initial Setup
@@ -64,89 +93,87 @@ def login_page():
         st.error("Invalid credentials. Please try again.")
 
 
-def generate_assessment_report(report_content, summary_report, detailed_questions):
-    # Create a new Word document
+def generate_assessment_report(report_content, exam_type, subject, student_name, parent_email):
+    """Generates an assessment report in DOCX and PDF, displays content, and sends the PDF via email."""
+    
+    # Create DOCX Document
     doc = Document()
     
-    # Centered, bold, large font heading for "Assessment Report"
-    title = doc.add_paragraph("Assessment Report")
-    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    title_run = title.add_run()
+    # Title Section
+    title = doc.add_paragraph()
+    title_run = title.add_run("Assessment Report")
     title_run.bold = True
-    title_run.font.size = Pt(16)
-    
-    # Add Exam Type and Subject in centered, bold
-    exam_type = doc.add_paragraph(f"Exam Type: {summary_report['exam_type']}")
-    exam_type.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    exam_type_run = exam_type.add_run()
-    exam_type_run.bold = True
-    
-    subject = doc.add_paragraph(f"Subject: {summary_report['subject']}")
-    subject.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    subject_run = subject.add_run()
-    subject_run.bold = True
+    title_run.font.size = Pt(18)
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    # Add a line break
-    doc.add_paragraph()
+    # Exam Type and Subject
+    exam_paragraph = doc.add_paragraph()
+    exam_run = exam_paragraph.add_run(f"\nExam Type: {exam_type}\nSubject: {subject}\nStudent Name: {student_name}")
+    exam_run.bold = True
+    exam_run.font.size = Pt(14)
+    exam_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    # Add "Summary Report" heading
-    summary_title = doc.add_paragraph("Summary Report")
-    summary_title.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    summary_title_run = summary_title.add_run()
-    summary_title_run.bold = True
-    
-    # Add the summary details
-    for key, value in summary_report.items():
-        if key not in ['exam_type', 'subject']:
-            summary_line = doc.add_paragraph(f"{key}: {value}")
-            summary_line.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    
-    # Set the section to landscape for Detailed Questions Analysis
-    section = doc.sections[-1]
-    section.orientation = WD_ORIENTATION.LANDSCAPE
-    new_width, new_height = section.page_height, section.page_width
-    section.page_width = new_width
-    section.page_height = new_height
+    # Summary Report Section
+    doc.add_paragraph("\nSummary Report", style="Heading 2")
+    doc.add_paragraph(report_content['summary'])
 
-    # Add "Detailed Question Analysis" heading
-    detailed_title = doc.add_paragraph("Detailed Question Analysis")
-    detailed_title.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    detailed_title_run = detailed_title.add_run()
-    detailed_title_run.bold = True
+    # Detailed Questions Analysis
+    doc.add_paragraph("\nDetailed Questions Analysis", style="Heading 2")
+    for question in report_content['questions']:
+        question_text = f"Question {question['number']}:\n" \
+                        f"Topic: {question['topic']}\n" \
+                        f"Subtopic: {question['subtopic']}\n" \
+                        f"Score: {question['score']}\n" \
+                        f"Concept Clarity: {question['concept_clarity']}\n" \
+                        f"Feedback: {question['feedback']}\n"
+        doc.add_paragraph(question_text)
 
-    # Create a table for detailed question analysis
-    table = doc.add_table(rows=1, cols=6)
-    table.style = 'Table Grid'
-    hdr_cells = table.rows[0].cells
-    headers = ["Question No.", "Topic", "Subtopic", "Score", "Concept Clarity", "Feedback"]
-    for i, header in enumerate(headers):
-        hdr_cells[i].text = header
-        hdr_cells[i].paragraphs[0].runs[0].font.bold = True
-        hdr_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        hdr_cells[i].vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    # Save the DOCX file
+    docx_filename = "assessment_report.docx"
+    doc.save(docx_filename)
 
-    # Fill in the table rows with the detailed question data
-    for question in detailed_questions:
-        row_cells = table.add_row().cells
-        row_cells[0].text = str(question.get("Question Number", ""))
-        row_cells[1].text = question.get("Topic", "")
-        row_cells[2].text = question.get("Subtopic", "")
-        row_cells[3].text = str(question.get("Score", ""))
-        row_cells[4].text = question.get("Concept Clarity", "")
-        row_cells[5].text = question.get("Feedback", "")
+    # Display report content on-screen
+    print("\nReport Preview:\n")
+    print(f"Assessment Report - {exam_type} ({subject})\nStudent Name: {student_name}")
+    print("\nSummary Report\n")
+    print(report_content['summary'])
+    print("\nDetailed Questions Analysis\n")
+    for question in report_content['questions']:
+        print(question_text)
 
-        # Text wrap for each cell
-        for cell in row_cells:
-            for paragraph in cell.paragraphs:
-                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                cell.width = Inches(1.5)  # Adjust as needed for fit
+    # Generate PDF from DOCX content
+    pdf_filename = "assessment_report.pdf"
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Assessment Report", ln=True, align='C')
+    pdf.set_font("Arial", size=12)
+    pdf.ln(10)
+    pdf.cell(0, 10, f"Exam Type: {exam_type} | Subject: {subject} | Student: {student_name}", ln=True)
+    pdf.ln(10)
+    pdf.cell(0, 10, "Summary Report:", ln=True)
+    pdf.ln(10)
+    pdf.multi_cell(0, 10, report_content['summary'])
+    pdf.ln(10)
+    pdf.cell(0, 10, "Detailed Questions Analysis:", ln=True)
+    for question in report_content['questions']:
+        question_text = f"\nQuestion {question['number']}:\n" \
+                        f"Topic: {question['topic']}\n" \
+                        f"Subtopic: {question['subtopic']}\n" \
+                        f"Score: {question['score']}\n" \
+                        f"Concept Clarity: {question['concept_clarity']}\n" \
+                        f"Feedback: {question['feedback']}\n"
+        pdf.multi_cell(0, 10, question_text)
+    pdf.output(pdf_filename)
 
-    # Save document as a .docx file
-    file_name = "assessment_report.docx"
-    doc.save(file_name)
+    # Send PDF via email
+    send_email_with_pdf(parent_email, "Assessment Report", "Attached is your child's assessment report.", pdf_filename)
 
-    return file_name
+    # Cleanup files
+    os.remove(docx_filename)
+    os.remove(pdf_filename)
+
+    return pdf_filename  # For download if required
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -206,44 +233,34 @@ def generate_pdf(content, title, file_name):
     pdf.output(file_name)
 
 # Function to send an email with PDF attachment
-def send_email_with_pdf(to_email, subject, body, file_name):
-    from_email = st.secrets["email"]
-    password = st.secrets["password"]
+def send_email_with_pdf(to_email, subject, body, pdf_filename):
+    """Send an email with the PDF report attached."""
+    from_email = "your_email@example.com"
+    password = "your_password"
+    
+    # Email setup
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
-    with open(file_name, "rb") as attachment:
+
+    # Attach PDF file
+    with open(pdf_filename, "rb") as attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
         encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename= {file_name}')
+        part.add_header('Content-Disposition', f'attachment; filename= {pdf_filename}')
         msg.attach(part)
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(from_email, password)
-    server.sendmail(from_email, to_email, msg.as_string())
-    server.quit()
-    st.success(f"Email sent to {to_email} with the attached PDF report!")
 
-st.markdown("""
-    <style>
-        body { background-color: #F0F2F6; }
-        .stApp { color: #4B0082; }
-        .sidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
-        h1, h2, h3, h4 { color: #4B0082; }
-        .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; width: 100%; padding: 10px; font-size: 16px; }
-        .stButton>button:hover { background-color: #483D8B; color: white; }
-        .stFileUploader { color: #4B0082; }
-        .stMarkdown { color: #4B0082; }
-        .stAlert, .stSuccess { color: #228B22; background-color: #E0FFE0; border-radius: 8px; }
-    </style>
-    """, unsafe_allow_html=True)
+    # Send email
+    with smtplib.SMTP('smtp.gmail.com', 587) as server:
+        server.starttls()
+        server.login(from_email, password)
+        server.send_message(msg)
+    print(f"Email sent to {to_email} with the PDF report attached.")
 
-import openai
-from docx import Document
-import re
+
 
 def read_docx(file):
     doc = Document(file)
@@ -573,12 +590,12 @@ def main_app():
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-    # Collect student information with unique labels for each field
+    # Collect student information
     student_name = st.text_input("Enter Student Name", key="student_name_input")
     student_id = st.text_input("Enter Student ID", key="student_id_input")
     assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
     class_name = st.text_input("Enter Class", key="class_name_input")
-    Exam_type = st.text_input("Enter the name of Exam", key="exam_name_input")
+    exam_type = st.text_input("Enter the name of Exam", key="exam_name_input")
     subject_name = st.text_input("Enter Subject", key="subject_name_input")
     email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
@@ -602,7 +619,7 @@ def main_app():
             Student Name: {student_name}
             Student ID: {student_id}
             Class: {class_name}
-            Exam Type: {Exam_type}
+            Exam Type: {exam_type}
             Subject Name: {subject_name}
             Assessment ID: {assessment_id}
 
@@ -641,7 +658,7 @@ def main_app():
             )
             report_content = response['choices'][0]['message']['content']
 
-            # Step 2: Extract weak topics from the report using generative AI
+            # Step 2: Generate personalized learning material and assignment
             weak_topics_prompt = f"Identify and list topics and subtopics from the following assessment report where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report_content}"
             weak_response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -649,7 +666,6 @@ def main_app():
             )
             weak_topics = weak_response['choices'][0]['message']['content'].strip().split("\n")
 
-            # Step 3: Generate personalized learning material and assignment
             learning_material_prompt = f"Create personalized learning material covering the following weak areas: {', '.join(weak_topics)}. Include explanations, examples, and practice questions."
             assignment_prompt = f"Create an assignment based on the following weak areas for the student to improve: {', '.join(weak_topics)}. Include questions that reinforce concepts with solutions."
 
@@ -665,30 +681,36 @@ def main_app():
             learning_material = learning_material_response['choices'][0]['message']['content']
             assignment = assignment_response['choices'][0]['message']['content']
 
-            # Prepare the summary and question details for the assessment report generation
+            # Step 3: Save reports and generate PDF
             summary_report = {
                 'student_name': student_name,
                 'student_id': student_id,
                 'class_name': class_name,
-                'exam_type': Exam_type,
+                'exam_type': exam_type,
                 'subject': subject_name,
-                'final_score': 'To be added',  # replace with actual score from response
-                'grade': 'To be added',         # replace with actual grade from response
+                'final_score': 'To be added',
+                'grade': 'To be added',
                 'areas_of_strength': 'To be added',
                 'areas_for_improvement': 'To be added',
                 'final_remarks': 'To be added'
             }
-            
-            detailed_questions = []  # Add question analysis data extracted from report_content as needed
+            detailed_questions = []  # Populate with question analysis if needed
 
             # Generate assessment report as DOCX
             assessment_report_file = generate_assessment_report(report_content, summary_report, detailed_questions)
 
-            # Step 4: Save DOCX reports for assessment and personalized content
+            # Convert DOCX report to PDF
+            pdf_report = "assessment_report.pdf"
+            convert_docx_to_pdf(assessment_report_file, pdf_report)
+
+            # Send PDF report to parent's email
+            send_email_with_pdf(email_id, "Assessment Report", "Attached is your child's assessment report.", pdf_report)
+
+            # Step 4: Save additional learning materials and assignments
             learning_material_file = save_content_as_doc(learning_material, f"learning_material_{student_id}")
             assignment_file = save_content_as_doc(assignment, f"assignment_{student_id}")
 
-            # Store files in session state for download persistence
+            # Store files in session state for download
             st.session_state['assessment_report_file'] = assessment_report_file
             st.session_state['learning_material_file'] = learning_material_file
             st.session_state['assignment_file'] = assignment_file
@@ -697,21 +719,23 @@ def main_app():
         else:
             st.error("Please provide all required inputs.")
 
-    # Display and download all reports
+    # Display and download reports
     if 'assessment_report_file' in st.session_state:
         st.write("### Assessment Report")
         with open(st.session_state['assessment_report_file'], "rb") as file:
-            st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=st.session_state['assessment_report_file'])
+            st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name="assessment_report.docx")
 
     if 'learning_material_file' in st.session_state:
         st.write("### Personalized Learning Material")
         with open(st.session_state['learning_material_file'], "rb") as file:
-            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=st.session_state['learning_material_file'])
+            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name="learning_material.docx")
 
     if 'assignment_file' in st.session_state:
         st.write("### Personalized Assignment")
         with open(st.session_state['assignment_file'], "rb") as file:
-            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
+            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name="assignment.docx")
+
+
 
 
     elif task == "Personalized Learning Material":
