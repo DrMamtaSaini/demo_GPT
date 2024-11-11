@@ -482,9 +482,10 @@ def main_app():
 
     # Section 3: Student Assessment Assistant
     # Section 3: Student Assessment Assistant
-    elif task == "Student Assessment Assistant":
-        st.header("Student Assessment Assistant")
-    
+    # Section 3: Student Assessment Assistant
+elif task == "Student Assessment Assistant":
+    st.header("Student Assessment Assistant")
+
     # Collect student information
     student_name = st.text_input("Enter Student Name:")
     student_id = st.text_input("Enter Student ID:")
@@ -609,6 +610,7 @@ def main_app():
             st.success("All reports generated and sent via email successfully!")
         else:
             st.error("Please provide all required inputs.")
+
     elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
     email_id = st.text_input("Enter Parent's Email ID:")
