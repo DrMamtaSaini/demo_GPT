@@ -165,26 +165,34 @@ def read_docx(file):
 
 
 def extract_weak_topics(assessment_content):
-    weak_topics = set()  # Use a set to avoid duplicate entries
-    current_subtopic = ''
-    
-    # Split content by lines to process each individually
-    lines = assessment_content.strip().splitlines()
-    
+    weak_topics = set()
+    current_topic = ""
+    current_subtopic = ""
+
+    # Print entire content to debug
+    print("Full Assessment Content Extracted:\n", assessment_content)
+
+    # Split the content into lines
+    lines = assessment_content.splitlines()
+
     for line in lines:
-        # Clean line and print each for debugging
         line = line.strip()
-        
-        # Detect and store subtopic
-        if 'Subtopic:' in line:
-            current_subtopic = line.split('Subtopic:')[1].strip()
-        
-        # Detect "Concept Clarity: No" and record subtopic if concept is unclear
-        elif 'Concept Clarity: No' in line and current_subtopic:
-            weak_topics.add(current_subtopic)
-    
-    # Return list of weak topics
-    return list(weak_topics)
+
+        # Check for Topic and Subtopic
+        if line.startswith("Topic:"):
+            current_topic = line.split("Topic:")[1].strip()
+        elif line.startswith("Subtopic:"):
+            current_subtopic = line.split("Subtopic:")[1].strip()
+
+        # Identify weak topics by finding "Concept Clarity: No"
+        elif "Concept Clarity: No" in line:
+            if current_topic and current_subtopic:
+                weak_topics.add(f"{current_topic} - {current_subtopic}")
+
+    # Convert set to list
+    weak_topics_list = list(weak_topics)
+    print("Identified Weak Topics:", weak_topics_list)  # For debugging
+    return weak_topics_list
 
 
 
