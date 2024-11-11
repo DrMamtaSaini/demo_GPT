@@ -481,13 +481,7 @@ def main_app():
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
     # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
+    
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -496,6 +490,8 @@ def main_app():
     student_id = st.text_input("Enter Student ID", key="student_id_input")
     assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
     class_name = st.text_input("Enter Class", key="class_name_input")
+    Exam_type = st.text_input("Enter the name of Exam", key="exam_name_input")
+    subject_name = st.text_input("Enter Subject", key="subject_name_input")
     email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
     # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
@@ -518,6 +514,8 @@ def main_app():
             Student Name: {student_name}
             Student ID: {student_id}
             Class: {class_name}
+            Exam Type: {Exam_type}
+            Subject Name: {subject_name}
             Assessment ID: {assessment_id}
 
             Question Paper:
@@ -530,7 +528,18 @@ def main_app():
             {answer_sheet_content}
 
             Please provide the following in the assessment report:
-            1. Question Analysis - Each question should include:
+            Student Name
+            Student ID
+            Exam Type
+            Subject
+
+            1. Summary Report - Include:
+                - Final Score
+                - Grade
+                - Areas of Strength
+                - Areas for Improvement
+                - Final Remarks
+            2. Question Analysis - Each question should include:
                 - Topic
                 - Subtopic
                 - Question Number
@@ -538,12 +547,7 @@ def main_app():
                 - Concept Clarity (Yes/No)
                 - Feedback and Suggestions
 
-            2. Summary Report - Include:
-                - Final Score
-                - Grade
-                - Areas of Strength
-                - Areas for Improvement
-                - Final Remarks
+           
             """
 
             response = openai.ChatCompletion.create(
