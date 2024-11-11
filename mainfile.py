@@ -163,34 +163,33 @@ def read_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text
 
-# Function to extract weak topics with regex pattern matching
-import re
-
-# Function to extract weak topics using regex for consistent pattern matching
-import re
-
-# Improved function to extract weak topics with additional debug print statements
 def extract_weak_topics(assessment_content):
     # Step 1: Print full content for verification
     print("Extracted Assessment Content:\n", assessment_content)  # Debug: Full extracted content
 
-    # Initialize empty list for weak topics
     weak_topics = []
-    
-    # Regex to match 'Topic' with 'Concept Clarity: No'
-    pattern = r"Topic:\s*(.*?)\s*- Subtopic:.*?Concept Clarity:\s*No"
-    matches = re.findall(pattern, assessment_content, re.DOTALL)  # Extract topics with Concept Clarity marked as "No"
+    current_topic = None
 
-    # Debug print matches found by regex
-    print("Regex Matches Found:", matches)  # Debug: Matches from regex
+    # Split content by lines
+    for line in assessment_content.splitlines():
+        # Identify topic line
+        if "Topic:" in line:
+            # Extract topic name
+            current_topic = line.split("Topic:")[1].split("-")[0].strip()
+            print(f"Found Topic: {current_topic}")  # Debug: Topic found
 
-    # Deduplicate and store in weak_topics
-    weak_topics = list(set(matches))
+        # Identify if Concept Clarity is marked as "No" for current topic
+        if "Concept Clarity: No" in line and current_topic:
+            weak_topics.append(current_topic)
+            print(f"Weak Topic Added: {current_topic}")  # Debug: Weak topic added
+            current_topic = None  # Reset topic to avoid duplicates
 
-    # Final list of weak topics
+    # Deduplicate and return weak topics list
+    weak_topics = list(set(weak_topics))
     print("Final Weak Topics List:", weak_topics)  # Debug: Final weak topics list
-    
+
     return weak_topics
+
 
 
 # Function to generate personalized learning material based on weak topics
