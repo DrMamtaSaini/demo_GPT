@@ -10,41 +10,18 @@ from email import encoders
 import os
 import json
 from docx import Document
-from docx.shared import Inches
-from io import BytesIO
-import requests
-from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
-from docx.shared import Pt
+from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.section import WD_ORIENTATION
-from docx.shared import Pt
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from fpdf import FPDF
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
-import os
-import openai
-from docx import Document
-import re
-import streamlit as st
-import openai
-from fpdf import FPDF
-from docx import Document
-from docx2pdf import convert  # Library to convert DOCX to PDF
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
+import requests
+from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
 from io import BytesIO
-import os
-from docx2pdf import convert  # Importing the library for DOCX to PDF conversion
+from docx2pdf import convert  # Library to convert DOCX to PDF
+import re
+
 
 # Function to convert DOCX to PDF
 def convert_docx_to_pdf(docx_file, pdf_file):
