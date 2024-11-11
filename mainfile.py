@@ -165,21 +165,31 @@ def read_docx(file):
 
 def extract_weak_topics(assessment_content):
     weak_topics = set()
-    current_topic = ''
+    current_subtopic = ''
     lines = assessment_content.splitlines()
+    
+    print("Starting line-by-line analysis:")
+    
     for line in lines:
         line = line.strip()
-        print(f"Processing line: {line}")  # Debug statement
-        if line.startswith('Topic:'):
-            current_topic = line.replace('Topic:', '').strip()
-            print(f"Current topic set to: {current_topic}")  # Debug statement
+        print(f"Processing line: {line}")  # Debug: Print each line to inspect its structure
+        
+        # Detect and log the current subtopic
+        if line.startswith('Subtopic:'):
+            current_subtopic = line.replace('Subtopic:', '').strip()
+            print(f"Detected Subtopic: {current_subtopic}")  # Debug: Log the detected subtopic
+        
+        # Detect and log when Concept Clarity is "No"
         elif 'Concept Clarity: No' in line:
-            print(f"'Concept Clarity: No' found in line: {line}")  # Debug statement
-            if current_topic:
-                weak_topics.add(current_topic)
-                print(f"Weak topic added: {current_topic}")  # Debug statement
-    print(f"Final weak topics: {list(weak_topics)}")  # Debug statement
+            print(f"Detected 'Concept Clarity: No' for Subtopic: {current_subtopic}")  # Debug: Log Concept Clarity
+            if current_subtopic:
+                weak_topics.add(current_subtopic)
+                print(f"Weak Subtopic Added: {current_subtopic}")  # Debug: Log weak subtopic addition
+    
+    # Print the final list of weak subtopics for verification
+    print(f"Final weak subtopics list: {list(weak_topics)}")
     return list(weak_topics)
+
 
 
 
