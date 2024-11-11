@@ -14,6 +14,12 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
+from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from docx.enum.section import WD_ORIENTATION
 
 
 # Constants and Initial Setup
@@ -58,7 +64,89 @@ def login_page():
         st.error("Invalid credentials. Please try again.")
 
 
+def generate_assessment_report(report_content, summary_report, detailed_questions):
+    # Create a new Word document
+    doc = Document()
+    
+    # Centered, bold, large font heading for "Assessment Report"
+    title = doc.add_paragraph("Assessment Report")
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    title_run = title.add_run()
+    title_run.bold = True
+    title_run.font.size = Pt(16)
+    
+    # Add Exam Type and Subject in centered, bold
+    exam_type = doc.add_paragraph(f"Exam Type: {summary_report['exam_type']}")
+    exam_type.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    exam_type_run = exam_type.add_run()
+    exam_type_run.bold = True
+    
+    subject = doc.add_paragraph(f"Subject: {summary_report['subject']}")
+    subject.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    subject_run = subject.add_run()
+    subject_run.bold = True
 
+    # Add a line break
+    doc.add_paragraph()
+
+    # Add "Summary Report" heading
+    summary_title = doc.add_paragraph("Summary Report")
+    summary_title.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    summary_title_run = summary_title.add_run()
+    summary_title_run.bold = True
+    
+    # Add the summary details
+    for key, value in summary_report.items():
+        if key not in ['exam_type', 'subject']:
+            summary_line = doc.add_paragraph(f"{key}: {value}")
+            summary_line.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    
+    # Set the section to landscape for Detailed Questions Analysis
+    section = doc.sections[-1]
+    section.orientation = WD_ORIENTATION.LANDSCAPE
+    new_width, new_height = section.page_height, section.page_width
+    section.page_width = new_width
+    section.page_height = new_height
+
+    # Add "Detailed Question Analysis" heading
+    detailed_title = doc.add_paragraph("Detailed Question Analysis")
+    detailed_title.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    detailed_title_run = detailed_title.add_run()
+    detailed_title_run.bold = True
+
+    # Create a table for detailed question analysis
+    table = doc.add_table(rows=1, cols=6)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    headers = ["Question No.", "Topic", "Subtopic", "Score", "Concept Clarity", "Feedback"]
+    for i, header in enumerate(headers):
+        hdr_cells[i].text = header
+        hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+        hdr_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        hdr_cells[i].vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+    # Fill in the table rows with the detailed question data
+    for question in detailed_questions:
+        row_cells = table.add_row().cells
+        row_cells[0].text = str(question.get("Question Number", ""))
+        row_cells[1].text = question.get("Topic", "")
+        row_cells[2].text = question.get("Subtopic", "")
+        row_cells[3].text = str(question.get("Score", ""))
+        row_cells[4].text = question.get("Concept Clarity", "")
+        row_cells[5].text = question.get("Feedback", "")
+
+        # Text wrap for each cell
+        for cell in row_cells:
+            for paragraph in cell.paragraphs:
+                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                cell.width = Inches(1.5)  # Adjust as needed for fit
+
+    # Save document as a .docx file
+    file_name = "assessment_report.docx"
+    doc.save(file_name)
+
+    return file_name
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -546,18 +634,15 @@ def main_app():
                 - Score for the answer based on accuracy and relevance
                 - Concept Clarity (Yes/No)
                 - Feedback and Suggestions
-
-           
             """
-
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": prompt}]
             )
-            report = response['choices'][0]['message']['content']
+            report_content = response['choices'][0]['message']['content']
 
             # Step 2: Extract weak topics from the report using generative AI
-            weak_topics_prompt = f"Identify and list topics and subtopics from the following assessment report where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report}"
+            weak_topics_prompt = f"Identify and list topics and subtopics from the following assessment report where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report_content}"
             weak_response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": weak_topics_prompt}]
@@ -580,8 +665,26 @@ def main_app():
             learning_material = learning_material_response['choices'][0]['message']['content']
             assignment = assignment_response['choices'][0]['message']['content']
 
+            # Prepare the summary and question details for the assessment report generation
+            summary_report = {
+                'student_name': student_name,
+                'student_id': student_id,
+                'class_name': class_name,
+                'exam_type': Exam_type,
+                'subject': subject_name,
+                'final_score': 'To be added',  # replace with actual score from response
+                'grade': 'To be added',         # replace with actual grade from response
+                'areas_of_strength': 'To be added',
+                'areas_for_improvement': 'To be added',
+                'final_remarks': 'To be added'
+            }
+            
+            detailed_questions = []  # Add question analysis data extracted from report_content as needed
+
+            # Generate assessment report as DOCX
+            assessment_report_file = generate_assessment_report(report_content, summary_report, detailed_questions)
+
             # Step 4: Save DOCX reports for assessment and personalized content
-            assessment_report_file = save_content_as_doc(report, f"assessment_report_{student_id}")
             learning_material_file = save_content_as_doc(learning_material, f"learning_material_{student_id}")
             assignment_file = save_content_as_doc(assignment, f"assignment_{student_id}")
 
