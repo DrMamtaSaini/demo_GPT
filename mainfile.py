@@ -160,44 +160,32 @@ import re
 # Function to read DOCX content and extract text
 def read_docx(file):
     doc = Document(file)
-    text = "\n".join([para.text for para in doc.paragraphs])
-    return text
+    full_text = [para.text for para in doc.paragraphs]
+    return "\n".join(full_text)
+
 
 def extract_weak_topics(assessment_content):
-    weak_topics = set()
+    weak_topics = set()  # Use a set to avoid duplicate entries
     current_subtopic = ''
     
-    # Step 1: Print entire content for verification
-    print("Full Assessment Content Extracted:")
-    print(assessment_content)  # Debug: Verify extracted content
-    
-    # Step 2: Clean up content and split into lines
+    # Split content by lines to process each individually
     lines = assessment_content.strip().splitlines()
     
-    # Step 3: Process each line for weak topic extraction
     for line in lines:
-        # Remove extra spaces and special characters for consistency
-        line = line.strip().replace('\n', '').replace('\r', '')
+        # Clean line and print each for debugging
+        line = line.strip()
         
-        # Debug: Print each cleaned line
-        print(f"Processed Line: '{line}'")
-        
-        # Detect subtopics
+        # Detect and store subtopic
         if 'Subtopic:' in line:
             current_subtopic = line.split('Subtopic:')[1].strip()
-            print(f"Detected Subtopic: {current_subtopic}")  # Debug: Log subtopic
         
-        # Check for Concept Clarity
-        elif 'Concept Clarity: No' in line:
-            print(f"Concept Clarity Issue Found in Subtopic: {current_subtopic}")  # Debug: Log Concept Clarity
-            if current_subtopic:
-                weak_topics.add(current_subtopic)
-                print(f"Weak Topic Added: {current_subtopic}")  # Debug: Confirm weak topic added
+        # Detect "Concept Clarity: No" and record subtopic if concept is unclear
+        elif 'Concept Clarity: No' in line and current_subtopic:
+            weak_topics.add(current_subtopic)
     
-    # Final weak topics output
-    weak_topics_list = list(weak_topics)
-    print(f"Identified Weak Topics: {weak_topics_list}")
-    return weak_topics_list
+    # Return list of weak topics
+    return list(weak_topics)
+
 
 
 
@@ -572,7 +560,7 @@ def main_app():
                 st.error("Please provide all required inputs.")
 
     
-    elif task == "Personalised Learning Material":   
+    elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
     email_id = st.text_input("Enter Parent's Email ID:")
     assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
@@ -583,7 +571,7 @@ def main_app():
             assessment_content = read_docx(assessment_docx)
             st.write("Assessment content extracted successfully.")
             
-            # Extract weak topics
+            # Call updated weak topic extraction function
             weak_topics = extract_weak_topics(assessment_content)
             st.write(f"Weak topics identified: {weak_topics}")
 
