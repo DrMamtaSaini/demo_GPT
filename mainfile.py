@@ -570,8 +570,8 @@ def main_app():
                 st.error("Please provide all required inputs.")
 
     
-    
-    st.header("Generate and Send Personalized Learning Material")
+    elif task == "Personalised Learning Material":   
+        st.header("Generate and Send Personalized Learning Material")
     email_id = st.text_input("Enter Parent's Email ID:")
     assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
 
