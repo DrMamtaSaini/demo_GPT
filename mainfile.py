@@ -487,23 +487,24 @@ def main_app():
     # Section 3: Student Assessment Assistant
     # Section 3: Student Assessment Assistant
     # Section 3: Student Assessment Assistant
+    # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-    # Collect student information
-    student_name = st.text_input("Enter Student Name:")
-    student_id = st.text_input("Enter Student ID:")
-    assessment_id = st.text_input("Enter Assessment ID:")
-    class_name = st.text_input("Enter Class:")
-    email_id = st.text_input("Enter Parent's Email ID:")
+    # Collect student information with unique labels for each field
+    student_name = st.text_input("Enter Student Name", key="student_name_input")
+    student_id = st.text_input("Enter Student ID", key="student_id_input")
+    assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
+    class_name = st.text_input("Enter Class", key="class_name_input")
+    email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
     # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
-    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"])
-    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"])
-    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"])
+    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
+    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
+    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
 
     # Generate Assessment Report, Identify Weak Areas, and Send Reports
-    if st.button("Generate and Send DOCX Report with Personalized Material"):
+    if st.button("Generate and Store Reports with Personalized Material"):
         if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
             # Read DOC files
             question_paper_content = read_docx(question_paper)
@@ -580,36 +581,30 @@ def main_app():
             learning_material_file = save_content_as_doc(learning_material, f"learning_material_{student_id}")
             assignment_file = save_content_as_doc(assignment, f"assignment_{student_id}")
 
-            # Display and download all reports
-            st.write("### Assessment Report")
-            st.write(report)
-            with open(assessment_report_file, "rb") as file:
-                st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=assessment_report_file)
+            # Store files in session state for download persistence
+            st.session_state['assessment_report_file'] = assessment_report_file
+            st.session_state['learning_material_file'] = learning_material_file
+            st.session_state['assignment_file'] = assignment_file
 
-            st.write("### Personalized Learning Material")
-            st.write(learning_material)
-            with open(learning_material_file, "rb") as file:
-                st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=learning_material_file)
-
-            st.write("### Personalized Assignment")
-            st.write(assignment)
-            with open(assignment_file, "rb") as file:
-                st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=assignment_file)
-
-            # Step 5: Email all generated DOCX reports
-            subject = f"Assessment Report and Personalized Material for {student_name}"
-            body = f"Attached are the assessment report, personalized learning materials, and assignment for {student_name}."
-
-            send_email_with_attachments(
-                email_id,
-                subject,
-                body,
-                [assessment_report_file, learning_material_file, assignment_file]
-            )
-
-            st.success("All reports generated and sent via email successfully!")
+            st.success("All reports generated successfully and are ready for download.")
         else:
             st.error("Please provide all required inputs.")
+
+    # Display and download all reports
+    if 'assessment_report_file' in st.session_state:
+        st.write("### Assessment Report")
+        with open(st.session_state['assessment_report_file'], "rb") as file:
+            st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=st.session_state['assessment_report_file'])
+
+    if 'learning_material_file' in st.session_state:
+        st.write("### Personalized Learning Material")
+        with open(st.session_state['learning_material_file'], "rb") as file:
+            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=st.session_state['learning_material_file'])
+
+    if 'assignment_file' in st.session_state:
+        st.write("### Personalized Assignment")
+        with open(st.session_state['assignment_file'], "rb") as file:
+            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
 
 
     elif task == "Personalized Learning Material":
