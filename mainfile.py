@@ -270,6 +270,14 @@ def save_content_as_doc(content, file_name):
     for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
+
+def save_content_as_doc(content, file_name):
+    # Save content as DOCX
+    doc = Document()
+    doc.add_paragraph(content)
+    doc.save(file_name)
+
+
 def save_content_as_doc(content, filename):
     # Save content as DOCX only
     doc = Document()
@@ -277,6 +285,7 @@ def save_content_as_doc(content, filename):
     doc_path = f"{filename}.docx"
     doc.save(doc_path)
     return doc_path
+
 
 # Function to read Word document content
 def read_docx(file):
