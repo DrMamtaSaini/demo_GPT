@@ -1,12 +1,12 @@
 {
     "school_1": {
-      "name": "School One",
-      "logo": "Digital Era Link .png",
+      "name": "International School of Tanganyika",
+      "logo": "https://github.com/DrMamtaSaini/demo_GPT/blob/main/IST_Logo_Long_Colour.jpg",
       "theme_color": "#FF5733"
     },
     "school_2": {
-      "name": "School Two",
-      "logo": "https://example.com/school2logo.png",
+      "name": "Indian School Dar es Salaam",
+      "logo": "https://github.com/DrMamtaSaini/demo_GPT/blob/main/indian-school-dar-es-salaam-logo-cbse-1-300x100.png",
       "theme_color": "#33FF57"
     }
   }
