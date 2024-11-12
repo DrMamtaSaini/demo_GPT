@@ -18,6 +18,7 @@ from PyPDF2 import PdfReader
 
 
 
+
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
 # Load school credentials from Streamlit secrets
@@ -219,38 +220,37 @@ def generate_personalized_assignment(weak_topics):
 
 
 # Function to send an email with attachments
-def send_email_with_attachments(email_id, subject, body, attachments):
-    sender_email = "your_email@example.com"
-    password = "your_password"
-
+def send_email_with_attachments(to_email, subject, body, attachments):
+    """Sends an email with multiple attachments to the specified email address."""
+    from_email = st.secrets["email"]  # Sender's email from secrets
+    password = st.secrets["password"]  # Sender's email password from secrets
+    
     # Create the email message
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = email_id
-    message["Subject"] = subject
-
-    # Attach body text
-    message.attach(MIMEText(body, "plain"))
-
-    # Attach each file
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+    
+    # Attach each file in the attachments list
     for file_path in attachments:
         with open(file_path, "rb") as attachment:
             part = MIMEBase("application", "octet-stream")
             part.set_payload(attachment.read())
             encoders.encode_base64(part)
             part.add_header("Content-Disposition", f"attachment; filename= {file_path}")
-            message.attach(part)
-
+            msg.attach(part)
+    
     # Send the email
     try:
-        server = smtplib.SMTP("smtp.example.com", 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
-        server.login(sender_email, password)
-        server.sendmail(sender_email, email_id, message.as_string())
+        server.login(from_email, password)
+        server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
-        print(f"Email sent to {email_id} successfully!")
+        st.success(f"Email sent to {to_email} with attached PDF reports!")
     except Exception as e:
-        print(f"Error sending email: {e}")
+        st.error(f"Error sending email: {e}")
 
 def generate_pdf(content, title, file_name):
     # Save content as PDF
@@ -476,63 +476,64 @@ def main_app():
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
     
-    # Collect lesson plan details
-    subject = st.text_input("Enter Subject:")
-    grade = st.text_input("Enter Class/Grade:")
-    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-    duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
-    topic = st.text_input("Enter Lesson Topic:")
+        # Collect lesson plan details
+        subject = st.text_input("Enter Subject:")
+        grade = st.text_input("Enter Class/Grade:")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+        topic = st.text_input("Enter Lesson Topic:")
     
-    # Generate lesson plan
-    if st.button("Generate Lesson Plan"):
-        lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+        # Generate lesson plan
+        if st.button("Generate Lesson Plan"):
+            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
         
-        st.write("### Generated Lesson Plan")
-        st.write(lesson_plan)
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
         
-        # Save as Word document
-        file_name_docx = f"{subject}_{grade}.docx"
-        save_content_as_doc(lesson_plan, file_name_docx)
+            # Save as Word document
+            file_name_docx = f"{subject}_{grade}.docx"
+            save_content_as_doc(lesson_plan, file_name_docx)
         
-        # Save as PDF document
-        file_name_pdf = f"{subject}_{grade}.pdf"
-        generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
+            # Save as PDF document
+            file_name_pdf = f"{subject}_{grade}.pdf"
+            generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
         
-        # Download button for the DOCX file
-        with open(file_name_docx, "rb") as file:
-            st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
+            # Download button for the DOCX file
+            with open(file_name_docx, "rb") as file:
+                st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
         
-        # Download button for the PDF file
-        with open(file_name_pdf, "rb") as file:
-            st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
+            # Download button for the PDF file
+            with open(file_name_pdf, "rb") as file:
+                st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
 
               
 
         
 
     # Section 3: Student Assessment Assistant
+  
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-        # Collect student information with unique labels for each field
-        student_name = st.text_input("Enter Student Name", key="student_name_input")
-        student_id = st.text_input("Enter Student ID", key="student_id_input")
-        assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
-        class_name = st.text_input("Enter Class", key="class_name_input")
-        email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
+    # Collect student information with unique labels for each field
+    student_name = st.text_input("Enter Student Name", key="student_name_input")
+    student_id = st.text_input("Enter Student ID", key="student_id_input")
+    assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
+    class_name = st.text_input("Enter Class", key="class_name_input")
+    email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
-        # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
-        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
-        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
-        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
+    # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
+    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
+    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
+    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
 
-        # Generate Assessment Report, Identify Weak Areas, and Send Reports
-        if st.button("Generate and Store Reports with Personalized Material"):
-            if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
+    # Generate Assessment Report, Identify Weak Areas, and Send Reports
+    if st.button("Generate and Send Reports"):
+        if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
             # Read DOC files
-                question_paper_content = read_docx(question_paper)
-                marking_scheme_content = read_docx(marking_scheme)
-                answer_sheet_content = read_docx(answer_sheet)
+            question_paper_content = read_docx(question_paper)
+            marking_scheme_content = read_docx(marking_scheme)
+            answer_sheet_content = read_docx(answer_sheet)
 
             # Step 1: Generate assessment report with detailed analysis
             prompt = f"""
@@ -599,41 +600,64 @@ def main_app():
             learning_material = learning_material_response['choices'][0]['message']['content']
             assignment = assignment_response['choices'][0]['message']['content']
 
-            # Step 4: Save DOCX reports for assessment and personalized content
-            assessment_report_file = save_content_as_doc(report, f"assessment_report_{student_id}")
-            learning_material_file = save_content_as_doc(learning_material, f"learning_material_{student_id}")
-            assignment_file = save_content_as_doc(assignment, f"assignment_{student_id}")
+            # Step 4: Save PDF reports
+            assessment_report_pdf = f"assessment_report_{student_id}.pdf"
+            generate_pdf(report, "Assessment Report", assessment_report_pdf)
 
-            # Store files in session state for download persistence
-            st.session_state['assessment_report_file'] = assessment_report_file
-            st.session_state['learning_material_file'] = learning_material_file
-            st.session_state['assignment_file'] = assignment_file
+            learning_material_pdf = f"learning_material_{student_id}.pdf"
+            generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
+
+            assignment_pdf = f"assignment_{student_id}.pdf"
+            generate_pdf(assignment, "Personalized Assignment", assignment_pdf)
+
+            # Store file paths in session state for download persistence
+            st.session_state['assessment_report_pdf'] = assessment_report_pdf
+            st.session_state['learning_material_pdf'] = learning_material_pdf
+            st.session_state['assignment_pdf'] = assignment_pdf
 
             st.success("All reports generated successfully and are ready for download.")
+
+            # Email the PDFs to the parent
+            subject = f"Assessment Reports for {student_name}"
+            body = f"""
+                Dear Parent,
+
+            We hope this message finds you well.
+
+            We have recently conducted an assessment for your child, {student_name}, and are pleased to share the results and resources to support their academic journey. In this email, you will find three attached documents:
+
+            1. **Assessment Report**: A comprehensive evaluation of {student_name}'s performance, highlighting areas of strength and opportunities for improvement.
+            2. **Personalized Learning Material**: Additional resources tailored to help reinforce understanding in specific areas where further support may be beneficial.
+            3. **Practice Assignment**: A set of exercises designed to help {student_name} practice and solidify their learning in identified focus areas.
+
+            These resources are provided to support {student_name}'s growth and success. We encourage you to review the report and reach out with any questions or concerns. Our goal is to work collaboratively to ensure that {student_name} has the guidance they need to thrive.
+
+            Thank you for your continued support and engagement in {student_name}'s education.
+
+            Warm regards,  
+            """
+            attachments = [assessment_report_pdf, learning_material_pdf, assignment_pdf]
+            send_email_with_attachments(email_id, subject, body, attachments)
         else:
             st.error("Please provide all required inputs.")
 
     # Display and download all reports
-        if 'assessment_report_file' in st.session_state:
-            st.write("### Assessment Report")
-            with open(st.session_state['assessment_report_file'], "rb") as file:
-                st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=st.session_state['assessment_report_file'])
+    if 'assessment_report_pdf' in st.session_state:
+        st.write("### Assessment Report")
+        with open(st.session_state['assessment_report_pdf'], "rb") as file:
+            st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
 
-        if 'learning_material_file' in st.session_state:
-            st.write("### Personalized Learning Material")
-            with open(st.session_state['learning_material_file'], "rb") as file:
-                st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=st.session_state['learning_material_file'])
+    if 'learning_material_pdf' in st.session_state:
+        st.write("### Personalized Learning Material")
+        with open(st.session_state['learning_material_pdf'], "rb") as file:
+            st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=st.session_state['learning_material_pdf'])
 
-        if 'assignment_file' in st.session_state:
-            st.write("### Personalized Assignment")
-            with open(st.session_state['assignment_file'], "rb") as file:
-                st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
-
-
+    if 'assignment_pdf' in st.session_state:
+        st.write("### Personalized Assignment")
+        with open(st.session_state['assignment_pdf'], "rb") as file:
+            st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
     
     
-    
-
     
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
