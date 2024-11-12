@@ -358,7 +358,7 @@ def main_app():
     # Display client-specific information
     st.image(client_config["logo"], width=120)
     st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 5px 0;">
             <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
         </div>
     """, unsafe_allow_html=True)
