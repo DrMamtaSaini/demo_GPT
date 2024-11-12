@@ -33,7 +33,7 @@ def get_client_config(client_id):
 
 def login_page():
     """Displays the login page and sets session states on successful login."""
-    st.title("EduCreate ProLogin")
+    st.title("EduCreate Pro Login")
     
     # Input fields for username and password
     school_username = st.text_input("Username", placeholder="Enter username")
