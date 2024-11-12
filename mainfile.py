@@ -485,25 +485,13 @@ def main_app():
 
             st.success(f"Lesson Plan generated and saved as '{lesson_plan}'")
             with open(lesson_plan, "rb") as file:
-                st.download_button(label="Download Quiz Document", data=file.read(), file_name=lesson_plan)
+                st.download_button(label="Download Lesson Plan", data=file.read(), file_name=lesson_plan)
 
 
 
 
             
-            # Display download buttons if files were generated successfully
-            if os.path.exists(lesson_plan):
-                with open(lesson_plan, "rb") as docx_file:
-                    st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=lesson_plan)
-            else:
-                st.error("Failed to generate DOCX file.")
             
-            if os.path.exists(pdf_file_name):
-                with open(pdf_file_name, "rb") as pdf_file:
-                    st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=lesson_plan)
-            else:
-                st.error("Failed to generate PDF file.")
-
 
         
 
