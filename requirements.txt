@@ -1,9 +1,12 @@
-streamlit
-openai
-pandas
-fpdf
-python-docx
-PyPDF2
-requests
+
+requestsstreamlit==1.25.0
+openai==0.28.0
+pandas==1.5.3
+fpdf==1.7.2
+smtplib3==0.4.0
+python-docx==0.8.11
+requests==2.31.0
+PyPDF2==3.0.1
+
 
 
