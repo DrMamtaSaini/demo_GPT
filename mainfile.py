@@ -33,13 +33,13 @@ def get_client_config(client_id):
 
 def login_page():
     """Displays the login page and sets session states on successful login."""
-    st.title("School Login")
+    st.title("EduCreate ProLogin")
     
     # Input fields for username and password
     school_username = st.text_input("Username", placeholder="Enter username")
     school_password = st.text_input("Password", type="password", placeholder="Enter password")
 
-    if st.button("Login"):
+    if st.button("Login", help="Click to log out"):
         # Check credentials against stored values
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
