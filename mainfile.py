@@ -29,8 +29,6 @@ if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 if 'client_id' not in st.session_state:
     st.session_state['client_id'] = None
-if 'rerun_required' not in st.session_state:
-    st.session_state['rerun_required'] = False  # New flag to handle rerun
 
 # Load client configuration from JSON file
 with open("clients_config.json") as config_file:
@@ -55,11 +53,11 @@ def login_page():
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
                 st.session_state['client_id'] = school_id  # Set client_id to retrieve client-specific info
-                st.session_state['rerun_required'] = True  # Set rerun flag instead of calling rerun immediately
-                return  # Exit the function once login is successful
+                st.session_state['trigger_reload'] = True  # Set reload flag instead of calling rerun
+                return  # Exit function on successful login
 
         st.error("Invalid credentials. Please try again.")
-
+        
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
     response = openai.Image.create(prompt=prompt, n=1, size="512x512")
@@ -667,10 +665,11 @@ def main_app():
 
 
 def main():
-    # Check if rerun is required and handle it outside the login logic
-    if st.session_state.get('rerun_required'):
-        st.session_state['rerun_required'] = False  # Reset the flag
-        st.experimental_rerun()  # Trigger rerun to load client configuration if login was successful
+    # Trigger reload logic if login was successful
+    if st.session_state.get('trigger_reload'):
+        # Reset reload trigger flag and allow the app to reload on next run
+        st.session_state['trigger_reload'] = False
+        # Instead of calling st.experimental_rerun(), reload logic continues in main function
 
     if st.session_state.get('logged_in', False):
         # Load client-specific configuration and run main app if logged in
@@ -679,7 +678,6 @@ def main():
     else:
         # Display login page if not logged in
         login_page()
-
 
 if __name__ == "__main__":
     main()
