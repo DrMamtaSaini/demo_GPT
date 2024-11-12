@@ -432,6 +432,7 @@ def main_app():
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
+    
     # Collect basic information
     board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
     standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
@@ -472,46 +473,47 @@ def main_app():
             st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
 
 
+
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
     
-        # Collect lesson plan details
-        subject = st.text_input("Enter Subject:")
-        grade = st.text_input("Enter Class/Grade:")
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
-        topic = st.text_input("Enter Lesson Topic:")
+    # Collect lesson plan details
+    subject = st.text_input("Enter Subject:")
+    grade = st.text_input("Enter Class/Grade:")
+    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+    duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+    topic = st.text_input("Enter Lesson Topic:")
     
-        # Generate lesson plan
-        if st.button("Generate Lesson Plan"):
-            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+    # Generate lesson plan
+    if st.button("Generate Lesson Plan"):
+        lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
         
-            st.write("### Generated Lesson Plan")
-            st.write(lesson_plan)
+        st.write("### Generated Lesson Plan")
+        st.write(lesson_plan)
         
-            # Save as Word document
-            file_name_docx = f"{subject}_{grade}.docx"
-            save_content_as_doc(lesson_plan, file_name_docx)
+        # Save as Word document
+        file_name_docx = f"{subject}_{grade}.docx"
+        save_content_as_doc(lesson_plan, file_name_docx)
         
-            # Save as PDF document
-            file_name_pdf = f"{subject}_{grade}.pdf"
-            generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
+        # Save as PDF document
+        file_name_pdf = f"{subject}_{grade}.pdf"
+        generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
         
-            # Download button for the DOCX file
-            with open(file_name_docx, "rb") as file:
-                st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
+        # Download button for the DOCX file
+        with open(file_name_docx, "rb") as file:
+            st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
         
-            # Download button for the PDF file
-            with open(file_name_pdf, "rb") as file:
-                st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
+        # Download button for the PDF file
+        with open(file_name_pdf, "rb") as file:
+            st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
 
               
 
         
 
     # Section 3: Student Assessment Assistant
-  
+
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -620,21 +622,22 @@ def main_app():
             # Email the PDFs to the parent
             subject = f"Assessment Reports for {student_name}"
             body = f"""
-                Dear Parent,
+Dear Parent,
 
-            We hope this message finds you well.
+We hope this message finds you well.
 
-            We have recently conducted an assessment for your child, {student_name}, and are pleased to share the results and resources to support their academic journey. In this email, you will find three attached documents:
+We have recently conducted an assessment for your child, {student_name}, and are pleased to share the results and resources to support their academic journey. In this email, you will find three attached documents:
 
-            1. **Assessment Report**: A comprehensive evaluation of {student_name}'s performance, highlighting areas of strength and opportunities for improvement.
-            2. **Personalized Learning Material**: Additional resources tailored to help reinforce understanding in specific areas where further support may be beneficial.
-            3. **Practice Assignment**: A set of exercises designed to help {student_name} practice and solidify their learning in identified focus areas.
+1. **Assessment Report**: A comprehensive evaluation of {student_name}'s performance, highlighting areas of strength and opportunities for improvement.
+2. **Personalized Learning Material**: Additional resources tailored to help reinforce understanding in specific areas where further support may be beneficial.
+3. **Practice Assignment**: A set of exercises designed to help {student_name} practice and solidify their learning in identified focus areas.
 
-            These resources are provided to support {student_name}'s growth and success. We encourage you to review the report and reach out with any questions or concerns. Our goal is to work collaboratively to ensure that {student_name} has the guidance they need to thrive.
+These resources are provided to support {student_name}'s growth and success. We encourage you to review the report and reach out with any questions or concerns. Our goal is to work collaboratively to ensure that {student_name} has the guidance they need to thrive.
 
-            Thank you for your continued support and engagement in {student_name}'s education.
+Thank you for your continued support and engagement in {student_name}'s education.
 
-            Warm regards,  
+Warm regards,
+Your School
             """
             attachments = [assessment_report_pdf, learning_material_pdf, assignment_pdf]
             send_email_with_attachments(email_id, subject, body, attachments)
@@ -656,6 +659,7 @@ def main_app():
         st.write("### Personalized Assignment")
         with open(st.session_state['assignment_pdf'], "rb") as file:
             st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
+
     
     
     
