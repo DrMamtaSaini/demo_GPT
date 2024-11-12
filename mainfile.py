@@ -432,65 +432,81 @@ def main_app():
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
-        # Collect basic information
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
-        topics = st.text_input("Enter Topics (comma-separated):")
+    # Collect basic information
+    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+    standard = st.text_input("Enter Standard/Class (e.g., Class 10):")
+    topics = st.text_input("Enter Topics (comma-separated):")
+    
+    # Choose content type
+    content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
+
+    # Collect details based on content type
+    total_marks = st.number_input("Enter Total Marks", min_value=1)
+    time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
+    question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
+    difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
+    category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
+
+    # Option to include solutions
+    include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
+
+    if st.button("Generate Educational Content"):
+        content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
+        st.write("### Generated Educational Content")
+        st.write(content)
         
-        # Choose content type
-        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"])
-
-        # Collect details based on content type
-        total_marks = st.number_input("Enter Total Marks", min_value=1)
-        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)")
-        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"])
-        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"])
-        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"])
-
-        # Option to include solutions
-        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"])
-
-        if st.button("Generate Educational Content"):
-            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
-            st.write("### Generated Educational Content")
-            st.write(content)
-            
-            # Save as Word document
-            file_name = f"{content_type}_{standard}.docx"
-            save_content_as_doc(content, file_name)
-            
-            # Download button for the document file
-            with open(file_name, "rb") as file:
-                st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
+        # Save as Word document
+        file_name_docx = f"{content_type}_{standard}.docx"
+        save_content_as_doc(content, file_name_docx)
+        
+        # Save as PDF document
+        file_name_pdf = f"{content_type}_{standard}.pdf"
+        generate_pdf(content, f"{content_type} for {standard}", file_name_pdf)
+        
+        # Download button for the DOCX file
+        with open(file_name_docx, "rb") as file:
+            st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
+        
+        # Download button for the PDF file
+        with open(file_name_pdf, "rb") as file:
+            st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
 
 
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
+    
+    # Collect lesson plan details
+    subject = st.text_input("Enter Subject:")
+    grade = st.text_input("Enter Class/Grade:")
+    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+    duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+    topic = st.text_input("Enter Lesson Topic:")
+    
+    # Generate lesson plan
+    if st.button("Generate Lesson Plan"):
+        lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
         
-        # Collect lesson plan details
-        subject = st.text_input("Enter Subject:")
-        grade = st.text_input("Enter Class/Grade:")
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
-        topic = st.text_input("Enter Lesson Topic:")
+        st.write("### Generated Lesson Plan")
+        st.write(lesson_plan)
         
-        # Generate lesson plan
-        if st.button("Generate Lesson Plan"):
-            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-            st.write("### Generated Lesson Plan")
-            st.write(lesson_plan)
-            # Save as Word document
-            file_name = f"{subject}_{grade}.docx"
-            save_content_as_doc(lesson_plan, file_name)
-            
+        # Save as Word document
+        file_name_docx = f"{subject}_{grade}.docx"
+        save_content_as_doc(lesson_plan, file_name_docx)
+        
+        # Save as PDF document
+        file_name_pdf = f"{subject}_{grade}.pdf"
+        generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
+        
+        # Download button for the DOCX file
+        with open(file_name_docx, "rb") as file:
+            st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
+        
+        # Download button for the PDF file
+        with open(file_name_pdf, "rb") as file:
+            st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
 
-            # Download button for the lesson plan file
-            with open(file_name, "rb") as file:
-                st.download_button(label="Download Lesson Plan", data=file.read(), file_name=file_name)
-
-        
-            
+              
 
         
 
