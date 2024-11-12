@@ -478,14 +478,17 @@ def main_app():
         # Generate lesson plan
         if st.button("Generate Lesson Plan"):
             lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-           # st.write("### Generated Lesson Plan")
-            #st.write(lesson_plan)
-            
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
+            # Save as Word document
+            file_name = f"{content_type}_{standard}.docx"
+            save_content_as_doc(lesson_plan, file_name)
             
 
-            st.success(f"Lesson Plan generated and saved as '{lesson_plan}'")
-            with open(lesson_plan, "rb") as file:
-                st.download_button(label="Download Lesson Plan", data=file.read(), file_name=lesson_plan)
+            # Download button for the lesson plan file
+            with open(file_name, "rb") as file:
+                st.download_button(label="Download Lesson Plan", data=file.read(), file_name=file_name)
+
 
 
 
