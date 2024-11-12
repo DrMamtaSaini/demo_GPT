@@ -481,7 +481,7 @@ def main_app():
             st.write("### Generated Lesson Plan")
             st.write(lesson_plan)
             # Save as Word document
-            file_name = f"{content_type}_{standard}.docx"
+            file_name = f"{subject}_{grade}.docx"
             save_content_as_doc(lesson_plan, file_name)
             
 
@@ -489,11 +489,7 @@ def main_app():
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Lesson Plan", data=file.read(), file_name=file_name)
 
-
-
-
-
-            
+        
             
 
         
