@@ -369,8 +369,9 @@ def main_app():
 
     
 
+
     button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
-    if st.button("Logout", key="logout", help="Click to log out"):
+    if st.sidebar.button("Logout", key="logout", help="Click to log out"):
         # Clear session state to log out
         st.session_state.clear()
 
