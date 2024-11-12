@@ -402,8 +402,8 @@ def main_app():
             st.write("Generate comprehensive student assessments and progress reports.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-              
-        with col5:
+            
+        with col4:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Image Based Question Generator")
             st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
