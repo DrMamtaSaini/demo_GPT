@@ -263,21 +263,6 @@ def generate_pdf(content, title, file_name):
         pdf.cell(200, 10, line, ln=True)
     pdf.output(file_name)
 
-import tempfile
-
-def save_content_as_doc(content, file_name):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
-            doc = Document()
-            for line in content.split("\n"):
-                doc.add_paragraph(line)
-            tmp_file_name = tmp.name
-            doc.save(tmp_file_name)
-        return tmp_file_name
-    except Exception as e:
-        st.error(f"Error saving DOCX file: {e}")
-        return None
-
 
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
@@ -480,37 +465,44 @@ def main_app():
 
 
     # Section 2: Lesson Plan Creation
-    # Section 2: Lesson Plan Creation
-    # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
-    subject = st.text_input("Enter Subject:")
-    grade = st.text_input("Enter Class/Grade:")
-    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
-    duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
-    topic = st.text_input("Enter Lesson Topic:")
-    
-    if st.button("Generate Lesson Plan"):
-        lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-        st.write("### Generated Lesson Plan")
-        st.write(lesson_plan)
         
-        # Save as DOCX and PDF
-        docx_path = save_content_as_doc(lesson_plan, f"Lesson_Plan_{subject}_{grade}.docx")
-        pdf_path = f"Lesson_Plan_{subject}_{grade}.pdf"
-        generate_pdf(lesson_plan, "Lesson Plan", pdf_path)
+        # Collect lesson plan details
+        subject = st.text_input("Enter Subject:")
+        grade = st.text_input("Enter Class/Grade:")
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):")
+        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):")
+        topic = st.text_input("Enter Lesson Topic:")
         
-        if docx_path:
-            with open(docx_path, "rb") as docx_file:
-                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=f"Lesson_Plan_{subject}_{grade}.docx")
-        else:
-            st.error("Failed to generate DOCX file.")
-        
-        if os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as pdf_file:
-                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_path)
-        else:
-            st.error("Failed to generate PDF file.")
+        # Generate lesson plan
+        if st.button("Generate Lesson Plan"):
+            lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
+            st.write("### Generated Lesson Plan")
+            st.write(lesson_plan)
+            
+            
+
+            st.success(f"Lesson Plan generated and saved as '{lesson_plan}'")
+            with open(lesson_plan, "rb") as file:
+                st.download_button(label="Download Quiz Document", data=file.read(), file_name=lesson_plan)
+
+
+
+
+            
+            # Display download buttons if files were generated successfully
+            if os.path.exists(lesson_plan):
+                with open(lesson_plan, "rb") as docx_file:
+                    st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=lesson_plan)
+            else:
+                st.error("Failed to generate DOCX file.")
+            
+            if os.path.exists(pdf_file_name):
+                with open(pdf_file_name, "rb") as pdf_file:
+                    st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=lesson_plan)
+            else:
+                st.error("Failed to generate PDF file.")
 
 
         
