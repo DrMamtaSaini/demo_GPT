@@ -365,7 +365,7 @@ def main_app():
 
     # Sidebar and main content
     st.sidebar.title("EduCreate Pro")
-    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Personalized Learning Material", "Generate Image Based Questions"])
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
     
     button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
