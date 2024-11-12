@@ -169,8 +169,6 @@ def read_docx(file):
 
 
 
-import openai
-
 def extract_weak_topics(assessment_content):
     """Uses generative AI to identify weak areas in the assessment content."""
     prompt = f"""
@@ -483,7 +481,19 @@ def main_app():
             with open(pdf_file_name, "rb") as pdf_file:
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
-   
+                
+        if os.path.exists(docx_file_name):
+            with open(docx_file_name, "rb") as docx_file:
+                st.download_button(label="Download Lesson Plan as DOCX", data=docx_file.read(), file_name=docx_file_name)
+        else:
+            st.error("Failed to generate DOCX file.")
+
+        if os.path.exists(pdf_file_name):
+            with open(pdf_file_name, "rb") as pdf_file:
+                st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
+        else:
+            st.error("Failed to generate PDF file.")
+
 
     # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
