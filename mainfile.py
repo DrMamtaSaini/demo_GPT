@@ -29,6 +29,8 @@ if 'api_key' not in st.session_state:
     st.session_state['api_key'] = None
 if 'client_id' not in st.session_state:
     st.session_state['client_id'] = None
+if 'rerun_required' not in st.session_state:
+    st.session_state['rerun_required'] = False  # New flag to handle rerun
 
 # Load client configuration from JSON file
 with open("clients_config.json") as config_file:
@@ -53,24 +55,10 @@ def login_page():
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
                 st.session_state['client_id'] = school_id  # Set client_id to retrieve client-specific info
-                break
-        else:
-            st.error("Invalid credentials. Please try again.")
-        
-        # Call rerun only if login is successful to reflect client-specific configuration
-        if st.session_state['logged_in']:
-            st.experimental_rerun()
+                st.session_state['rerun_required'] = True  # Set rerun flag instead of calling rerun immediately
+                return  # Exit the function once login is successful
 
-def display_client_info():
-    """Displays the specific client information after successful login."""
-    client_config = get_client_config(st.session_state['client_id'])
-    st.image(client_config["logo"], width=120)
-    st.markdown(f"""
-        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
-            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-        </div>
-    """, unsafe_allow_html=True)
-
+        st.error("Invalid credentials. Please try again.")
 
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -679,13 +667,19 @@ def main_app():
 
 
 def main():
+    # Check if rerun is required and handle it outside the login logic
+    if st.session_state.get('rerun_required'):
+        st.session_state['rerun_required'] = False  # Reset the flag
+        st.experimental_rerun()  # Trigger rerun to load client configuration if login was successful
+
     if st.session_state.get('logged_in', False):
-        # If logged in, load client-specific configuration and run main app
+        # Load client-specific configuration and run main app if logged in
         openai.api_key = st.session_state['api_key']
-        main_app()
+        main_app()  # Call your main app function here
     else:
         # Display login page if not logged in
         login_page()
+
 
 if __name__ == "__main__":
     main()
