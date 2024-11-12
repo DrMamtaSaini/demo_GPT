@@ -263,6 +263,21 @@ def generate_pdf(content, title, file_name):
         pdf.cell(200, 10, line, ln=True)
     pdf.output(file_name)
 
+import tempfile
+
+def save_content_as_doc(content, file_name):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+            doc = Document()
+            for line in content.split("\n"):
+                doc.add_paragraph(line)
+            tmp_file_name = tmp.name
+            doc.save(tmp_file_name)
+        return tmp_file_name
+    except Exception as e:
+        st.error(f"Error saving DOCX file: {e}")
+        return None
+
 
 # Function to save content as a Word document
 def save_content_as_doc(content, file_name):
@@ -464,6 +479,7 @@ def main_app():
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
 
+    # Section 2: Lesson Plan Creation
     # Section 2: Lesson Plan Creation
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
