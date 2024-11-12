@@ -33,13 +33,13 @@ def get_client_config(client_id):
 
 def login_page():
     """Displays the login page and sets session states on successful login."""
-    st.title("School Login")
+    st.title("EduCreate Pro Login")
     
     # Input fields for username and password
     school_username = st.text_input("Username", placeholder="Enter username")
     school_password = st.text_input("Password", type="password", placeholder="Enter password")
 
-    if st.button("Login"):
+    if st.button("Login", help="Double Click to log out"):
         # Check credentials against stored values
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
@@ -367,10 +367,13 @@ def main_app():
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Personalized Learning Material", "Generate Image Based Questions"])
 
-    
+    if st.sidebar.button("Logout", key="logout", help="Double Click to log out"):
+        # Reset session state on logout
+         # Clear session state to log out
+        st.session_state.clear()
 
 
-    button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
+        button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
     if st.sidebar.button("Logout", key="logout", help="Click to log out"):
         # Clear session state to log out
         st.session_state.clear()
