@@ -417,6 +417,7 @@ def main_app():
         if st.button("Get Started Today"):
             st.warning("Choose one task from the menu on the left to get started.")
         st.markdown('</div>', unsafe_allow_html=True)
+        
 
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
