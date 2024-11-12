@@ -1,12 +1,6 @@
-
 openai
 pandas
 fpdf
-smtplib3
 python-docx
 requests
-PyPDF2
-
-
-
-
+pypdf2
