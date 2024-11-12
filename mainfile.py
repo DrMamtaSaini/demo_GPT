@@ -39,7 +39,7 @@ def login_page():
     school_username = st.text_input("Username", placeholder="Enter username")
     school_password = st.text_input("Password", type="password", placeholder="Enter password")
 
-    if st.button("Login", help="Click to log out"):
+    if st.button("Login", help="Double Click to log out"):
         # Check credentials against stored values
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
@@ -365,7 +365,7 @@ def main_app():
 
     # Sidebar and main content
     st.sidebar.title("EduCreate Pro")
-    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Personalized Learning Material", "Generate Image Based Questions"])
+    task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
     
     button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
@@ -382,7 +382,7 @@ def main_app():
         """, unsafe_allow_html=True)
 
         # Create a row of options with custom styled cards
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
 
         with col1:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
@@ -396,21 +396,17 @@ def main_app():
             st.write("Create detailed lesson plans with learning objectives and materials.")
             st.markdown('</div>', unsafe_allow_html=True)
 
+        
+
+        col3, col4 = st.columns(2)
+
         with col3:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-        col4, col5 = st.columns(2)
-
         with col4:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Personalized Learning Material")
-            st.write("Generate learning material and assignment based on your assessment report.")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with col5:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Image Based Question Generator")
             st.write("Generate Image Based Quiz (MCQ, True/false, Yes/No type).")
@@ -487,13 +483,7 @@ def main_app():
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
     # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
+   
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
@@ -613,47 +603,7 @@ def main_app():
             st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
 
 
-    elif task == "Personalized Learning Material":
-        st.header("Generate and Send Personalized Learning Material")
-    email_id = st.text_input("Enter Parent's Email ID:")
-    assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
-
-    if st.button("Generate and Send Personalized Learning Material"):
-        if email_id and assessment_docx:
-            # Extract text from DOCX
-            assessment_content = read_docx(assessment_docx)
-            st.write("Assessment content extracted successfully.")
-            
-            # Call updated weak topic extraction function
-            weak_topics = extract_weak_topics(assessment_content)
-            st.write(f"Weak topics identified: {weak_topics}")
-
-            if weak_topics:
-                # Generate learning material and assignments
-                learning_material = generate_personalized_material(weak_topics)
-                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
-                
-                # Save as DOCX
-                learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
-                assignment_doc = save_content_as_doc(assignment, "Assignment")
-
-                # Email body text
-                email_body = """
-                Dear Parent/Guardian,
-
-                Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
-
-                Best regards,
-                Your School Name
-                """
-                attachments = [learning_material_doc, assignment_doc]
-                send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
-                st.success(f"Personalized materials have been sent to {email_id}.")
-            else:
-                st.warning("No weak topics identified. Please review the assessment content.")
-        else:
-            st.error("Please provide both an email ID and upload an assessment DOCX file.")
-
+    
 
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
