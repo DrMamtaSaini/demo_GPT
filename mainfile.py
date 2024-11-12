@@ -478,8 +478,8 @@ def main_app():
         # Generate lesson plan
         if st.button("Generate Lesson Plan"):
             lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-            st.write("### Generated Lesson Plan")
-            st.write(lesson_plan)
+           # st.write("### Generated Lesson Plan")
+            #st.write(lesson_plan)
             
             
 
