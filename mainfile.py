@@ -1,3 +1,4 @@
+
 import streamlit as st
 import openai
 import pandas as pd
@@ -13,8 +14,7 @@ from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 import requests
-from PyPDF2 import PdfReader  # Ensure this is imported for reading PDF files
-
+from PyPDF2 import PdfReader
 
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
@@ -48,15 +48,23 @@ def login_page():
         # Check credentials and set session state
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
-                # Set session states
                 st.session_state['logged_in'] = True
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
-                st.session_state['client_id'] = school_id
-                return  # No need to rerun if state is set; flow control will handle display
-    
+                st.session_state['client_id'] = school_id  # Set client_id to retrieve client-specific info
+                st.experimental_rerun()  # Refresh the app to reflect the client's specific configuration
+                return
         st.error("Invalid credentials. Please try again.")
 
+def display_client_info():
+    """Displays the specific client information after successful login."""
+    client_config = get_client_config(st.session_state['client_id'])
+    st.image(client_config["logo"], width=120)
+    st.markdown(f"""
+        <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, #483D8B); padding: 5px 0;">
+            <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+        </div>
+    """, unsafe_allow_html=True)
 
 
 
