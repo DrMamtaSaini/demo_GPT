@@ -422,6 +422,8 @@ def main_app():
             st.warning("Choose one task from the menu on the left to get started.")
         st.markdown('</div>', unsafe_allow_html=True)
 
+
+
     # Section 1: Educational Content Creation
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
@@ -456,6 +458,7 @@ def main_app():
             with open(file_name, "rb") as file:
                 st.download_button(label="Download Content as Document", data=file.read(), file_name=file_name)
 
+
     # Section 2: Lesson Plan Creation
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
@@ -486,13 +489,8 @@ def main_app():
             with open(pdf_file_name, "rb") as pdf_file:
                 st.download_button(label="Download Lesson Plan as PDF", data=pdf_file.read(), file_name=pdf_file_name)
 
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
-    # Section 3: Student Assessment Assistant
+   
+
     # Section 3: Student Assessment Assistant
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
@@ -613,6 +611,8 @@ def main_app():
             st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
 
 
+    
+    
     elif task == "Personalized Learning Material":
         st.header("Generate and Send Personalized Learning Material")
     email_id = st.text_input("Enter Parent's Email ID:")
@@ -655,6 +655,7 @@ def main_app():
             st.error("Please provide both an email ID and upload an assessment DOCX file.")
 
 
+    
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):")
