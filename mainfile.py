@@ -16,6 +16,7 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader
 
+
 # Constants and Initial Setup
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
@@ -41,8 +42,8 @@ def get_client_config(client_id):
 def login_page():
     """Displays login page and sets session states on successful login."""
     st.title("School Login")
-    school_username = st.text_input("Username", key="school_username_input", placeholder="Enter username")
-    school_password = st.text_input("Password", type="password", key="school_password_input", placeholder="Enter password")
+    school_username = st.text_input("Username", placeholder="Enter username")
+    school_password = st.text_input("Password", type="password", placeholder="Enter password")
     
     if st.button("Login"):
         # Check credentials and set session state
@@ -52,9 +53,13 @@ def login_page():
                 st.session_state['school_id'] = school_id
                 st.session_state['api_key'] = credentials["api_key"]
                 st.session_state['client_id'] = school_id  # Set client_id to retrieve client-specific info
-                st.experimental_rerun()  # Refresh the app to reflect the client's specific configuration
-                return
-        st.error("Invalid credentials. Please try again.")
+                break
+        else:
+            st.error("Invalid credentials. Please try again.")
+        
+        # Call rerun only if login is successful to reflect client-specific configuration
+        if st.session_state['logged_in']:
+            st.experimental_rerun()
 
 def display_client_info():
     """Displays the specific client information after successful login."""
@@ -65,7 +70,6 @@ def display_client_info():
             <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
         </div>
     """, unsafe_allow_html=True)
-
 
 
 # Function to fetch images based on topic and subtopics
