@@ -382,7 +382,7 @@ def main_app():
         """, unsafe_allow_html=True)
 
         # Create a row of options with custom styled cards
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
 
         with col1:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
@@ -395,21 +395,14 @@ def main_app():
             st.subheader("Lesson Planner")
             st.write("Create detailed lesson plans with learning objectives and materials.")
             st.markdown('</div>', unsafe_allow_html=True)
-
+        col3, col4 = st.columns(2)
         with col3:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Assessment Assistant")
             st.write("Generate comprehensive student assessments and progress reports.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-        col4, col5 = st.columns(2)
-
-        with col4:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Personalized Learning Material")
-            st.write("Generate learning material and assignment based on your assessment report.")
-            st.markdown('</div>', unsafe_allow_html=True)
-
+              
         with col5:
             st.markdown('<div class="option-card">', unsafe_allow_html=True)
             st.subheader("Image Based Question Generator")
@@ -495,25 +488,25 @@ def main_app():
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-    # Collect student information with unique labels for each field
-    student_name = st.text_input("Enter Student Name", key="student_name_input")
-    student_id = st.text_input("Enter Student ID", key="student_id_input")
-    assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
-    class_name = st.text_input("Enter Class", key="class_name_input")
-    email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
+        # Collect student information with unique labels for each field
+        student_name = st.text_input("Enter Student Name", key="student_name_input")
+        student_id = st.text_input("Enter Student ID", key="student_id_input")
+        assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
+        class_name = st.text_input("Enter Class", key="class_name_input")
+        email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
-    # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
-    question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
-    marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
-    answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
+        # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
+        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
+        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
+        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
 
-    # Generate Assessment Report, Identify Weak Areas, and Send Reports
-    if st.button("Generate and Store Reports with Personalized Material"):
-        if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
+        # Generate Assessment Report, Identify Weak Areas, and Send Reports
+        if st.button("Generate and Store Reports with Personalized Material"):
+            if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
             # Read DOC files
-            question_paper_content = read_docx(question_paper)
-            marking_scheme_content = read_docx(marking_scheme)
-            answer_sheet_content = read_docx(answer_sheet)
+                question_paper_content = read_docx(question_paper)
+                marking_scheme_content = read_docx(marking_scheme)
+                answer_sheet_content = read_docx(answer_sheet)
 
             # Step 1: Generate assessment report with detailed analysis
             prompt = f"""
@@ -595,65 +588,25 @@ def main_app():
             st.error("Please provide all required inputs.")
 
     # Display and download all reports
-    if 'assessment_report_file' in st.session_state:
-        st.write("### Assessment Report")
-        with open(st.session_state['assessment_report_file'], "rb") as file:
-            st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=st.session_state['assessment_report_file'])
+        if 'assessment_report_file' in st.session_state:
+            st.write("### Assessment Report")
+            with open(st.session_state['assessment_report_file'], "rb") as file:
+                st.download_button(label="Download Assessment Report as DOCX", data=file.read(), file_name=st.session_state['assessment_report_file'])
 
-    if 'learning_material_file' in st.session_state:
-        st.write("### Personalized Learning Material")
-        with open(st.session_state['learning_material_file'], "rb") as file:
-            st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=st.session_state['learning_material_file'])
+        if 'learning_material_file' in st.session_state:
+            st.write("### Personalized Learning Material")
+            with open(st.session_state['learning_material_file'], "rb") as file:
+                st.download_button(label="Download Learning Material as DOCX", data=file.read(), file_name=st.session_state['learning_material_file'])
 
-    if 'assignment_file' in st.session_state:
-        st.write("### Personalized Assignment")
-        with open(st.session_state['assignment_file'], "rb") as file:
-            st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
+        if 'assignment_file' in st.session_state:
+            st.write("### Personalized Assignment")
+            with open(st.session_state['assignment_file'], "rb") as file:
+                st.download_button(label="Download Assignment as DOCX", data=file.read(), file_name=st.session_state['assignment_file'])
 
 
     
     
-    elif task == "Personalized Learning Material":
-        st.header("Generate and Send Personalized Learning Material")
-    email_id = st.text_input("Enter Parent's Email ID:")
-    assessment_docx = st.file_uploader("Upload Assessment Report (DOCX)", type=["docx"])
-
-    if st.button("Generate and Send Personalized Learning Material"):
-        if email_id and assessment_docx:
-            # Extract text from DOCX
-            assessment_content = read_docx(assessment_docx)
-            st.write("Assessment content extracted successfully.")
-            
-            # Call updated weak topic extraction function
-            weak_topics = extract_weak_topics(assessment_content)
-            st.write(f"Weak topics identified: {weak_topics}")
-
-            if weak_topics:
-                # Generate learning material and assignments
-                learning_material = generate_personalized_material(weak_topics)
-                assignment = generate_personalized_assignment(weak_topics, include_solutions=True)
-                
-                # Save as DOCX
-                learning_material_doc = save_content_as_doc(learning_material, "Learning_Material")
-                assignment_doc = save_content_as_doc(assignment, "Assignment")
-
-                # Email body text
-                email_body = """
-                Dear Parent/Guardian,
-
-                Attached are the personalized learning resources for your child, providing structured guidance on concepts needing improvement. Each section includes a learning path, notes, and practice assignments.
-
-                Best regards,
-                Your School Name
-                """
-                attachments = [learning_material_doc, assignment_doc]
-                send_email_with_attachments(email_id, "Personalized Learning Material for Your Child", email_body, attachments)
-                st.success(f"Personalized materials have been sent to {email_id}.")
-            else:
-                st.warning("No weak topics identified. Please review the assessment content.")
-        else:
-            st.error("Please provide both an email ID and upload an assessment DOCX file.")
-
+    
 
     
     elif task == "Generate Image Based Questions":
