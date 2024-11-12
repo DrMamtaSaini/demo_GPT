@@ -17,46 +17,50 @@ import requests
 from PyPDF2 import PdfReader
 
 
-# Constants and Initial Setup
+# Load school credentials from Streamlit secrets
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
-# Initialize session states for login
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-if 'school_id' not in st.session_state:
-    st.session_state['school_id'] = None
-if 'api_key' not in st.session_state:
-    st.session_state['api_key'] = None
-if 'client_id' not in st.session_state:
-    st.session_state['client_id'] = None
-
 # Load client configuration from JSON file
-with open("clients_config.json") as config_file:
-    clients_config = json.load(config_file)
+try:
+    with open("clients_config.json") as config_file:
+        clients_config = json.load(config_file)
+except Exception as e:
+    st.error(f"ERROR - Unable to load clients_config.json: {e}")
 
 def get_client_config(client_id):
-    """Retrieves client configuration based on client_id or returns default if not found."""
-    default_config = {"name": "Default Academy", "logo": "https://path-to-default-logo.png", "theme_color": "#000000"}
-    return clients_config.get(client_id, default_config)
+    """Retrieves client configuration based on client_id or returns None if not found."""
+    return clients_config.get(client_id, None)
 
 def login_page():
-    """Displays login page and sets session states on successful login."""
+    """Displays the login page and sets session states on successful login."""
     st.title("School Login")
+    
+    # Input fields for username and password
     school_username = st.text_input("Username", placeholder="Enter username")
     school_password = st.text_input("Password", type="password", placeholder="Enter password")
-    
+
     if st.button("Login"):
-        # Check credentials and set session state
+        # Check credentials against stored values
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
+                # Set session state variables on successful login
                 st.session_state['logged_in'] = True
-                st.session_state['school_id'] = school_id
-                st.session_state['api_key'] = credentials["api_key"]
-                st.session_state['client_id'] = school_id  # Set client_id to retrieve client-specific info
-                st.session_state['trigger_reload'] = True  # Set reload flag instead of calling rerun
-                return  # Exit function on successful login
+                st.session_state['client_id'] = school_id
+                
+                # Load client config immediately after successful login
+                client_config = get_client_config(school_id)
+                
+                if client_config:
+                    st.session_state['client_config'] = client_config
+                else:
+                    st.error("Client configuration not found. Please log in again.")
+                    st.session_state['logged_in'] = False
+                    return
+        
+        # If no valid credentials found
+        if not st.session_state.get("logged_in"):
+            st.error("Invalid credentials. Please try again.")
 
-        st.error("Invalid credentials. Please try again.")
         
 # Function to fetch images based on topic and subtopics
 def fetch_image(prompt):
@@ -318,6 +322,10 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
+     
+    """Main application logic, displays client-specific information if logged in."""
+    client_config = st.session_state.get('client_config')
+    
     # Apply custom CSS for an attractive UI
     st.markdown("""
     <style>
@@ -665,18 +673,14 @@ def main_app():
 
 
 def main():
-    # Trigger reload logic if login was successful
-    if st.session_state.get('trigger_reload'):
-        # Reset reload trigger flag and allow the app to reload on next run
-        st.session_state['trigger_reload'] = False
-        # Instead of calling st.experimental_rerun(), reload logic continues in main function
+    """Main function to control the flow of the application."""
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
 
-    if st.session_state.get('logged_in', False):
-        # Load client-specific configuration and run main app if logged in
-        openai.api_key = st.session_state['api_key']
-        main_app()  # Call your main app function here
+    # Show main app if logged in, otherwise show login page
+    if st.session_state['logged_in']:
+        main_app()
     else:
-        # Display login page if not logged in
         login_page()
 
 if __name__ == "__main__":
