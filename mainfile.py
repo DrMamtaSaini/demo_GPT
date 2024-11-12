@@ -17,7 +17,7 @@ import requests
 from PyPDF2 import PdfReader
 
 # Set OpenAI API key
-openai.api_key = st.secrets["openai_api_key"]
+openai.api_key = st.secrets["api_key"]
 # Load school credentials from Streamlit secrets
 SCHOOL_CREDENTIALS = st.secrets["scho_credentials"]
 
