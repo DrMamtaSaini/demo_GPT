@@ -121,7 +121,7 @@ def generate_pdf(content, title, file_name):
 # Function to send an email with PDF attachment
 def send_email_with_pdf(to_email, subject, body, file_name):
     from_email = st.secrets["email"]
-    password = st.secrets["password"]
+    password = st.secrets["app_password"]
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
@@ -205,8 +205,11 @@ def generate_personalized_assignment(weak_topics):
 # Function to send an email with attachments
 def send_email_with_attachments(to_email, subject, body, attachments):
     """Sends an email with multiple attachments to the specified email address."""
+
+
+    
     from_email = st.secrets["email"]
-    password = st.secrets["password"]
+    password = st.secrets["app_password"]
     
     # Create the email message
     msg = MIMEMultipart()
