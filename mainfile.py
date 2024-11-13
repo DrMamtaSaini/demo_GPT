@@ -98,7 +98,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         
         # Centered main headings at the top
         document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_paragraph("\n")  # Blank line for spacing
@@ -107,7 +107,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         details_paragraph = document.add_paragraph()
         details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         details_paragraph.add_run(f'Duration: {duration}').bold = True
-        details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
+        details_paragraph.add_run(" " * 80)  # Adding space between Duration and Max Marks
         details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
         document.add_paragraph("\n")  # Spacing after details
@@ -724,18 +724,20 @@ Your School
             st.warning("Minimum number of questions is 5. Setting to 5.")
             num_questions = 5
 
-        # Call the single function with the include_answers parameter
-        quiz_filename = create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers)
+        # Generate both versions of the document (with and without answers)
+        quiz_filename_without_answers, quiz_filename_with_answers = create_quiz_document(
+            topic, subject, class_level, max_marks, duration, num_questions, question_type
+        )
 
-        st.success(f"Quiz generated and saved as '{quiz_filename}'")
-        with open(quiz_filename, "rb") as file:
-            st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+        # Provide download buttons for both versions
+        st.success("Quiz documents generated successfully!")
+        
+        with open(quiz_filename_without_answers, "rb") as file:
+            st.download_button(label="Download Quiz Document (without answers)", data=file.read(), file_name=quiz_filename_without_answers)
 
-        # Optionally offer both versions if needed
-        alternate_include = not include_answers
-        alternate_filename = create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, alternate_include)
-        with open(alternate_filename, "rb") as file:
-            st.download_button(label="Download Alternate Quiz Document (with/without answers)", data=file.read(), file_name=alternate_filename)
+        with open(quiz_filename_with_answers, "rb") as file:
+            st.download_button(label="Download Quiz Document (with answers)", data=file.read(), file_name=quiz_filename_with_answers)
+
 
 # Define main control function
 def main():
