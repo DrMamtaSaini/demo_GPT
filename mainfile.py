@@ -80,29 +80,56 @@ def generate_question(topic, class_level, question_type, subtopic):
     )
     return response['choices'][0]['message']['content']
 
+from docx import Document
+from docx.shared import Inches
+
 # Function to create quiz document
-def create_quiz_document(topic, class_level, num_questions, question_type):
+def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
-    document.add_heading(f'{topic} Quiz for {class_level}', level=1)
-    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
     
+    # Add document title and details
+    document.add_heading(f'{topic} Quiz for {class_level}', level=1)
+    document.add_paragraph(f'Class: {class_level}')
+    document.add_paragraph(f'Subject: {subject}')
+    document.add_paragraph(f'Topic: {topic}')
+    document.add_paragraph(f'Max. Marks: {max_marks}')
+    document.add_paragraph(f'Duration: {duration}')
+    document.add_paragraph("\n")  # Add spacing after the headers
+
+    # Define subtopics based on the topic
+    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
+
+    # Loop to create questions with image prompts and options
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
         question_text = generate_question(topic, class_level, question_type, subtopic)
         image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-        image = fetch_image(image_prompt)
+        image = fetch_image(image_prompt)  # Assuming fetch_image is a function to fetch image based on the prompt
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
+        
+        # Add options based on question type
         if question_type == "MCQ":
             document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
         elif question_type == "true/false":
             document.add_paragraph("a) True\nb) False")
         elif question_type == "yes/no":
             document.add_paragraph("a) Yes\nb) No")
-        document.add_paragraph("\n")
-    document.add_paragraph("\nAnswers:\n")
-    for i in range(num_questions):
-        document.add_paragraph(f'Q{i+1}: ________________')
+        
+        # If include_answers is True, generate and add the answer below the question
+        if include_answers:
+            correct_answer = "Correct Answer Placeholder"  # Replace with logic to generate correct answer if available
+            document.add_paragraph(f"Answer: {correct_answer}")
+        
+        document.add_paragraph("\n")  # Add spacing after each question
+
+    # If include_answers is False, add an answer sheet section
+    if not include_answers:
+        document.add_paragraph("\nAnswers:\n")
+        for i in range(num_questions):
+            document.add_paragraph(f'Q{i+1}: ________________')
+
+    # Save the document
     filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
@@ -645,21 +672,32 @@ Your School
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
-        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
-        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
-        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
-        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
+    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
+    subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
+    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
+    max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
+    duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
+    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
+    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
+    include_answers = st.checkbox("Include answers in the quiz document?", key="include_answers_checkbox")
 
-        if st.button("Generate Quiz Document"):
-            if num_questions < 5:
-                st.warning("Minimum number of questions is 5. Setting to 5.")
-                num_questions = 5
-            quiz_filename = create_quiz_document(topic, class_level, num_questions, question_type)
-            st.success(f"Quiz generated and saved as '{quiz_filename}'")
-            with open(quiz_filename, "rb") as file:
-                st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+    if st.button("Generate Quiz Document"):
+        if num_questions < 5:
+            st.warning("Minimum number of questions is 5. Setting to 5.")
+            num_questions = 5
 
+        # Call the single function with the include_answers parameter
+        quiz_filename = create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers)
 
+        st.success(f"Quiz generated and saved as '{quiz_filename}'")
+        with open(quiz_filename, "rb") as file:
+            st.download_button(label="Download Quiz Document", data=file.read(), file_name=quiz_filename)
+
+        # Optionally offer both versions if needed
+        alternate_include = not include_answers
+        alternate_filename = create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, alternate_include)
+        with open(alternate_filename, "rb") as file:
+            st.download_button(label="Download Alternate Quiz Document (with/without answers)", data=file.read(), file_name=alternate_filename)
 
 # Define main control function
 def main():
