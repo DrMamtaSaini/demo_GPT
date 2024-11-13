@@ -88,67 +88,83 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
-def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
-    document = Document()
-    
-    # Centered main headings at the top
-    document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph("\n")  # Blank line for spacing
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
-    # Duration and Max Marks on the same line, centered
-    details_paragraph = document.add_paragraph()
-    details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    details_paragraph.add_run(f'Duration: {duration}').bold = True
-    details_paragraph.add_run(" " * 80)  # Adding space between Duration and Max Marks
-    details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
-
-    document.add_paragraph("\n")  # Spacing after details
-
-    # Define subtopics based on the topic
-    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
-
-    # Loop to create questions with image prompts and options
-    for i in range(num_questions):
-        subtopic = subtopics[i % len(subtopics)]
-        question_text = generate_question(topic, class_level, question_type, subtopic)  # Generate the question text
-        image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-        image = fetch_image(image_prompt)  # Fetch image based on the prompt
-        document.add_picture(image, width=Inches(2))
-        document.add_paragraph(f'Q{i+1}: {question_text}')
-
-        # Only add a single set of options for each question type
-        if question_type == "MCQ":
-            options = ["A) Lion", "B) Kangaroo", "C) Elephant", "D) Giraffe"]  # Adjust or make dynamic if needed
-            for option in options:
-                document.add_paragraph(option)
-        elif question_type == "true/false":
-            document.add_paragraph("A) True")
-            document.add_paragraph("B) False")
-        elif question_type == "yes/no":
-            document.add_paragraph("A) Yes")
-            document.add_paragraph("B) No")
+def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type):
+    def generate_quiz_document(include_answers=False):
+        document = Document()
         
-        document.add_paragraph("\n")  # Spacing after each question
+        # Centered main headings at the top
+        document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_paragraph("\n")  # Blank line for spacing
 
-    # If include_answers is True, add answers at the end only, not inline
-    if include_answers:
-        document.add_paragraph("\nAnswers:\n")
-        for i in range(num_questions):
-            correct_answer = "C) Elephant"  # Placeholder; replace with actual answer logic if available
-            document.add_paragraph(f'Q{i+1}: {correct_answer}')
-    else:
-        # Add blank lines for answers if include_answers is False
-        document.add_paragraph("\nAnswers:\n")
-        for i in range(num_questions):
-            document.add_paragraph(f'Q{i+1}: ________________')
+        # Duration and Max Marks on the same line, centered
+        details_paragraph = document.add_paragraph()
+        details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        details_paragraph.add_run(f'Duration: {duration}').bold = True
+        details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
+        details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
-    # Save the document
-    filename = f'{topic}_Quiz_{class_level}.docx'
-    document.save(filename)
-    return filename
+        document.add_paragraph("\n")  # Spacing after details
+
+        # Define subtopics based on the topic
+        subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
+
+        # Loop to create questions with image prompts and options
+        for i in range(num_questions):
+            subtopic = subtopics[i % len(subtopics)]
+            question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
+            image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
+            image = fetch_image(image_prompt)  # Fetch image based on the prompt
+            document.add_picture(image, width=Inches(2))
+            document.add_paragraph(f'Q{i+1}: {question_text}')
+
+            # Only add a single set of options based on question type
+            if question_type == "MCQ":
+                # Generate options only once per question
+                options = generate_options_for_question(subtopic)  # Generate options for this specific question
+                for option in options:
+                    document.add_paragraph(option)
+            elif question_type == "true/false":
+                document.add_paragraph("A) True")
+                document.add_paragraph("B) False")
+            elif question_type == "yes/no":
+                document.add_paragraph("A) Yes")
+                document.add_paragraph("B) No")
+            
+            document.add_paragraph("\n")  # Spacing after each question
+
+        # Answer section only if include_answers is True, without listing options
+        if include_answers:
+            document.add_paragraph("\nAnswers:\n")
+            for i in range(num_questions):
+                correct_answer = "B) Kangaroo"  # Placeholder for correct answer; replace as needed
+                document.add_paragraph(f'Q{i+1}: {correct_answer}')
+        else:
+            # Add blank lines for answers if include_answers is False
+            document.add_paragraph("\nAnswers:\n")
+            for i in range(num_questions):
+                document.add_paragraph(f'Q{i+1}: ________________')
+
+        # Save the document with different filenames based on answer inclusion
+        filename = f"{topic}_Quiz_{class_level}_{'with_answers' if include_answers else 'without_answers'}.docx"
+        document.save(filename)
+        return filename
+
+    # Generate both versions and provide download links
+    quiz_filename_without_answers = generate_quiz_document(include_answers=False)
+    quiz_filename_with_answers = generate_quiz_document(include_answers=True)
+
+    return quiz_filename_without_answers, quiz_filename_with_answers
+
+def generate_options_for_question(subtopic):
+    # Customize this function to generate options based on the question subtopic or content
+    return ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
 
 
 
