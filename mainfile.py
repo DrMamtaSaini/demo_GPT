@@ -302,14 +302,8 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
-    """Main application logic, displays client-specific information if logged in."""
     client_config = st.session_state.get('client_config')
-
-    # Initialize task to "Home" if it doesn't exist in session state
-    if 'task' not in st.session_state:
-        st.session_state['task'] = "Home"
-
-    # Apply custom CSS for an attractive UI
+    
     st.markdown("""
     <style>
         body { background-color: #F0F2F6; }
@@ -335,10 +329,8 @@ def main_app():
     </style>
     """, unsafe_allow_html=True)
 
-    # Load client configuration using the stored client_id
     client_config = get_client_config(st.session_state['client_id'])
 
-    # Display client-specific information
     st.image(client_config["logo"], width=120)
     st.markdown(f"""
         <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 5px 0;">
@@ -346,17 +338,11 @@ def main_app():
         </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar and main content
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
-    button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
-    if st.sidebar.button("Logout", key="logout", help="Double Click to log out"):
-        # Clear session state to log out
-        st.session_state.clear()
-    
-    # Home Page Layout with Cards
-    if st.session_state['task'] == "Home":
+    if task == "Home":
+        st.markdown("""<div style='text-align: center; font-size: 18px; color: #4B0082;'>Your all-in-one platform for creating educational content, lesson plans, and student assessments.</div>""", unsafe_allow_html=True)
         # Introduction text for Home page
         st.markdown("""
         <div style='text-align: center; font-size: 18px; color: #4B0082; padding: 20px 0;'>
