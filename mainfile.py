@@ -764,13 +764,13 @@ Your School
             st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
 
     # Download buttons for both versions
-        if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
-            with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
-                st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
+            if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
+                with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
+                    st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_without_answers"]).name)
 
-            with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
-                st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
+                with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
+                    st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
 
 
