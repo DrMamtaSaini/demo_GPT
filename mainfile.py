@@ -15,9 +15,7 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -88,21 +86,15 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
-# Function to create quiz document
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
     # Centered main headings at the top
     document.add_heading(f'Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Grade: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph(f'Class: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Subject: {subject}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Topic: {topic}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
@@ -110,7 +102,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Duration and Max Marks on the same line
     details_paragraph = document.add_paragraph()
     details_paragraph.add_run(f'Duration: {duration}').bold = True
-    details_paragraph.add_run(" " * 60)  # Adding space between Duration and Max Marks
+    details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
     details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
     document.add_paragraph("\n")  # Spacing after details
@@ -158,6 +150,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
+
 
 
 
