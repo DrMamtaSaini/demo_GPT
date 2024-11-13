@@ -302,10 +302,13 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 # Main function
 def main_app():
-     
     """Main application logic, displays client-specific information if logged in."""
     client_config = st.session_state.get('client_config')
-    
+
+    # Initialize task to "Home" if it doesn't exist in session state
+    if 'task' not in st.session_state:
+        st.session_state['task'] = "Home"
+
     # Apply custom CSS for an attractive UI
     st.markdown("""
     <style>
@@ -347,16 +350,15 @@ def main_app():
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
-    
     button_style = f"background-color: {client_config['theme_color']}; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;"
     if st.sidebar.button("Logout", key="logout", help="Double Click to log out"):
         # Clear session state to log out
         st.session_state.clear()
-
+    
     # Home Page Layout with Cards
-        if task == "Home":
+    if st.session_state['task'] == "Home":
         # Introduction text for Home page
-            st.markdown("""
+        st.markdown("""
         <div style='text-align: center; font-size: 18px; color: #4B0082; padding: 20px 0;'>
             Welcome to your all-in-one platform for creating educational content, lesson plans, and student assessments.
         </div>
@@ -405,7 +407,11 @@ def main_app():
             st.session_state['task'] = "Create Educational Content"  # Set the task to "Create Educational Content"
         st.markdown("</div>", unsafe_allow_html=True)
 
-    elif task == "Create Educational Content":
+    
+    
+    
+    # The rest of the application follows the task selected in session state
+    if st.session_state['task'] == "Create Educational Content":
         st.header("Educational Content Creation")
     
         # Collect basic information
@@ -446,6 +452,22 @@ def main_app():
             # Download button for the PDF file
             with open(file_name_pdf, "rb") as file:
                 st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
