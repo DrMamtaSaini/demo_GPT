@@ -342,8 +342,7 @@ def main_app():
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
     if task == "Home":
-        st.markdown("""<div style='text-align: center; font-size: 18px; color: #4B0082;'>Your all-in-one platform for creating educational content, lesson plans, and student assessments.</div>""", unsafe_allow_html=True)
-        # Introduction text for Home page
+       
         st.markdown("""
         <div style='text-align: center; font-size: 18px; color: #4B0082; padding: 20px 0;'>
             Welcome to your all-in-one platform for creating educational content, lesson plans, and student assessments.
@@ -397,7 +396,7 @@ def main_app():
     
     
     # The rest of the application follows the task selected in session state
-    if st.session_state['task'] == "Create Educational Content":
+    elif st.session_state['task'] == "Create Educational Content":
         st.header("Educational Content Creation")
     
         # Collect basic information
