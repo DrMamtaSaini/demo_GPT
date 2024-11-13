@@ -122,13 +122,17 @@ from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type):
     def generate_quiz_document(include_answers=False):
         document = Document()
         
         # Centered main headings at the top
         document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_paragraph("\n")  # Blank line for spacing
@@ -137,7 +141,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         details_paragraph = document.add_paragraph()
         details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         details_paragraph.add_run(f'Duration: {duration}').bold = True
-        details_paragraph.add_run(" " * 80)  # Adding space between Duration and Max Marks
+        details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
         details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
         document.add_paragraph("\n")  # Spacing after details
@@ -150,19 +154,16 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
             subtopic = subtopics[i % len(subtopics)]
             question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
             image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
+            
+            # Fetch image only once
             image = fetch_image(image_prompt)
             if image:
-                document.add_picture(image, width=Inches(2))
-            else:
-                document.add_paragraph("[Image not available due to rate limit or error]")
+                document.add_picture(image, width=Inches(2))  # Add image only once
 
-            document.add_picture(image, width=Inches(2))
+            # Add question and options
             document.add_paragraph(f'Q{i+1}: {question_text}')
-
-            # Only add a single set of options based on question type
             if question_type == "MCQ":
-                # Generate options only once per question
-                options = generate_options_for_question(subtopic)  # Generate options for this specific question
+                options = ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
                 for option in options:
                     document.add_paragraph(option)
             elif question_type == "true/false":
@@ -174,7 +175,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
             
             document.add_paragraph("\n")  # Spacing after each question
 
-        # Answer section only if include_answers is True, without listing options
+        # Answer section only if include_answers is True
         if include_answers:
             document.add_paragraph("\nAnswers:\n")
             for i in range(num_questions):
@@ -196,11 +197,6 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     quiz_filename_with_answers = generate_quiz_document(include_answers=True)
 
     return quiz_filename_without_answers, quiz_filename_with_answers
-
-def generate_options_for_question(subtopic):
-    # Customize this function to generate options based on the question subtopic or content
-    return ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
-
 
 
 
