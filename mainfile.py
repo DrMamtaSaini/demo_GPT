@@ -147,7 +147,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
 
     # Centered main headings
     document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
@@ -164,7 +164,11 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
         question_text = generate_question_and_options(topic, class_level, question_type, subtopic)
-
+         # Generate image for each question
+        image_prompt = f"Image of {subtopic} related to {topic}"
+        image_data = fetch_image(image_prompt)
+        if image_data:
+            document.add_picture(image_data, width=Inches(2))  # Add image to the document if it exists
         # Add the generated question and options
         document.add_paragraph(f'Q{i+1}: {question_text}')
         
