@@ -15,7 +15,9 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -82,14 +84,15 @@ def generate_question(topic, class_level, question_type, subtopic):
     )
     return response['choices'][0]['message']['content']
 
-from docx import Document
-from docx.shared import Inches
+
+
+
 
 # Function to create quiz document
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
-   # Centered main headings at the top
+    # Centered main headings at the top
     heading = document.add_heading(f'Quiz', level=1)
     heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
@@ -102,19 +105,15 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     topic_heading = document.add_paragraph(f'Topic: {topic}')
     topic_heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    document.add_paragraph("\n")  # Add a blank line for spacing
+    document.add_paragraph("\n")  # Blank line for spacing
 
-    # Left-aligned Duration
+    # Left-aligned Duration and Right-aligned Max. Marks
     duration_paragraph = document.add_paragraph(f'Duration: {duration}')
     duration_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-
-    # Right-aligned Max. Marks
     max_marks_paragraph = document.add_paragraph(f'Max. Marks: {max_marks}')
     max_marks_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
 
-    # Add spacing after details
-    document.add_paragraph("\n")
-
+    document.add_paragraph("\n")  # Spacing after details
 
     # Define subtopics based on the topic
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
@@ -122,28 +121,32 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Loop to create questions with image prompts and options
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
-        question_text = generate_question(topic, class_level, question_type, subtopic)
+        question_text = generate_question(topic, class_level, question_type, subtopic)  # Generate the question text
         image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-        image = fetch_image(image_prompt)  # Assuming fetch_image is a function to fetch image based on the prompt
+        image = fetch_image(image_prompt)  # Fetch image based on the prompt
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
-        
-        # Add options based on question type
+
+        # Specific answer options for MCQ questions
         if question_type == "MCQ":
-            document.add_paragraph("a) Option 1\nb) Option 2\nc) Option 3\nd) Option 4")
+            options = ["A) Respiration", "B) Photosynthesis", "C) Germination", "D) Transpiration"]  # Modify as needed
+            for option in options:
+                document.add_paragraph(option)
         elif question_type == "true/false":
-            document.add_paragraph("a) True\nb) False")
+            document.add_paragraph("A) True")
+            document.add_paragraph("B) False")
         elif question_type == "yes/no":
-            document.add_paragraph("a) Yes\nb) No")
+            document.add_paragraph("A) Yes")
+            document.add_paragraph("B) No")
         
-        # If include_answers is True, generate and add the answer below the question
+        # If include_answers is True, add the answer below the question
         if include_answers:
-            correct_answer = "Correct Answer Placeholder"  # Replace with logic to generate correct answer if available
+            correct_answer = "B) Photosynthesis"  # Placeholder; replace with correct answer generation logic
             document.add_paragraph(f"Answer: {correct_answer}")
         
-        document.add_paragraph("\n")  # Add spacing after each question
+        document.add_paragraph("\n")  # Spacing after each question
 
-    # If include_answers is False, add an answer sheet section
+    # If include_answers is False, add an answer sheet section with placeholders
     if not include_answers:
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
@@ -153,6 +156,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
+
 
 # Function to generate a PDF file for reports
 def generate_pdf(content, title, file_name):
