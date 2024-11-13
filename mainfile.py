@@ -86,21 +86,19 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
-
-
-
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
     # Centered main headings at the top
-    document.add_heading(f'Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Grade: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Subject: {subject}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Topic: {topic}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
 
-    # Duration and Max Marks on the same line
+    # Duration and Max Marks on the same line, formatted as headings
     details_paragraph = document.add_paragraph()
+    details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     details_paragraph.add_run(f'Duration: {duration}').bold = True
     details_paragraph.add_run(" " * 80)  # Adding space between Duration and Max Marks
     details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
@@ -108,7 +106,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     document.add_paragraph("\n")  # Spacing after details
 
     # Define subtopics based on the topic
-    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
+    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
 
     # Loop to create questions with image prompts and options
     for i in range(num_questions):
@@ -119,9 +117,9 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
 
-        # Specific answer options for MCQ questions
+        # Specific answer options for MCQ questions without repetition
         if question_type == "MCQ":
-            options = ["A) Lion", "B) Kangaroo", "C) Elephant", "D) Giraffe"]  # Sample options; adjust as needed
+            options = ["A) Lion", "B) Kangaroo", "C) Elephant", "D) Giraffe"]  # Adjust or make dynamic if needed
             for option in options:
                 document.add_paragraph(option)
         elif question_type == "true/false":
@@ -133,12 +131,11 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         
         document.add_paragraph("\n")  # Spacing after each question
 
-    # If include_answers is True, add an answer sheet section with correct answers
+    # Add separate answer sheet if include_answers is True
     if include_answers:
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
-            # Placeholder for correct answer; modify as needed to fetch the correct answer
-            correct_answer = "B) Kangaroo"
+            correct_answer = "B) Kangaroo"  # Placeholder; replace with actual answer generation logic
             document.add_paragraph(f'Q{i+1}: {correct_answer}')
     else:
         # If include_answers is False, add blank lines for answers
