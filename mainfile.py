@@ -754,28 +754,25 @@ Your School
 
     if st.button("Generate Quiz Document"):
         if num_questions < 5:
-            st.warning("Minimum number of questions is 5. Setting to 5.")
-            num_questions = 5
+            st.warning("Minimum number of questions is 2. Setting to 2.")
+        num_questions = 2
 
-        # Use tempfile to create temporary files for both versions of the document
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
-             tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+         tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
 
-            quiz_filename_without_answers = tmp_file_without_answers.name
-            quiz_filename_with_answers = tmp_file_with_answers.name
+        quiz_filename_without_answers = tmp_file_without_answers.name
+        quiz_filename_with_answers = tmp_file_with_answers.name
 
-            # Generate both versions of the document
-            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                                   include_answers=False, file_path=quiz_filename_without_answers)
-            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                                   include_answers=True, file_path=quiz_filename_with_answers)
+        # Call create_quiz_document with all required arguments
+        create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                             include_answers=False, file_path=quiz_filename_without_answers)
+        create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                             include_answers=True, file_path=quiz_filename_with_answers)
 
-            # Store paths in session state for persistent download links
-            st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
-            st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
+        st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
+        st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
 
-            st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
-
+    st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
     # Download buttons for both versions, checking session state to keep the page state intact
     if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
         with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
