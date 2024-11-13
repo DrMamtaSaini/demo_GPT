@@ -17,6 +17,10 @@ from PyPDF2 import PdfReader
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import tempfile
 from pathlib import Path
+from fpdf import FPDF
+
+import tempfile
+from fpdf import FPDF
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -337,10 +341,9 @@ def send_email_with_attachments(to_email, subject, body, attachments):
 
 
 
-from fpdf import FPDF
 
-def generate_pdf(content, title, file_name, student_name, student_id, assessment_id, exam_type, subject):
-    # Initialize PDF
+
+def generate_pdf(content, title, file_obj, student_name, student_id, assessment_id, exam_type, subject):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -374,8 +377,8 @@ def generate_pdf(content, title, file_name, student_name, student_id, assessment
         sanitized_line = line.encode("latin-1", "replace").decode("latin-1")
         pdf.multi_cell(0, 10, sanitized_line)
 
-    # Output PDF to file
-    pdf.output(file_name)
+    # Write PDF content to the temporary file
+    pdf.output(file_obj)
 
 
 def save_content_as_doc(content, file_name):
@@ -606,106 +609,107 @@ def main_app():
     elif task == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
-    # Collect student information with unique labels for each field
+    # Collect student information
     student_name = st.text_input("Enter Student Name", key="student_name_input")
     student_id = st.text_input("Enter Student ID", key="student_id_input")
     assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
     class_name = st.text_input("Enter Class", key="class_name_input")
     email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
 
-    # New fields for Exam Type and Subject
     exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
     subject = st.text_input("Enter Subject", key="subject_input")
 
-    # Upload Question Paper, Marking Scheme, and Answer Sheet (DOC format)
     question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
     marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
     answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
 
     if st.button("Generate and Send Reports"):
         if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
-            # Read DOC files
             question_paper_content = read_docx(question_paper)
             marking_scheme_content = read_docx(marking_scheme)
             answer_sheet_content = read_docx(answer_sheet)
 
-            # Generate the assessment report
-            prompt = f"""
-            You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
-
-            Student Name: {student_name}
-            Student ID: {student_id}
-            Class: {class_name}
-            Assessment ID: {assessment_id}
-
-            Question Paper:
-            {question_paper_content}
-
-            Marking Scheme:
-            {marking_scheme_content}
-
-            Student's Answer Sheet:
-            {answer_sheet_content}
-
-            Please provide the following in the assessment report:
-            1. Question Analysis - Each question should include:
-                - Topic
-                - Subtopic
-                - Question Number
-                - Score for the answer based on accuracy and relevance
-                - Concept Clarity (Yes/No)
-                - Feedback and Suggestions
-
-            2. Summary Report - Include:
-                - Final Score
-                - Grade
-                - Areas of Strength
-                - Areas for Improvement
-                - Final Remarks
-            """
-
+            # Generate assessment report
+            prompt = f"...[Your OpenAI prompt here]..."
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": prompt}]
             )
             report = response['choices'][0]['message']['content']
-
-            # Display the generated report on the screen
             st.write("## Assessment Report")
             st.write(report)
 
-            # Save PDF reports
-            assessment_report_pdf = f"assessment_report_{student_id}.pdf"
-            generate_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
+            weak_topics_prompt = f"...[Weak topics prompt]..."
+            weak_response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": weak_topics_prompt}]
+            )
+            weak_topics = weak_response['choices'][0]['message']['content'].strip().split("\n")
 
-            st.session_state['assessment_report_pdf'] = assessment_report_pdf
+            learning_material_prompt = f"...[Learning material prompt]..."
+            assignment_prompt = f"...[Assignment prompt]..."
+
+            learning_material_response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": learning_material_prompt}]
+            )
+            assignment_response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": assignment_prompt}]
+            )
+
+            learning_material = learning_material_response['choices'][0]['message']['content']
+            assignment = assignment_response['choices'][0]['message']['content']
+
+            st.write("## Personalized Learning Material")
+            st.write(learning_material)
+            st.write("## Personalized Assignment")
+            st.write(assignment)
+
+            # Temporary files for all PDFs
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as assessment_file, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as learning_file, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as assignment_file:
+                
+                generate_pdf(report, "Assessment Report", assessment_file.name, student_name, student_id, assessment_id, exam_type, subject)
+                generate_pdf(learning_material, "Personalized Learning Material", learning_file.name, student_name, student_id, assessment_id, exam_type, subject)
+                generate_pdf(assignment, "Personalized Assignment", assignment_file.name, student_name, student_id, assessment_id, exam_type, subject)
+
+                # Store temp file paths in session state
+                st.session_state['assessment_report_pdf'] = assessment_file.name
+                st.session_state['learning_material_pdf'] = learning_file.name
+                st.session_state['assignment_pdf'] = assignment_file.name
 
             st.success("All reports generated successfully and are ready for download.")
 
-            # Email the PDF to the parent (if applicable)
+            # Email attachments with the temp file paths
             subject = f"Assessment Reports for {student_name}"
-            body = f"""
-            Dear Parent,
-
-            We hope this message finds you well.
-
-            We have recently conducted an assessment for your child, {student_name}, and are pleased to share the results and resources to support their academic journey. In this email, you will find the assessment report attached.
-
-            Thank you for your continued support and engagement in {student_name}'s education.
-
-            Warm regards,
-            Your School
-            """
-            attachments = [assessment_report_pdf]
+            body = "Dear Parent, ...[body content]..."
+            attachments = [st.session_state['assessment_report_pdf'], st.session_state['learning_material_pdf'], st.session_state['assignment_pdf']]
             send_email_with_attachments(email_id, subject, body, attachments)
+
         else:
             st.error("Please provide all required inputs.")
 
-    # Display download button for the assessment report
+    # Download buttons for generated reports
     if 'assessment_report_pdf' in st.session_state:
-        st.write("### Assessment Report")
+        st.write("### Download Assessment Report")
         with open(st.session_state['assessment_report_pdf'], "rb") as file:
-            st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
+            st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name="assessment_report.pdf")
+
+    if 'learning_material_pdf' in st.session_state:
+        st.write("### Download Personalized Learning Material")
+        with open(st.session_state['learning_material_pdf'], "rb") as file:
+            st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name="learning_material.pdf")
+
+    if 'assignment_pdf' in st.session_state:
+        st.write("### Download Personalized Assignment")
+        with open(st.session_state['assignment_pdf'], "rb") as file:
+            st.download_button(label="Download Assignment as PDF", data=file.read(), file_name="assignment.pdf")
+    
+
+
+    
     
     elif task == "Generate Image Based Questions":
         
