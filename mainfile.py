@@ -355,42 +355,55 @@ def main_app():
 
     # Home Page Layout with Cards
         if task == "Home":
-            st.markdown("""<div style='text-align: center; font-size: 18px; color: #4B0082;'>Your all-in-one platform for creating educational content, lesson plans, and student assessments.</div>""", unsafe_allow_html=True)
+        # Introduction text for Home page
+            st.markdown("""
+        <div style='text-align: center; font-size: 18px; color: #4B0082; padding: 20px 0;'>
+            Welcome to your all-in-one platform for creating educational content, lesson plans, and student assessments.
+        </div>
+        """, unsafe_allow_html=True)
 
-        # Create a row of options with custom styled cards
+        # Creating a row of options with custom styled cards
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Content Creator")
-            st.write("Generate quizzes, sample papers, and assignments.")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="option-card">
+                <h3 style='color: #4B0082; text-align: center;'>Content Creator</h3>
+                <p style='text-align: center;'>Generate quizzes, sample papers, and assignments for students.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col2:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Lesson Planner")
-            st.write("Create detailed lesson plans with learning objectives and materials.")
-            st.markdown('</div>', unsafe_allow_html=True)
-        
+            st.markdown("""
+            <div class="option-card">
+                <h3 style='color: #4B0082; text-align: center;'>Lesson Planner</h3>
+                <p style='text-align: center;'>Create detailed lesson plans with objectives and resources.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
         col3, col4 = st.columns(2)
-        
+
         with col3:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Assessment Assistant")
-            st.write("Generate comprehensive student assessments and progress reports.")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="option-card">
+                <h3 style='color: #4B0082; text-align: center;'>Assessment Assistant</h3>
+                <p style='text-align: center;'>Generate comprehensive student assessments and progress reports.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
         with col4:
-            st.markdown('<div class="option-card">', unsafe_allow_html=True)
-            st.subheader("Image-Based Question Generator")
-            st.write("Generate Image-Based Quiz (MCQ, True/false, Yes/No type).")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="option-card">
+                <h3 style='color: #4B0082; text-align: center;'>Image-Based Question Generator</h3>
+                <p style='text-align: center;'>Generate image-based quizzes (MCQ, True/False, Yes/No).</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Centered 'Get Started Today' button with message on click
-        st.markdown('<div class="center">', unsafe_allow_html=True)
+        # Centered 'Get Started Today' button with a message on click
+        st.markdown("<div class='center' style='padding: 20px;'>", unsafe_allow_html=True)
         if st.button("Get Started Today"):
-            st.warning("Choose one task from the menu on the left to get started.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.session_state['task'] = "Create Educational Content"  # Set the task to "Create Educational Content"
+        st.markdown("</div>", unsafe_allow_html=True)
 
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
