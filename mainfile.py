@@ -128,17 +128,31 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from io import BytesIO
 
 # Function to generate a quiz document
+def generate_question_and_options(topic, class_level, question_type, subtopic):
+    prompt = (
+        f"Create a {question_type} question about {subtopic} for a {class_level} level quiz on {topic}. "
+        f"Include four answer choices labeled A, B, C, and D."
+    )
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    
+    question = response.choices[0].message['content'].strip()
+    return question
+
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers, file_path):
     document = Document()
-    
-    # Centered main headings at the top
+
+    # Centered main headings
     document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
 
-    # Duration and Max Marks on the same line, centered
+    # Duration and Max Marks, centered
     details_paragraph = document.add_paragraph()
     details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     details_paragraph.add_run(f'Duration: {duration}    Max. Marks: {max_marks}').bold = True
@@ -146,46 +160,31 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Define subtopics based on the topic
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
 
-    # Loop to create questions with image prompts and options
+    # Loop to create questions with dynamically generated content
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
-        question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
-        image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-        
-        # Fetch image only once
-        image = fetch_image(image_prompt)
-        if image:
-            document.add_picture(image, width=Inches(2))  # Add image only once
+        question_text = generate_question_and_options(topic, class_level, question_type, subtopic)
 
-        # Add question and options
+        # Add the generated question and options
         document.add_paragraph(f'Q{i+1}: {question_text}')
-        if question_type == "MCQ":
-            options = ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
-            for option in options:
-                document.add_paragraph(option)
-        elif question_type == "true/false":
-            document.add_paragraph("A) True")
-            document.add_paragraph("B) False")
-        elif question_type == "yes/no":
-            document.add_paragraph("A) Yes")
-            document.add_paragraph("B) No")
         
-        document.add_paragraph("\n")  # Spacing after each question
+        # Insert a blank line between questions
+        document.add_paragraph("\n")  
 
-    # Answer section only if include_answers is True
+    # Add answers if required
     if include_answers:
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
-            correct_answer = "B) Option 2"  # Placeholder for correct answer; replace as needed
+            correct_answer = "B) Sample Answer"  # Placeholder correct answer, update based on actual logic
             document.add_paragraph(f'Q{i+1}: {correct_answer}')
     else:
-        # Add blank lines for answers if include_answers is False
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
             document.add_paragraph(f'Q{i+1}: ________________')
 
     # Save the document
     document.save(file_path)
+
 
 
 
@@ -765,7 +764,7 @@ Your School
 
         st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
 
-    # Download buttons for both versions, checking session state to keep the page state intact
+    # Download buttons for both versions
     if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
         with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
             st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
@@ -774,6 +773,7 @@ Your School
         with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
             st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
+
 
 
 # Define main control function
