@@ -119,85 +119,73 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import tempfile
+from pathlib import Path
 
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from io import BytesIO
 
-def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type):
-    def generate_quiz_document(include_answers=False):
-        document = Document()
+# Function to generate a quiz document
+def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers, file_path):
+    document = Document()
+    
+    # Centered main headings at the top
+    document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph("\n")  # Blank line for spacing
+
+    # Duration and Max Marks on the same line, centered
+    details_paragraph = document.add_paragraph()
+    details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    details_paragraph.add_run(f'Duration: {duration}    Max. Marks: {max_marks}').bold = True
+
+    # Define subtopics based on the topic
+    subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
+
+    # Loop to create questions with image prompts and options
+    for i in range(num_questions):
+        subtopic = subtopics[i % len(subtopics)]
+        question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
+        image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
         
-        # Centered main headings at the top
-        document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        document.add_paragraph("\n")  # Blank line for spacing
+        # Fetch image only once
+        image = fetch_image(image_prompt)
+        if image:
+            document.add_picture(image, width=Inches(2))  # Add image only once
 
-        # Duration and Max Marks on the same line, centered
-        details_paragraph = document.add_paragraph()
-        details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        details_paragraph.add_run(f'Duration: {duration}').bold = True
-        details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
-        details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
+        # Add question and options
+        document.add_paragraph(f'Q{i+1}: {question_text}')
+        if question_type == "MCQ":
+            options = ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
+            for option in options:
+                document.add_paragraph(option)
+        elif question_type == "true/false":
+            document.add_paragraph("A) True")
+            document.add_paragraph("B) False")
+        elif question_type == "yes/no":
+            document.add_paragraph("A) Yes")
+            document.add_paragraph("B) No")
+        
+        document.add_paragraph("\n")  # Spacing after each question
 
-        document.add_paragraph("\n")  # Spacing after details
-
-        # Define subtopics based on the topic
-        subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
-
-        # Loop to create questions with image prompts and options
+    # Answer section only if include_answers is True
+    if include_answers:
+        document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
-            subtopic = subtopics[i % len(subtopics)]
-            question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
-            image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-            
-            # Fetch image only once
-            image = fetch_image(image_prompt)
-            if image:
-                document.add_picture(image, width=Inches(2))  # Add image only once
+            correct_answer = "B) Option 2"  # Placeholder for correct answer; replace as needed
+            document.add_paragraph(f'Q{i+1}: {correct_answer}')
+    else:
+        # Add blank lines for answers if include_answers is False
+        document.add_paragraph("\nAnswers:\n")
+        for i in range(num_questions):
+            document.add_paragraph(f'Q{i+1}: ________________')
 
-            # Add question and options
-            document.add_paragraph(f'Q{i+1}: {question_text}')
-            if question_type == "MCQ":
-                options = ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
-                for option in options:
-                    document.add_paragraph(option)
-            elif question_type == "true/false":
-                document.add_paragraph("A) True")
-                document.add_paragraph("B) False")
-            elif question_type == "yes/no":
-                document.add_paragraph("A) Yes")
-                document.add_paragraph("B) No")
-            
-            document.add_paragraph("\n")  # Spacing after each question
-
-        # Answer section only if include_answers is True
-        if include_answers:
-            document.add_paragraph("\nAnswers:\n")
-            for i in range(num_questions):
-                correct_answer = "B) Kangaroo"  # Placeholder for correct answer; replace as needed
-                document.add_paragraph(f'Q{i+1}: {correct_answer}')
-        else:
-            # Add blank lines for answers if include_answers is False
-            document.add_paragraph("\nAnswers:\n")
-            for i in range(num_questions):
-                document.add_paragraph(f'Q{i+1}: ________________')
-
-        # Save the document with different filenames based on answer inclusion
-        filename = f"{topic}_Quiz_{class_level}_{'with_answers' if include_answers else 'without_answers'}.docx"
-        document.save(filename)
-        return filename
-
-    # Generate both versions and provide download links
-    quiz_filename_without_answers = generate_quiz_document(include_answers=False)
-    quiz_filename_with_answers = generate_quiz_document(include_answers=True)
-
-    return quiz_filename_without_answers, quiz_filename_with_answers
+    # Save the document
+    document.save(file_path)
 
 
 
@@ -742,7 +730,6 @@ Your School
     
     elif task == "Generate Image Based Questions":
         
-    # Get user input for quiz details
         st.header("Generate Image Based Questions")
     topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
     subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
@@ -755,24 +742,29 @@ Your School
     if st.button("Generate Quiz Document"):
         if num_questions < 5:
             st.warning("Minimum number of questions is 5. Setting to 5.")
-        num_questions = 5
+            num_questions = 5
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
-         tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
+        # Create temporary files for both versions of the document
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+             tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
 
-        quiz_filename_without_answers = tmp_file_without_answers.name
-        quiz_filename_with_answers = tmp_file_with_answers.name
+            quiz_filename_without_answers = tmp_file_without_answers.name
+            quiz_filename_with_answers = tmp_file_with_answers.name
 
-        # Call create_quiz_document with all required arguments
-        create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                             include_answers=False, file_path=quiz_filename_without_answers)
-        create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                             include_answers=True, file_path=quiz_filename_with_answers)
+            # Generate the quiz document without answers
+            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                                 include_answers=False, file_path=quiz_filename_without_answers)
 
-        st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
-        st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
+            # Generate the quiz document with answers
+            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                                 include_answers=True, file_path=quiz_filename_with_answers)
 
-    st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
+            # Store paths in session state for persistent download links
+            st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
+            st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
+
+        st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
+
     # Download buttons for both versions, checking session state to keep the page state intact
     if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
         with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
@@ -782,7 +774,6 @@ Your School
         with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
             st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
-
 
 
 # Define main control function
