@@ -410,7 +410,7 @@ def main_app():
     
     
     # The rest of the application follows the task selected in session state
-    elif task == "Create Educational Content":
+    elif  st.session_state['task'] == "Create Educational Content":
         st.header("Educational Content Creation")
     
         # Collect basic information
@@ -468,7 +468,7 @@ def main_app():
     
     
 
-    elif task == "Create Lesson Plan":
+    elif  st.session_state['task'] == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
     
         # Collect lesson plan details
@@ -501,7 +501,7 @@ def main_app():
             with open(file_name_pdf, "rb") as file:
                 st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
 
-    elif task == "Student Assessment Assistant":
+    elif  st.session_state['task'] == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
         # Collect student information with unique labels for each field
@@ -644,7 +644,7 @@ Your School
             with open(st.session_state['assignment_pdf'], "rb") as file:
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
 
-    elif task == "Generate Image Based Questions":
+    elif  st.session_state['task'] == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
         class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
