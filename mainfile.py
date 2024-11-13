@@ -39,7 +39,7 @@ def login_page():
     school_username = st.text_input("Username", placeholder="Enter username", key="username_input")
     school_password = st.text_input("Password", type="password", placeholder="Enter password", key="password_input")
 
-    if st.button("Login", help="Double Click to log out"):
+    if st.button("Login", help="Double Click to log in"):
         # Check credentials against stored values
         for school_id, credentials in SCHOOL_CREDENTIALS.items():
             if school_username == credentials["username"] and school_password == credentials["password"]:
@@ -643,6 +643,7 @@ Your School
             st.write("### Personalized Assignment")
             with open(st.session_state['assignment_pdf'], "rb") as file:
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
+    elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
         class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
