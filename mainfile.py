@@ -14,6 +14,8 @@ from docx.shared import Inches
 from io import BytesIO
 import requests
 from PyPDF2 import PdfReader
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -87,14 +89,32 @@ from docx.shared import Inches
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
-    # Add document title and details
-    document.add_heading(f'{topic} Quiz for {class_level}', level=1)
-    document.add_paragraph(f'Class: {class_level}')
-    document.add_paragraph(f'Subject: {subject}')
-    document.add_paragraph(f'Topic: {topic}')
-    document.add_paragraph(f'Max. Marks: {max_marks}')
-    document.add_paragraph(f'Duration: {duration}')
-    document.add_paragraph("\n")  # Add spacing after the headers
+   # Centered main headings at the top
+    heading = document.add_heading(f'Quiz', level=1)
+    heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    class_heading = document.add_paragraph(f'Class: {class_level}')
+    class_heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    subject_heading = document.add_paragraph(f'Subject: {subject}')
+    subject_heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    topic_heading = document.add_paragraph(f'Topic: {topic}')
+    topic_heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    document.add_paragraph("\n")  # Add a blank line for spacing
+
+    # Left-aligned Duration
+    duration_paragraph = document.add_paragraph(f'Duration: {duration}')
+    duration_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+    # Right-aligned Max. Marks
+    max_marks_paragraph = document.add_paragraph(f'Max. Marks: {max_marks}')
+    max_marks_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+
+    # Add spacing after details
+    document.add_paragraph("\n")
+
 
     # Define subtopics based on the topic
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["topic1", "topic2", "topic3"]
