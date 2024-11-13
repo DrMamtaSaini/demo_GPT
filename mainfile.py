@@ -396,7 +396,7 @@ def main_app():
     
     
     # The rest of the application follows the task selected in session state
-    elif st.session_state['task'] == "Create Educational Content":
+    elif task == "Create Educational Content":
         st.header("Educational Content Creation")
     
         # Collect basic information
