@@ -670,6 +670,8 @@ Your School
             st.write("### Personalized Assignment")
             with open(st.session_state['assignment_pdf'], "rb") as file:
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
+    
+    
     elif task == "Generate Image Based Questions":
         st.header("Generate Image Based Questions")
     topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
