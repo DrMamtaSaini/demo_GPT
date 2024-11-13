@@ -15,7 +15,8 @@ from io import BytesIO
 import requests
 from PyPDF2 import PdfReader
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-
+import tempfile
+from pathlib import Path
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -740,6 +741,8 @@ Your School
     
     
     elif task == "Generate Image Based Questions":
+        
+    # Get user input for quiz details
         st.header("Generate Image Based Questions")
     topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
     subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
@@ -748,26 +751,41 @@ Your School
     duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
     num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
     question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
-    include_answers = st.checkbox("Include answers in the quiz document?", key="include_answers_checkbox")
 
     if st.button("Generate Quiz Document"):
         if num_questions < 5:
             st.warning("Minimum number of questions is 5. Setting to 5.")
             num_questions = 5
 
-        # Generate both versions of the document (with and without answers)
-        quiz_filename_without_answers, quiz_filename_with_answers = create_quiz_document(
-            topic, subject, class_level, max_marks, duration, num_questions, question_type
-        )
+        # Use tempfile to create temporary files for both versions of the document
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+             tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
 
-        # Provide download buttons for both versions
-        st.success("Quiz documents generated successfully!")
-        
-        with open(quiz_filename_without_answers, "rb") as file:
-            st.download_button(label="Download Quiz Document (without answers)", data=file.read(), file_name=quiz_filename_without_answers)
+            quiz_filename_without_answers = tmp_file_without_answers.name
+            quiz_filename_with_answers = tmp_file_with_answers.name
 
-        with open(quiz_filename_with_answers, "rb") as file:
-            st.download_button(label="Download Quiz Document (with answers)", data=file.read(), file_name=quiz_filename_with_answers)
+            # Generate both versions of the document
+            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                                   include_answers=False, file_path=quiz_filename_without_answers)
+            create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                                   include_answers=True, file_path=quiz_filename_with_answers)
+
+            # Store paths in session state for persistent download links
+            st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
+            st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
+
+            st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
+
+    # Download buttons for both versions, checking session state to keep the page state intact
+    if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
+        with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
+            st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
+                               file_name=Path(st.session_state["quiz_filename_without_answers"]).name)
+
+        with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
+            st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
+                               file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
+
 
 
 # Define main control function
