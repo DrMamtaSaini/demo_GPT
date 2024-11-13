@@ -502,10 +502,8 @@ def main_app():
         if st.button("Get Started Today"):
             st.session_state['task'] = "Create Educational Content"  # Set the task to "Create Educational Content"
         st.markdown("</div>", unsafe_allow_html=True)
-
-    
-    
-    
+   
+        
     # The rest of the application follows the task selected in session state
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
@@ -549,21 +547,7 @@ def main_app():
             with open(file_name_pdf, "rb") as file:
                 st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
 
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
 
     elif task == "Create Lesson Plan":
         st.header("Lesson Plan Creation")
@@ -745,25 +729,25 @@ Your School
     elif task == "Generate Image Based Questions":
         
         st.header("Generate Image Based Questions")
-    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
-    subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
-    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
-    max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
-    duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
-    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
-    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
+        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
+        subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
+        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
+        max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
+        duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
+        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
+        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
 
-    if st.button("Generate Quiz Document"):
-        if num_questions < 5:
-            st.warning("Minimum number of questions is 5. Setting to 5.")
+        if st.button("Generate Quiz Document"):
+            if num_questions < 5:
+                st.warning("Minimum number of questions is 5. Setting to 5.")
             num_questions = 5
 
         # Create temporary files for both versions of the document
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
-             tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+                tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
 
-            quiz_filename_without_answers = tmp_file_without_answers.name
-            quiz_filename_with_answers = tmp_file_with_answers.name
+                quiz_filename_without_answers = tmp_file_without_answers.name
+                quiz_filename_with_answers = tmp_file_with_answers.name
 
             # Generate the quiz document without answers
             create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
@@ -777,16 +761,16 @@ Your School
             st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
             st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
 
-        st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
+            st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
 
     # Download buttons for both versions
-    if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
-        with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
-            st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
+        if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
+            with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
+                st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_without_answers"]).name)
 
-        with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
-            st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
+            with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
+                st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
 
 
