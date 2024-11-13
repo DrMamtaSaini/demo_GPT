@@ -235,16 +235,27 @@ def send_email_with_attachments(to_email, subject, body, attachments):
     except Exception as e:
         st.error(f"Error sending email: {e}")
 
+
+
 def generate_pdf(content, title, file_name):
-    # Save content as PDF
+    # Initialize PDF
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, title, ln=True, align="C")
+    
+    # Set title with error handling for encoding
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, title.encode("latin-1", "replace").decode("latin-1"), ln=True, align='C')
     pdf.ln(10)
+    
+    # Add content with encoding error handling
+    pdf.set_font("Arial", size=12)
     for line in content.split('\n'):
-        pdf.cell(200, 10, line, ln=True)
+        sanitized_line = line.encode("latin-1", "replace").decode("latin-1")
+        pdf.cell(200, 10, sanitized_line, ln=True)
+    
+    # Output PDF to file
     pdf.output(file_name)
+
 
 def save_content_as_doc(content, file_name):
     doc = Document()
