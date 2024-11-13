@@ -86,6 +86,8 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
+
+
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
@@ -96,7 +98,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
 
-    # Duration and Max Marks on the same line, formatted as headings
+    # Duration and Max Marks on the same line, centered
     details_paragraph = document.add_paragraph()
     details_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     details_paragraph.add_run(f'Duration: {duration}').bold = True
@@ -117,7 +119,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         document.add_picture(image, width=Inches(2))
         document.add_paragraph(f'Q{i+1}: {question_text}')
 
-        # Specific answer options for MCQ questions without repetition
+        # Only add a single set of options for each question type
         if question_type == "MCQ":
             options = ["A) Lion", "B) Kangaroo", "C) Elephant", "D) Giraffe"]  # Adjust or make dynamic if needed
             for option in options:
@@ -131,14 +133,14 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         
         document.add_paragraph("\n")  # Spacing after each question
 
-    # Add separate answer sheet if include_answers is True
+    # If include_answers is True, add answers at the end only, not inline
     if include_answers:
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
-            correct_answer = "B) Kangaroo"  # Placeholder; replace with actual answer generation logic
+            correct_answer = "C) Elephant"  # Placeholder; replace with actual answer logic if available
             document.add_paragraph(f'Q{i+1}: {correct_answer}')
     else:
-        # If include_answers is False, add blank lines for answers
+        # Add blank lines for answers if include_answers is False
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
             document.add_paragraph(f'Q{i+1}: ________________')
