@@ -131,26 +131,30 @@ from io import BytesIO
 def generate_question_and_options(topic, class_level, question_type, subtopic):
     prompt = (
         f"Create a {question_type} question about {subtopic} for a {class_level} level quiz on {topic}. "
-        f"Include four answer choices labeled A, B, C, and D."
+        f"Include four answer choices labeled A, B, C, and D, and indicate the correct answer."
     )
-
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
     
-    question = response.choices[0].message['content'].strip()
-    return question
+    full_text = response.choices[0].message['content'].strip()
+    lines = full_text.split("\n")
+    question = lines[0]
+    options = lines[1:5]
+    correct_answer = lines[5] if len(lines) > 5 else "Correct Answer Not Provided"
+
+    return question, options, correct_answer
 
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers, file_path):
     document = Document()
 
     # Centered main headings
     document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_heading(f'Class: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph("\n")  # Blank line for spacing
+    document.add_paragraph("\n")
 
     # Duration and Max Marks, centered
     details_paragraph = document.add_paragraph()
@@ -160,27 +164,34 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Define subtopics based on the topic
     subtopics = ["flowering plants", "trees", "herbs"] if topic == "Plants" else ["mammals", "birds", "reptiles"]
 
-    # Loop to create questions with dynamically generated content
+    answers = []
+
+    # Loop to create questions with dynamically generated content and images
     for i in range(num_questions):
         subtopic = subtopics[i % len(subtopics)]
-        question_text = generate_question_and_options(topic, class_level, question_type, subtopic)
-         # Generate image for each question
+        question_text, options, correct_answer = generate_question_and_options(topic, class_level, question_type, subtopic)
+
+        # Add question
+        document.add_paragraph(f'Q{i+1}: {question_text}')
+        for option in options:
+            document.add_paragraph(option)
+        
+        # Store correct answer for answer section if include_answers is True
+        answers.append(f'Q{i+1}: {correct_answer}')
+
+        # Generate image for each question
         image_prompt = f"Image of {subtopic} related to {topic}"
         image_data = fetch_image(image_prompt)
         if image_data:
-            document.add_picture(image_data, width=Inches(2))  # Add image to the document if it exists
-        # Add the generated question and options
-        document.add_paragraph(f'Q{i+1}: {question_text}')
-        
-        # Insert a blank line between questions
-        document.add_paragraph("\n")  
+            document.add_picture(image_data, width=Inches(2))
 
-    # Add answers if required
+        document.add_paragraph("\n")  # Spacing after each question
+
+    # Add answer section
     if include_answers:
         document.add_paragraph("\nAnswers:\n")
-        for i in range(num_questions):
-            correct_answer = "B) Sample Answer"  # Placeholder correct answer, update based on actual logic
-            document.add_paragraph(f'Q{i+1}: {correct_answer}')
+        for answer in answers:
+            document.add_paragraph(answer)
     else:
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
