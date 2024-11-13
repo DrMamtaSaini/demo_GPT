@@ -94,7 +94,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     
     # Centered main headings at the top
     document.add_heading(f'Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Class: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph(f'Grade: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Subject: {subject}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Topic: {topic}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
@@ -102,7 +102,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Duration and Max Marks on the same line
     details_paragraph = document.add_paragraph()
     details_paragraph.add_run(f'Duration: {duration}').bold = True
-    details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
+    details_paragraph.add_run(" " * 80)  # Adding space between Duration and Max Marks
     details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
     document.add_paragraph("\n")  # Spacing after details
