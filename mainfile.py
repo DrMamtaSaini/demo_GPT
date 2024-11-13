@@ -110,7 +110,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     # Duration and Max Marks on the same line
     details_paragraph = document.add_paragraph()
     details_paragraph.add_run(f'Duration: {duration}').bold = True
-    details_paragraph.add_run(" " * 20)  # Adding space between Duration and Max Marks
+    details_paragraph.add_run(" " * 60)  # Adding space between Duration and Max Marks
     details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
 
     document.add_paragraph("\n")  # Spacing after details
