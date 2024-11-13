@@ -754,8 +754,8 @@ Your School
 
     if st.button("Generate Quiz Document"):
         if num_questions < 5:
-            st.warning("Minimum number of questions is 2. Setting to 2.")
-        num_questions = 2
+            st.warning("Minimum number of questions is 5. Setting to 5.")
+        num_questions = 5
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
          tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
