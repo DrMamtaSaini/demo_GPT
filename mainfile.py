@@ -93,12 +93,16 @@ from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers):
     document = Document()
     
     # Centered main headings at the top
     document.add_heading(f'Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    document.add_paragraph(f'Class: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph(f'Grade: {class_level}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Subject: {subject}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph(f'Topic: {topic}').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     document.add_paragraph("\n")  # Blank line for spacing
@@ -125,7 +129,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
 
         # Specific answer options for MCQ questions
         if question_type == "MCQ":
-            options = ["A) Respiration", "B) Photosynthesis", "C) Germination", "D) Transpiration"]  # Adjust as needed
+            options = ["A) Lion", "B) Kangaroo", "C) Elephant", "D) Giraffe"]  # Sample options; adjust as needed
             for option in options:
                 document.add_paragraph(option)
         elif question_type == "true/false":
@@ -135,15 +139,17 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
             document.add_paragraph("A) Yes")
             document.add_paragraph("B) No")
         
-        # If include_answers is True, add the answer below the question
-        if include_answers:
-            correct_answer = "B) Photosynthesis"  # Placeholder; replace with correct answer generation logic
-            document.add_paragraph(f"Answer: {correct_answer}")
-        
         document.add_paragraph("\n")  # Spacing after each question
 
-    # If include_answers is False, add an answer sheet section with placeholders
-    if not include_answers:
+    # If include_answers is True, add an answer sheet section with correct answers
+    if include_answers:
+        document.add_paragraph("\nAnswers:\n")
+        for i in range(num_questions):
+            # Placeholder for correct answer; modify as needed to fetch the correct answer
+            correct_answer = "B) Kangaroo"
+            document.add_paragraph(f'Q{i+1}: {correct_answer}')
+    else:
+        # If include_answers is False, add blank lines for answers
         document.add_paragraph("\nAnswers:\n")
         for i in range(num_questions):
             document.add_paragraph(f'Q{i+1}: ________________')
@@ -152,6 +158,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     filename = f'{topic}_Quiz_{class_level}.docx'
     document.save(filename)
     return filename
+
 
 
 
