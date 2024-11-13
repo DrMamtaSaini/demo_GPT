@@ -65,11 +65,41 @@ def login_page():
 
         
 # Function to fetch images based on topic and subtopics
-def fetch_image(prompt):
-    response = openai.Image.create(prompt=prompt, n=1, size="512x512")
-    image_url = response['data'][0]['url']
-    image_response = requests.get(image_url)
-    return BytesIO(image_response.content)
+import openai
+import requests
+import time
+from io import BytesIO
+
+def fetch_image(prompt, retries=5):
+    for attempt in range(retries):
+        try:
+            # Attempt to create an image with OpenAI's API
+            response = openai.Image.create(prompt=prompt, n=1, size="512x512")
+            image_url = response['data'][0]['url']
+            
+            # Fetch the image data from the URL
+            image_response = requests.get(image_url)
+            image_response.raise_for_status()  # Ensure the request was successful
+            return BytesIO(image_response.content)  # Return image data in BytesIO format
+            
+        except openai.error.RateLimitError:
+            # Handle rate limit error with exponential backoff
+            if attempt < retries - 1:  # Only retry if it's not the last attempt
+                wait_time = 2 ** attempt  # Exponential backoff time
+                print(f"Rate limit reached. Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print("Rate limit exceeded. Unable to fetch image.")
+                return None  # Return None to handle gracefully in the main function
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch image from URL: {e}")
+            return None
+            
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return None
+
 
 # The remaining functions (e.g., `generate_question`, `create_quiz_document`, etc.) remain as they are.
 
@@ -120,7 +150,12 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
             subtopic = subtopics[i % len(subtopics)]
             question_text = f"Sample question text about {subtopic}."  # Placeholder for actual question generation logic
             image_prompt = f"Image of {subtopic} for {class_level} related to {topic}"
-            image = fetch_image(image_prompt)  # Fetch image based on the prompt
+            image = fetch_image(image_prompt)
+            if image:
+                document.add_picture(image, width=Inches(2))
+            else:
+                document.add_paragraph("[Image not available due to rate limit or error]")
+
             document.add_picture(image, width=Inches(2))
             document.add_paragraph(f'Q{i+1}: {question_text}')
 
