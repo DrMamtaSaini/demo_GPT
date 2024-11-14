@@ -97,6 +97,7 @@ def login_page():
                 # Successful login: Set session state and retrieve client configuration
                 st.session_state['logged_in'] = True
                 st.session_state['client_id'] = school_id
+                st.session_state['page'] = 'main'
                 
                 # Attempt to load client configuration after successful login
                 client_config = get_client_config(school_id)
@@ -105,7 +106,6 @@ def login_page():
                     st.success("Login successful!")
                 else:
                     st.error("Client configuration not found. Please contact support.")
-                    st.session_state['logged_in'] = False
                 break
         else:
             # Invalid credentials feedback
@@ -115,6 +115,10 @@ def login_page():
         if not st.session_state.get("logged_in"):
             st.warning("Please ensure your credentials are correct. Try again.")
 
+def logout():
+    """Handle user logout by resetting session state variables."""
+    st.session_state['logged_in'] = False
+    st.session_state['page'] = 'home'
 
 
 
@@ -1233,7 +1237,12 @@ def main_app():
     """
     Main application function that controls the display and functionality of each app section.
     Provides error handling and UI feedback for each module.
+
+
     """
+
+    if st.button("Logout"):
+        logout()
     try:
         # Initialize dark mode toggle state
         if 'dark_mode' not in st.session_state:
@@ -1483,7 +1492,7 @@ def landing_page():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Get started ➔", key="get_started", help="Click to proceed to the login page"):
-            st.session_state['page'] = 'login'  # Example session state for navigation
+            st.session_state['page'] = 'login'  # Set page to 'login' to navigate to login page
     with col2:
         st.button("Learn more", key="learn_more", help="Click to learn more about EduPro")
 
@@ -1495,14 +1504,18 @@ if 'page' not in st.session_state:
     st.session_state['page'] = 'home'  # Set a default value, e.g., 'home'
 
 # Main function to handle navigation
+# Main function to handle page navigation
 def main():
     if st.session_state['page'] == 'home':
         landing_page()
     elif st.session_state['page'] == 'login':
-        st.write("Navigate to login page logic here.") # This will be replaced by actual login logic
+        login_page()
     elif st.session_state['page'] == 'main' and st.session_state['logged_in']:
-        st.write("Main app content here.") # Replace with your main app logic
+        main_app()
+    else:
+        st.error("An error occurred. Please refresh the page.")
 
 if __name__ == "__main__":
     main()
+
 
