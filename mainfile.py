@@ -1228,18 +1228,60 @@ def main_app():
 
         # Apply dark or light theme based on toggle
         if st.session_state['dark_mode']:
-            st.markdown(
-                """
-                <style>
-                    body { background-color: #333; color: white; }
-                    .stApp { background-color: #333; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
-                    .css-1aumxhk { color: white; }
-                    h2, h3 { color: #FFD700; } /* Gold color for headers */
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown("""
+    <style>
+        /* Overall background and text color for dark mode */
+        body { background-color: #000000; color: white; }
+        .stApp { background-color: #000000; }
+
+        /* Adjusting primary container and text styling */
+        .css-18e3th9, .css-1aumxhk { background-color: #1A1A1A; color: #E5E5E5; }
+        .css-1aumxhk { color: #E5E5E5; }
+
+        /* Option card styling */
+        .option-card { 
+            background-color: #1C1C1C; 
+            padding: 20px; 
+            margin: 10px; 
+            border-radius: 10px; 
+            text-align: center;
+            box-shadow: 2px 2px 10px rgba(255, 215, 0, 0.2); /* Subtle gold glow */
+            border: 1px solid #333333;
+        }
+        .option-card:hover { 
+            background-color: #333333; 
+            border: 1px solid #FFD700; /* Gold border on hover */
+            cursor: pointer; 
+            transition: background-color 0.3s ease, border 0.3s ease;
+        }
+
+        /* Button styling */
+        .stButton>button { 
+            background-color: #333333; 
+            color: #FFD700; 
+            border-radius: 8px; 
+            padding: 10px 20px; 
+            font-size: 18px; 
+            font-weight: bold;
+            border: 2px solid #FFD700;
+        }
+        .stButton>button:hover { 
+            background-color: #FFD700; /* Gold hover effect */
+            color: #000000;
+            border: 2px solid #FFD700;
+        }
+
+        /* Sidebar styling */
+        .stSidebar .sidebar-content { 
+            background: linear-gradient(180deg, #333333, #1A1A1A); 
+            color: #E5E5E5; 
+        }
+
+        /* Header and title colors */
+        h2, h3 { color: #FFD700; } /* Gold color for headers */
+    </style>
+""", unsafe_allow_html=True)
+
         else:
             st.markdown(
                 """
