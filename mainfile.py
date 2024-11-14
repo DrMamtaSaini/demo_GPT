@@ -1217,38 +1217,61 @@ def main_app():
     Provides error handling and UI feedback for each module.
     """
     try:
-        # Toggle for Dark Mode
+        # Initialize dark mode toggle state
         if 'dark_mode' not in st.session_state:
             st.session_state['dark_mode'] = False
 
-        if st.button("Toggle Dark Mode"):
+        # Dark Mode Toggle Button
+        st.sidebar.title("Settings")
+        if st.sidebar.button("Toggle Dark Mode"):
             st.session_state['dark_mode'] = not st.session_state['dark_mode']
 
         # Apply dark or light theme based on toggle
         if st.session_state['dark_mode']:
             st.markdown(
-                "<style>body { background-color: #333; color: #FFF; }</style>",
+                """
+                <style>
+                    body { background-color: #333; color: white; }
+                    .stApp { background-color: #333; }
+                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
+                    .css-1aumxhk { color: white; }
+                    h2, h3 { color: #FFD700; } /* Gold color for headers */
+                </style>
+                """,
                 unsafe_allow_html=True
             )
         else:
             st.markdown(
-                "<style>body { background-color: #FFF; color: #000; }</style>",
+                """
+                <style>
+                    body { background-color: #FFF; color: #000; }
+                    .stApp { background-color: #FFF; }
+                    .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #000; }
+                    h2, h3 { color: #4B0082; } /* Indigo color for headers */
+                </style>
+                """,
                 unsafe_allow_html=True
             )
 
         client_config = st.session_state.get('client_config')
         
-        # Display client logo and name with a theme color
+        # Display client logo and name with theme color and style
         if client_config:
             st.image(client_config["logo"], width=120)
             st.markdown(f"""
-                <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 5px 0;">
+                <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 10px 0; border-radius: 8px;">
                     <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
                 </div>
             """, unsafe_allow_html=True)
         
-        # Sidebar with collapsible sections
-        st.sidebar.title("EduCreate Pro Dashboard")
+        # Sidebar with improved styling for module selection
+        st.sidebar.markdown("""
+            <style>
+                .sidebar-title { font-size: 22px; color: #4B0082; margin-bottom: 15px; text-align: center; }
+            </style>
+        """, unsafe_allow_html=True)
+        st.sidebar.markdown("<div class='sidebar-title'>EduCreate Pro Dashboard</div>", unsafe_allow_html=True)
+
         task = st.sidebar.radio("Select Module", [
             "Home", 
             "Create Educational Content", 
@@ -1259,12 +1282,12 @@ def main_app():
 
         # Progress bar placeholder
         progress_placeholder = st.empty()
-        
+
+        # Content based on selected module
         if task == "Home":
             show_home()
 
         elif task == "Create Educational Content":
-            # Show progress for content creation task setup
             with progress_placeholder:
                 st.info("Setting up Content Creator...")
                 progress_placeholder.progress(20)
@@ -1275,7 +1298,6 @@ def main_app():
             progress_placeholder.empty()
         
         elif task == "Create Lesson Plan":
-            # Show progress for lesson plan setup
             with progress_placeholder:
                 st.info("Setting up Lesson Planner...")
                 progress_placeholder.progress(20)
@@ -1286,7 +1308,6 @@ def main_app():
             progress_placeholder.empty()
         
         elif task == "Student Assessment Assistant":
-            # Show progress for assessment assistant setup
             with progress_placeholder:
                 st.info("Setting up Assessment Assistant...")
                 progress_placeholder.progress(20)
@@ -1297,7 +1318,6 @@ def main_app():
             progress_placeholder.empty()
         
         elif task == "Generate Image Based Questions":
-            # Show progress for image-based question generator setup
             with progress_placeholder:
                 st.info("Setting up Image-Based Question Generator...")
                 progress_placeholder.progress(20)
@@ -1311,6 +1331,7 @@ def main_app():
         st.error(f"Configuration error: {e}. Please log in again.")
     except Exception as e:
         st.error(f"An unexpected error occurred in the main app: {e}")
+
 
 
     
