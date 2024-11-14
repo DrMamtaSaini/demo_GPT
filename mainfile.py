@@ -682,6 +682,8 @@ def main_app():
                     messages=[{"role": "system", "content": prompt}]
                 )
                 report = response['choices'][0]['message']['content']
+                st.write("## Assessment Report")
+                st.write(report)
 
                 # Extract weak topics from the report using generative AI
                 weak_topics_prompt = f"Identify and list topics and subtopics from the following assessment report where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report}"
@@ -706,7 +708,10 @@ def main_app():
 
                 learning_material = learning_material_response['choices'][0]['message']['content']
                 assignment = assignment_response['choices'][0]['message']['content']
-
+                st.write("learning_material")
+                st.write(learning_material)
+                st.write("assignment_response")
+                st.write(assignment_response)
                 
                 assessment_report_pdf = f"assessment_report_{student_id}.pdf"
                 generatereport_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
