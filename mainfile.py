@@ -456,11 +456,29 @@ def generate_pdf(content, title, file_name):
     pdf.output(file_name)
 
 
-def save_content_as_doc(content, file_name):
+def save_contentttttt_as_doc(content, file_name):
     doc = Document()
     for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
+
+from docx import Document
+
+def save_content_as_doc(content, file_name_docx):
+    # Check if content is a tuple (i.e., content and image data are both returned)
+    if isinstance(content, tuple):
+        content, _ = content  # Extract content only, ignore image data
+    
+    document = Document()
+    
+    # Add each line of the content to the document
+    for line in content.split("\n"):
+        document.add_paragraph(line)
+    
+    # Save the document as DOCX
+    document.save(file_name_docx)
+
+
 
 # Function to sanitize text by replacing unsupported characters
 def sanitize_text(text):
@@ -666,10 +684,12 @@ def main_app():
         include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"], key="include_solutions_radio")
 
         if st.button("Generate Educational Content"):
-            content = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
+            content,image_data = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
             st.write("### Generated Educational Content")
             st.write(content)
-            
+            # Display the image if image data is available
+            if image_data:
+                st.image(image_data, caption="Generated Image for Image-based Question")
             # Save as Word document
             file_name_docx = f"{content_type}_{standard}.docx"
             save_content_as_doc(content, file_name_docx)
