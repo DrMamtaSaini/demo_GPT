@@ -1230,60 +1230,61 @@ def main_app():
         if st.session_state['dark_mode']:
             st.markdown("""
     <style>
-        /* Main background and text color */
-        body { background-color: #FAFAFA; color: #333333; }
-        
-        /* App container and font styling */
-        .stApp { color: #333333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Dark Mode Background and Text Color */
+        body { background-color: #000000; color: #F5F5F5; }
 
-        /* Option card styling */
+        /* App container and font styling for dark mode */
+        .stApp { color: #F5F5F5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Option card styling for dark mode */
         .option-card { 
-            background-color: #FFFFFF; 
+            background-color: #1C1C1C; 
             padding: 20px; 
             margin: 10px; 
             border-radius: 10px; 
             text-align: center;
-            box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.15);
-            border: 1px solid #E0E0E0;
+            box-shadow: 2px 2px 15px rgba(255, 215, 0, 0.2); /* Gold glow */
+            border: 1px solid #333333;
         }
         .option-card:hover { 
-            background-color: #F5F5F5; 
+            background-color: #333333; 
             border: 1px solid #D4AF37; /* Gold border on hover */
             cursor: pointer; 
             transition: background-color 0.3s ease, border 0.3s ease;
         }
 
-        /* Button styling */
+        /* Button styling for dark mode */
         .stButton>button { 
             background-color: #333333; 
-            color: #FFFFFF; 
+            color: #F5F5F5; 
             border-radius: 8px; 
             padding: 10px 20px; 
             font-size: 18px; 
             font-weight: bold;
-            border: 2px solid #333333;
+            border: 2px solid #D4AF37;
         }
         .stButton>button:hover { 
             background-color: #D4AF37; /* Gold hover effect */
-            color: #FFFFFF;
+            color: #000000;
             border: 2px solid #D4AF37;
         }
 
-        /* Sidebar styling */
+        /* Sidebar styling for dark mode */
         .stSidebar .sidebar-content { 
-            background: linear-gradient(180deg, #333333, #555555); 
-            color: white; 
+            background: linear-gradient(180deg, #333333, #1C1C1C); 
+            color: #F5F5F5; 
         }
 
-        /* Header and title colors */
-        h1, h2, h3, h4 { color: #333333; }
-        h2 { font-size: 24px; font-weight: bold; color: #333333; }
-        h3 { font-size: 20px; font-weight: bold; color: #333333; }
+        /* Header and title colors for dark mode */
+        h1, h2, h3, h4 { color: #F5F5F5; }
+        h2 { font-size: 24px; font-weight: bold; color: #D4AF37; } /* Gold color for headers */
+        h3 { font-size: 20px; font-weight: bold; color: #F5F5F5; }
 
-        /* Centered text for sections */
-        .center { text-align: center; color: #333333; font-weight: 500; }
+        /* Centered text for dark mode */
+        .center { text-align: center; color: #F5F5F5; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
+
 
         else:
             st.markdown("""
