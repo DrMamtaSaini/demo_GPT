@@ -794,63 +794,21 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
 
 
 # Main function
+import re
 
-def main_app():
-    """
-    Main application function that controls the display and functionality of each app section.
-    Provides error handling and UI feedback for each module.
-    """
-    try:
-        client_config = st.session_state.get('client_config')
-        
-        if client_config:
-            st.image(client_config["logo"], width=120)
-            st.markdown(f"""
-                <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 5px 0;">
-                    <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.sidebar.title("EduCreate Pro")
-        task = st.sidebar.radio("Select Module", [
-            "Home", 
-            "Create Educational Content", 
-            "Create Lesson Plan", 
-            "Student Assessment Assistant", 
-            "Generate Image Based Questions"
-        ])
-        
-        if task == "Home":
-            show_home()
-        
-        elif task == "Create Educational Content":
-            try:
-                create_educational_content()
-            except Exception as e:
-                st.error(f"Error in Content Creation: {e}")
-        
-        elif task == "Create Lesson Plan":
-            try:
-                create_lesson_plan()
-            except Exception as e:
-                st.error(f"Error in Lesson Plan Generation: {e}")
-        
-        elif task == "Student Assessment Assistant":
-            try:
-                student_assessment_assistant()
-            except Exception as e:
-                st.error(f"Error in Assessment Generation: {e}")
-        
-        elif task == "Generate Image Based Questions":
-            try:
-                generate_image_based_questions()
-            except Exception as e:
-                st.error(f"Error in Image-Based Question Generation: {e}")
-        
-    except KeyError as e:
-        st.error(f"Configuration error: {e}. Please log in again.")
-    except Exception as e:
-        st.error(f"An unexpected error occurred in the main app: {e}")
+def validate_email(email):
+    """Validate email format."""
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
+
+def sanitize_text_input(text):
+    """Sanitize text input to prevent special character injection."""
+    return re.sub(r"[^\w\s]", "", text)  # Removes special characters except spaces and alphanumeric
+
+def validate_student_id(student_id):
+    """Validate student ID format (only alphanumeric allowed)."""
+    return re.match(r"^[a-zA-Z0-9]+$", student_id) is not None
+
+
 def show_home():
     """
     Displays the home page with custom-styled option cards for each section.
@@ -1002,7 +960,7 @@ def create_lesson_plan():
     
     except Exception as e:
         st.error(f"Error in lesson plan creation: {e}")
-        
+
 def generate_assessment_report(question_paper_content, marking_scheme_content, answer_sheet_content,
                                student_name, student_id, class_name, assessment_id, exam_type, subject):
     """
@@ -1073,23 +1031,46 @@ def student_assessment_assistant():
     try:
         # Student information inputs with validation
         student_name = st.text_input("Enter Student Name", key="student_name_input")
-        student_id = st.text_input("Enter Student ID", key="student_id_input")
+        student_id = st.text_input("Enter Student ID (alphanumeric only)", key="student_id_input")
         assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
         class_name = st.text_input("Enter Class", key="class_name_input")
         email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
         exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
         subject = st.text_input("Enter Subject", key="subject_input")
 
-        # File uploads with validation
-        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
-        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
-        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
-
+        # Validate and sanitize inputs
         if st.button("Generate and Send Reports"):
-            if not (student_name and student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet):
-                st.warning("Please fill in all fields and upload all required files.")
+            # Check for missing fields
+            if not all([student_name, student_id, assessment_id, class_name, email_id, exam_type, subject]):
+                st.warning("Please fill in all fields.")
                 return
-            
+
+            # Validate email format
+            if not validate_email(email_id):
+                st.warning("Invalid email format. Please enter a valid email.")
+                return
+
+            # Validate student ID format
+            if not validate_student_id(student_id):
+                st.warning("Invalid Student ID format. Only alphanumeric characters are allowed.")
+                return
+
+            # Sanitize other text inputs
+            student_name = sanitize_text_input(student_name)
+            assessment_id = sanitize_text_input(assessment_id)
+            class_name = sanitize_text_input(class_name)
+            exam_type = sanitize_text_input(exam_type)
+            subject = sanitize_text_input(subject)
+
+            # File uploads with validation
+            question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
+            marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
+            answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
+
+            if not all([question_paper, marking_scheme, answer_sheet]):
+                st.warning("Please upload all required files.")
+                return
+
             try:
                 # Read content from uploaded DOCX files
                 question_paper_content = read_docx(question_paper)
@@ -1097,8 +1078,10 @@ def student_assessment_assistant():
                 answer_sheet_content = read_docx(answer_sheet)
 
                 # Generate assessment report
-                report = generate_assessment_report(question_paper_content, marking_scheme_content, answer_sheet_content,
-                                                    student_name, student_id, class_name, assessment_id, exam_type, subject)
+                report = generate_assessment_report(
+                    question_paper_content, marking_scheme_content, answer_sheet_content,
+                    student_name, student_id, class_name, assessment_id, exam_type, subject
+                )
                 st.write("## Assessment Report")
                 st.write(report)
 
@@ -1166,7 +1149,6 @@ Your School
     except Exception as e:
         st.error(f"Error in Student Assessment Assistant: {e}")
 
-
 def generate_image_based_questions():
     """
     Generates image-based questions for quizzes and provides download options for the generated documents.
@@ -1229,7 +1211,106 @@ def generate_image_based_questions():
 
 
 
+def main_app():
+    """
+    Main application function that controls the display and functionality of each app section.
+    Provides error handling and UI feedback for each module.
+    """
+    try:
+        # Toggle for Dark Mode
+        if 'dark_mode' not in st.session_state:
+            st.session_state['dark_mode'] = False
 
+        if st.button("Toggle Dark Mode"):
+            st.session_state['dark_mode'] = not st.session_state['dark_mode']
+
+        # Apply dark or light theme based on toggle
+        if st.session_state['dark_mode']:
+            st.markdown(
+                "<style>body { background-color: #333; color: #FFF; }</style>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                "<style>body { background-color: #FFF; color: #000; }</style>",
+                unsafe_allow_html=True
+            )
+
+        client_config = st.session_state.get('client_config')
+        
+        # Display client logo and name with a theme color
+        if client_config:
+            st.image(client_config["logo"], width=120)
+            st.markdown(f"""
+                <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 5px 0;">
+                    <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Sidebar with collapsible sections
+        st.sidebar.title("EduCreate Pro Dashboard")
+        task = st.sidebar.radio("Select Module", [
+            "Home", 
+            "Create Educational Content", 
+            "Create Lesson Plan", 
+            "Student Assessment Assistant", 
+            "Generate Image Based Questions"
+        ])
+
+        # Progress bar placeholder
+        progress_placeholder = st.empty()
+        
+        if task == "Home":
+            show_home()
+
+        elif task == "Create Educational Content":
+            # Show progress for content creation task setup
+            with progress_placeholder:
+                st.info("Setting up Content Creator...")
+                progress_placeholder.progress(20)
+            try:
+                create_educational_content()
+            except Exception as e:
+                st.error(f"Error in Content Creation: {e}")
+            progress_placeholder.empty()
+        
+        elif task == "Create Lesson Plan":
+            # Show progress for lesson plan setup
+            with progress_placeholder:
+                st.info("Setting up Lesson Planner...")
+                progress_placeholder.progress(20)
+            try:
+                create_lesson_plan()
+            except Exception as e:
+                st.error(f"Error in Lesson Plan Generation: {e}")
+            progress_placeholder.empty()
+        
+        elif task == "Student Assessment Assistant":
+            # Show progress for assessment assistant setup
+            with progress_placeholder:
+                st.info("Setting up Assessment Assistant...")
+                progress_placeholder.progress(20)
+            try:
+                student_assessment_assistant()
+            except Exception as e:
+                st.error(f"Error in Assessment Generation: {e}")
+            progress_placeholder.empty()
+        
+        elif task == "Generate Image Based Questions":
+            # Show progress for image-based question generator setup
+            with progress_placeholder:
+                st.info("Setting up Image-Based Question Generator...")
+                progress_placeholder.progress(20)
+            try:
+                generate_image_based_questions()
+            except Exception as e:
+                st.error(f"Error in Image-Based Question Generation: {e}")
+            progress_placeholder.empty()
+        
+    except KeyError as e:
+        st.error(f"Configuration error: {e}. Please log in again.")
+    except Exception as e:
+        st.error(f"An unexpected error occurred in the main app: {e}")
 
     
 
