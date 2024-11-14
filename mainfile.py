@@ -441,7 +441,7 @@ def generate_question_and_options(topic, class_level, question_type, subtopic):
         return "Error generating question.", ["A) Error", "B) Error", "C) Error", "D) Error"], "Answer unavailable"
 
 
-def save_content_as_doc(content, file_name_docx, image_data=None, single_image=True):
+def save_contentt_as_doc(content, file_name_docx, image_data=None, single_image=True):
     """
     Saves content as a DOCX file with optional images.
     
@@ -750,7 +750,7 @@ def generate_pdf(content, title, file_name):
         print(f"Error in generating PDF: {e}")
 
 # Function to save content to a DOCX file with error handling
-def save_contentttttt_as_doc(content, file_name):
+def save_content_as_doc(content, file_name):
     try:
         doc = Document()
         for line in content.split("\n"):
@@ -903,7 +903,7 @@ def create_educational_content():
             # Downloadable documents
             try:
                 file_name_docx = f"{content_type}_{standard}.docx"
-                save_content_as_doc(content, file_name_docx, image_data=image_data, single_image=True)
+                save_contentt_as_doc(content, file_name_docx, image_data=image_data, single_image=True)
                 with open(file_name_docx, "rb") as file:
                     st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
                 
