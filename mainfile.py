@@ -1354,18 +1354,151 @@ def main_app():
         st.error(f"An unexpected error occurred in the main app: {e}")
 
 
+import streamlit as st
+
+def landing_page():
+    # Set page configuration for a better display on landing page
+    st.set_page_config(page_title="EduPro - Transform Your Teaching Experience", page_icon="📘")
+    
+    # Apply custom CSS for the landing page design
+    st.markdown(
+        """
+        <style>
+            /* Centered main container styling */
+            .container {
+                text-align: center;
+                margin-top: 15%;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            /* Logo styling */
+            .logo {
+                font-size: 36px;
+                font-weight: 700;
+                color: #5A5DF5;
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                font-family: 'Arial', sans-serif;
+                margin-bottom: 20px;
+            }
+            .logo-icon {
+                font-size: 40px;
+                color: #9933FF;
+            }
+
+            /* Headline styling */
+            .headline {
+                font-size: 44px;
+                font-weight: 800;
+                color: #4B0082;
+                line-height: 1.2;
+                margin-bottom: 10px;
+                font-family: 'Arial', sans-serif;
+            }
+            .highlight {
+                color: #5A5DF5;
+                font-weight: 800;
+            }
+
+            /* Subtext styling */
+            .subtext {
+                font-size: 20px;
+                color: #666;
+                margin-bottom: 40px;
+                font-family: 'Arial', sans-serif;
+            }
+
+            /* Button container */
+            .button-container {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-top: 30px;
+            }
+
+            /* Button styling */
+            .stButton>button {
+                font-size: 18px;
+                font-weight: 600;
+                padding: 15px 50px;
+                border-radius: 10px;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                border: none;
+                font-family: 'Arial', sans-serif;
+            }
+            /* Primary button style */
+            .stButton>button.primary {
+                background: linear-gradient(90deg, #5A5DF5, #9933FF);
+                color: white;
+                font-weight: 700;
+                box-shadow: 0px 6px 15px rgba(90, 93, 245, 0.4);
+            }
+            .stButton>button.primary:hover {
+                background: linear-gradient(90deg, #4A4CE3, #802DD4);
+                box-shadow: 0px 8px 18px rgba(90, 93, 245, 0.6);
+            }
+            /* Secondary button style */
+            .stButton>button.secondary {
+                background-color: #E0E1FF;
+                color: #5A5DF5;
+                font-weight: 700;
+                box-shadow: 0px 4px 10px rgba(224, 225, 255, 0.6);
+            }
+            .stButton>button.secondary:hover {
+                background-color: #D0D1F7;
+                box-shadow: 0px 6px 12px rgba(224, 225, 255, 0.8);
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Main content for the landing page
+    st.markdown('<div class="container">', unsafe_allow_html=True)
+    
+    # Logo
+    st.markdown('<div class="logo"><span class="logo-icon">📘</span>EduPro</div>', unsafe_allow_html=True)
+    
+    # Headline with highlighted text
+    st.markdown(
+        """
+        <div class="headline">
+            Transform your<br><span class="highlight">teaching experience</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Subtext below the headline
+    st.markdown(
+        '<div class="subtext">Create personalized assessments, generate content, and track student progress with our AI-powered educational platform.</div>',
+        unsafe_allow_html=True
+    )
+    
+    # Button container with primary and secondary buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Get started ➔", key="get_started", help="Click to proceed to the login page"):
+            st.session_state['page'] = 'login'  # Example session state for navigation
+    with col2:
+        st.button("Learn more", key="learn_more", help="Click to learn more about EduPro")
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     
 
-# Define main control function
+# Main function to handle navigation
 def main():
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
-
-    if st.session_state['logged_in']:
-        main_app()
-    else:
-        login_page()
+    if st.session_state['page'] == 'home':
+        landing_page()
+    elif st.session_state['page'] == 'login':
+        st.write("Navigate to login page logic here.") # This will be replaced by actual login logic
+    elif st.session_state['page'] == 'main' and st.session_state['logged_in']:
+        st.write("Main app content here.") # Replace with your main app logic
 
 if __name__ == "__main__":
     main()
