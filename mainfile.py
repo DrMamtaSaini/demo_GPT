@@ -403,17 +403,40 @@ def sanitize_text(text):
 
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
     prompt = f"""
-    You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
-    Based on the topics: {topics}. The {content_type} should be of {total_marks} marks and a time duration of {time_duration}. 
-    The question types should include {', '.join(question_types)}, with a difficulty level of {difficulty}.
-    The category of questions should be {category}.
+    You are an expert educational content creator. Create {content_type} for the {board} board, {standard} class.
+    Topics to cover: {topics}. The content should be designed for a total of {total_marks} marks and a time duration of {time_duration}.
+    Include question types such as {', '.join(question_types)}, with an overall difficulty level of {difficulty}.
     """
     
-    if include_solutions:
-        prompt += " Include the solution set."
-    else:
-        prompt += " Only include the question set without solutions."
+    # Modify the prompt based on the category to create specific types of questions
+    if category == "Value-based Questions":
+        prompt += """
+        Generate questions that explore students' understanding of values related to the topic. Questions should prompt them to reflect on ethical, social, or personal values connected to the subject. Provide scenarios or real-life situations where students can express how they would apply these values.
+        """
+    elif category == "Competency Questions":
+        prompt += """
+        Create questions that test the students' practical knowledge and skills on the topic. Include questions that require problem-solving, critical thinking, and application of learned concepts. Provide real-world scenarios where students can demonstrate their competencies.
+        """
+    elif category == "Image-based Questions":
+        prompt += """
+        Design questions based on a single image related to the topic. For example, describe an image and ask students to observe details, make inferences, or answer questions based on what they see. Ensure the image is relevant to the topic and prompts critical thinking or observational skills.
+        """
+    elif category == "Paragraph-based Questions":
+        prompt += """
+        Provide a short paragraph about the topic and ask questions that test comprehension and understanding. The paragraph should contain key information related to the topic, and questions should encourage students to recall facts, infer meanings, and explain concepts based on the paragraph.
+        """
+    elif category == "Mixed of your choice":
+        prompt += """
+        Generate a mix of questions including competency-based, value-based, image-based, and paragraph-based questions to give a comprehensive understanding of the topic.
+        """
     
+    # Include solutions if requested
+    if include_solutions:
+        prompt += " Include detailed solutions and explanations for each question."
+    else:
+        prompt += " Only provide the questions without solutions."
+    
+    # Call OpenAI API
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": prompt}]
