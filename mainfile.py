@@ -1243,19 +1243,30 @@ def main_app():
                 unsafe_allow_html=True
             )
         else:
-            st.markdown(
-                """
-                <style>
-                    body { background-color: #FFF; color: #333; }
-                    .stApp { background-color: #FFF; color: #333; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #333; }
-                    .sidebar-title { color: #5D3FD3; } /* Darker purple for sidebar title */
-                    h2, h3 { color: #5D3FD3; } /* Dark purple for headers */
-                    p, label, .stMarkdown, .css-1offfwp { color: #555; } /* Dark gray for main text */
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown("""
+    <style>
+        body { background-color: #F0F2F6; }
+        .stApp { color: #4B0082; }
+        .option-card { 
+            background-color: #E0E8F6; 
+            padding: 20px; 
+            margin: 10px; 
+            border-radius: 10px; 
+            text-align: center;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        }
+        .option-card:hover { 
+            background-color: #d1d9f5; 
+            cursor: pointer; 
+            transition: background-color 0.3s ease;
+        }
+        .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; padding: 10px 20px; font-size: 18px; }
+        .stButton>button:hover { background-color: #483D8B; }
+        .stSidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
+        h1, h2, h3, h4 { color: #4B0082; }
+        .center { text-align: center; }
+    </style>
+    """, unsafe_allow_html=True)
 
         client_config = st.session_state.get('client_config')
         
