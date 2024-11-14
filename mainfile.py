@@ -456,35 +456,11 @@ def generate_pdf(content, title, file_name):
     pdf.output(file_name)
 
 
-def save_contentttttt_as_doc(content, file_name):
+def save_content_as_doc(content, file_name):
     doc = Document()
     for line in content.split("\n"):
         doc.add_paragraph(line)
     doc.save(file_name)
-
-from docx import Document
-from docx.shared import Inches
-
-def save_content_as_doc(content, file_name_docx, image_data=None, single_image=True):
-    document = Document()
-    
-    # If single_image is True, add one image at the top; if False, add an image per question
-    if single_image and image_data:
-        document.add_picture(image_data, width=Inches(2))
-        document.add_paragraph("\n")  # Spacing after the single image
-
-    # Add the generated content (questions and options)
-    for line in content.split("\n"):
-        document.add_paragraph(line)
-        # If single_image is False, add an image after each question paragraph if image_data is provided
-        if not single_image and image_data:
-            document.add_picture(image_data, width=Inches(2))
-            document.add_paragraph("\n")  # Spacing after each image
-
-    # Save the document as DOCX
-    document.save(file_name_docx)
-
-
 
 # Function to sanitize text by replacing unsupported characters
 def sanitize_text(text):
@@ -671,55 +647,46 @@ def main_app():
     elif task == "Create Educational Content":
         st.header("Educational Content Creation")
     
-    # Collect basic information
-    board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):", key="board_input")
-    standard = st.text_input("Enter Standard/Class (e.g., Class 10):", key="standard_input")
-    topics = st.text_input("Enter Topics (comma-separated):", key="topics_input")
-    
-    # Choose content type
-    content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"], key="content_type_select")
-
-    # Collect details based on content type
-    total_marks = st.number_input("Enter Total Marks", min_value=1, key="total_marks_input")
-    time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)", key="time_duration_input")
-    question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"], key="question_types_multiselect")
-    difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"], key="difficulty_select")
-    category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"], key="category_select")
-
-    # Option to include solutions
-    include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"], key="include_solutions_radio")
-
-    if st.button("Generate Educational Content"):
-        # Generate content with questions based on selected category
-        content, image_data = generate_content(
-            board, standard, topics, content_type, total_marks, time_duration, question_types,
-            difficulty, category, include_solutions == "Yes"
-        )
+        # Collect basic information
+        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):", key="board_input")
+        standard = st.text_input("Enter Standard/Class (e.g., Class 10):", key="standard_input")
+        topics = st.text_input("Enter Topics (comma-separated):", key="topics_input")
         
-        # Display generated content
-        st.write("### Generated Educational Content")
-        st.write(content)
-        
-        # Display the image if image data is available (for single image case in Content Creation)
-        if category == "Image-based Questions" and image_data:
-            st.image(image_data, caption="Generated Image for Image-based Question")
+        # Choose content type
+        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"], key="content_type_select")
 
-        # Save as Word document
-        file_name_docx = f"{content_type}_{standard}.docx"
-        save_content_as_doc(content, file_name_docx, image_data=image_data, single_image=True)  # single_image=True for Module 1
-        
-        # Save as PDF document
-        file_name_pdf = f"{content_type}_{standard}.pdf"
-        generate_pdf(content, f"{content_type} for {standard}", file_name_pdf)
-        
-        # Download button for the DOCX file
-        with open(file_name_docx, "rb") as file:
-            st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
-        
-        # Download button for the PDF file
-        with open(file_name_pdf, "rb") as file:
-            st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
+        # Collect details based on content type
+        total_marks = st.number_input("Enter Total Marks", min_value=1, key="total_marks_input")
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)", key="time_duration_input")
+        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"], key="question_types_multiselect")
+        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"], key="difficulty_select")
+        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"], key="category_select")
 
+        # Option to include solutions
+        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"], key="include_solutions_radio")
+
+        if st.button("Generate Educational Content"):
+            content,image_data = generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions == "Yes")
+            st.write("### Generated Educational Content")
+            st.write(content)
+            # Display the image if image data is available
+            if image_data:
+                st.image(image_data, caption="Generated Image for Image-based Question")
+            # Save as Word document
+            file_name_docx = f"{content_type}_{standard}.docx"
+            save_content_as_doc(content, file_name_docx)
+            
+            # Save as PDF document
+            file_name_pdf = f"{content_type}_{standard}.pdf"
+            generate_pdf(content, f"{content_type} for {standard}", file_name_pdf)
+            
+            # Download button for the DOCX file
+            with open(file_name_docx, "rb") as file:
+                st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
+            
+            # Download button for the PDF file
+            with open(file_name_pdf, "rb") as file:
+                st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
 
   
 
@@ -900,26 +867,27 @@ Your School
     
     
     elif task == "Generate Image Based Questions":
+        
         st.header("Generate Image Based Questions")
-    topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
-    subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
-    class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
-    max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
-    duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
-    num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
-    question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
+        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
+        subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
+        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2, Grade 3):", key="class_level_input")
+        max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
+        duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
+        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
+        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
 
-    if st.button("Generate Quiz Document"):
-        if num_questions < 5:
-            st.warning("Minimum number of questions is 5. Setting to 5.")
-        num_questions = 5
+        if st.button("Generate Quiz Document"):
+            if num_questions < 5:
+                st.warning("Minimum number of questions is 5. Setting to 5.")
+            num_questions = 5
 
         # Create temporary files for both versions of the document
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
-             tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+                tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
 
-            quiz_filename_without_answers = tmp_file_without_answers.name
-            quiz_filename_with_answers = tmp_file_with_answers.name
+                quiz_filename_without_answers = tmp_file_without_answers.name
+                quiz_filename_with_answers = tmp_file_with_answers.name
 
             # Generate the quiz document without answers
             create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
@@ -933,16 +901,16 @@ Your School
             st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
             st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
 
-        st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
+            st.success("Quiz documents generated successfully! Use the buttons below to download either version.")
 
     # Download buttons for both versions
-    if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
-        with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
-            st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
+            if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
+                with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
+                    st.download_button(label="Download Quiz Document (without answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_without_answers"]).name)
 
-        with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
-            st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
+                with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
+                    st.download_button(label="Download Quiz Document (with answers)", data=file.read(),
                                file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
 
 
