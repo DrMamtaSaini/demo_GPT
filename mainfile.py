@@ -1228,20 +1228,63 @@ def main_app():
 
         # Apply dark or light theme based on toggle
         if st.session_state['dark_mode']:
-            st.markdown(
-                """
-                <style>
-                    body { background-color: #333; color: #f1f1f1; }
-                    .stApp { background-color: #333; color: #f1f1f1; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: #f1f1f1; }
-                    .sidebar-title { color: #87CEEB; } /* Light blue for sidebar title */
-                    h2, h3 { color: #87CEEB; } /* Light blue headers for readability */
-                    p, label, .stMarkdown, .css-1offfwp { color: #dcdcdc; } /* Light gray for main text */
-                    .stButton>button { color: #f1f1f1; } /* Button text color in dark mode */
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown("""
+    <style>
+        /* Main background and text color */
+        body { background-color: #FAFAFA; color: #333333; }
+        
+        /* App container and font styling */
+        .stApp { color: #333333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Option card styling */
+        .option-card { 
+            background-color: #FFFFFF; 
+            padding: 20px; 
+            margin: 10px; 
+            border-radius: 10px; 
+            text-align: center;
+            box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.15);
+            border: 1px solid #E0E0E0;
+        }
+        .option-card:hover { 
+            background-color: #F5F5F5; 
+            border: 1px solid #D4AF37; /* Gold border on hover */
+            cursor: pointer; 
+            transition: background-color 0.3s ease, border 0.3s ease;
+        }
+
+        /* Button styling */
+        .stButton>button { 
+            background-color: #333333; 
+            color: #FFFFFF; 
+            border-radius: 8px; 
+            padding: 10px 20px; 
+            font-size: 18px; 
+            font-weight: bold;
+            border: 2px solid #333333;
+        }
+        .stButton>button:hover { 
+            background-color: #D4AF37; /* Gold hover effect */
+            color: #FFFFFF;
+            border: 2px solid #D4AF37;
+        }
+
+        /* Sidebar styling */
+        .stSidebar .sidebar-content { 
+            background: linear-gradient(180deg, #333333, #555555); 
+            color: white; 
+        }
+
+        /* Header and title colors */
+        h1, h2, h3, h4 { color: #333333; }
+        h2 { font-size: 24px; font-weight: bold; color: #333333; }
+        h3 { font-size: 20px; font-weight: bold; color: #333333; }
+
+        /* Centered text for sections */
+        .center { text-align: center; color: #333333; font-weight: 500; }
+    </style>
+    """, unsafe_allow_html=True)
+
         else:
             st.markdown("""
     <style>
