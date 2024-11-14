@@ -1228,71 +1228,18 @@ def main_app():
 
         # Apply dark or light theme based on toggle
         if st.session_state['dark_mode']:
-            st.markdown("""
-    <style>
-        /* Main body and app area */
-        body { background-color: #000000; color: #FFFFFF; }
-        .stApp { background-color: #000000; color: #FFFFFF; }
-
-        /* Sidebar styling with black text */
-        .stSidebar .sidebar-content { 
-            background: linear-gradient(180deg, #6A5ACD, #483D8B); 
-            color: #000000; 
-        }
-
-        /* Right-side main content area */
-        .css-18e3th9 { 
-            background-color: #1A1A1A; 
-            color: #FFD700; /* Gold for main text */
-            padding: 20px; 
-            border-radius: 10px;
-            box-shadow: 2px 2px 20px rgba(255, 215, 0, 0.1);
-        }
-
-        /* Module header and subheader styling in gold */
-        h2, h3 { 
-            color: #FFD700; 
-            font-weight: bold;
-        }
-
-        /* Card styling with gray and gold touches */
-        .option-card { 
-            background-color: #1C1C1C; 
-            color: #FFD700; /* Gold text in option cards */
-            padding: 20px; 
-            margin: 10px; 
-            border-radius: 10px;
-            box-shadow: 2px 2px 15px rgba(255, 215, 0, 0.2);
-            border: 1px solid #333333;
-            transition: background-color 0.3s ease, border 0.3s ease;
-        }
-        .option-card:hover { 
-            background-color: #333333; 
-            border: 1px solid #FFD700;
-            cursor: pointer;
-        }
-
-        /* Button styling with gold highlights */
-        .stButton>button { 
-            background-color: #333333; 
-            color: #FFD700; 
-            border-radius: 8px; 
-            padding: 10px 20px; 
-            font-size: 18px; 
-            font-weight: bold;
-            border: 2px solid #FFD700;
-        }
-        .stButton>button:hover { 
-            background-color: #FFD700; 
-            color: #000000;
-            border: 2px solid #FFD700;
-        }
-
-        /* General text on main content area */
-        p, li { color: #FFD700; } /* Gold for paragraph and list items */
-        .center { text-align: center; color: #FFD700; font-weight: 500; }
-    </style>
-""", unsafe_allow_html=True)
+            st.markdown(
+                """
+                <style>
+                    body { background-color: #333; color: white; }
+                    .stApp { background-color: #333; }
+                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
+                    .css-1aumxhk { color: white; }
+                    h2, h3 { color: #FFD700; } /* Gold color for headers */
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
 
 
 
