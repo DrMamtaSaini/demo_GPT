@@ -1232,10 +1232,12 @@ def main_app():
                 """
                 <style>
                     body { background-color: #333; color: white; }
-                    .stApp { background-color: #333; }
+                    .stApp { background-color: #333; color: white; }
                     .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
-                    .css-1aumxhk { color: white; }
+                    .css-1aumxhk, .stButton>button { color: white; } /* Button text color */
+                    .sidebar-title { color: #FFD700; } /* Sidebar title */
                     h2, h3 { color: #FFD700; } /* Gold color for headers */
+                    p, label, .stMarkdown, .css-1offfwp { color: #d3d3d3; } /* Lighter color for main text */
                 </style>
                 """,
                 unsafe_allow_html=True
@@ -1245,9 +1247,11 @@ def main_app():
                 """
                 <style>
                     body { background-color: #FFF; color: #000; }
-                    .stApp { background-color: #FFF; }
+                    .stApp { background-color: #FFF; color: #000; }
                     .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #000; }
+                    .sidebar-title { color: #4B0082; }
                     h2, h3 { color: #4B0082; } /* Indigo color for headers */
+                    p, label, .stMarkdown, .css-1offfwp { color: #333; } /* Darker color for main text */
                 </style>
                 """,
                 unsafe_allow_html=True
