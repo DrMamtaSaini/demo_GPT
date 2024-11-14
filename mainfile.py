@@ -1231,13 +1231,13 @@ def main_app():
             st.markdown(
                 """
                 <style>
-                    body { background-color: #333; color: white; }
-                    .stApp { background-color: #333; color: white; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
-                    .css-1aumxhk, .stButton>button { color: white; } /* Button text color */
-                    .sidebar-title { color: #FFD700; } /* Sidebar title */
-                    h2, h3 { color: #FFD700; } /* Gold color for headers */
-                    p, label, .stMarkdown, .css-1offfwp { color: #d3d3d3; } /* Lighter color for main text */
+                    body { background-color: #333; color: #f1f1f1; }
+                    .stApp { background-color: #333; color: #f1f1f1; }
+                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: #f1f1f1; }
+                    .sidebar-title { color: #87CEEB; } /* Light blue for sidebar title */
+                    h2, h3 { color: #87CEEB; } /* Light blue headers for readability */
+                    p, label, .stMarkdown, .css-1offfwp { color: #dcdcdc; } /* Light gray for main text */
+                    .stButton>button { color: #f1f1f1; } /* Button text color in dark mode */
                 </style>
                 """,
                 unsafe_allow_html=True
@@ -1246,12 +1246,12 @@ def main_app():
             st.markdown(
                 """
                 <style>
-                    body { background-color: #FFF; color: #000; }
-                    .stApp { background-color: #FFF; color: #000; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #000; }
-                    .sidebar-title { color: #4B0082; }
-                    h2, h3 { color: #4B0082; } /* Indigo color for headers */
-                    p, label, .stMarkdown, .css-1offfwp { color: #333; } /* Darker color for main text */
+                    body { background-color: #FFF; color: #333; }
+                    .stApp { background-color: #FFF; color: #333; }
+                    .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #333; }
+                    .sidebar-title { color: #5D3FD3; } /* Darker purple for sidebar title */
+                    h2, h3 { color: #5D3FD3; } /* Dark purple for headers */
+                    p, label, .stMarkdown, .css-1offfwp { color: #555; } /* Dark gray for main text */
                 </style>
                 """,
                 unsafe_allow_html=True
@@ -1271,7 +1271,7 @@ def main_app():
         # Sidebar with improved styling for module selection
         st.sidebar.markdown("""
             <style>
-                .sidebar-title { font-size: 22px; color: #4B0082; margin-bottom: 15px; text-align: center; }
+                .sidebar-title { font-size: 22px; margin-bottom: 15px; text-align: center; }
             </style>
         """, unsafe_allow_html=True)
         st.sidebar.markdown("<div class='sidebar-title'>EduCreate Pro Dashboard</div>", unsafe_allow_html=True)
@@ -1335,6 +1335,7 @@ def main_app():
         st.error(f"Configuration error: {e}. Please log in again.")
     except Exception as e:
         st.error(f"An unexpected error occurred in the main app: {e}")
+
 
 
 
