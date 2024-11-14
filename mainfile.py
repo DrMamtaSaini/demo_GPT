@@ -1490,6 +1490,9 @@ def landing_page():
     st.markdown('</div>', unsafe_allow_html=True)
 
     
+# Ensure that session state for 'page' is initialized
+if 'page' not in st.session_state:
+    st.session_state['page'] = 'home'  # Set a default value, e.g., 'home'
 
 # Main function to handle navigation
 def main():
