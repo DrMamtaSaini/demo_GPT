@@ -663,7 +663,7 @@ def main_app():
         # Centered 'Get Started Today' button with a message on click
         st.markdown("<div class='center' style='padding: 20px;'>", unsafe_allow_html=True)
         if st.button("Get Started Today"):
-            st.success("Thank you for getting started! We’re excited to have you onboard. Please explore our modules to create custom educational content, assessments, and more.")
+            st.session_state['task'] = "Create Educational Content"  # Set the task to "Create Educational Content"
         st.markdown("</div>", unsafe_allow_html=True)
    
         
