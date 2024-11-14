@@ -1229,100 +1229,117 @@ def main_app():
         # Apply dark or light theme based on toggle
         if st.session_state['dark_mode']:
             st.markdown("""
-    <style>
-        /* Dark Mode Background and Text Color */
-        body { background-color: #000000; color: #F5F5F5; }
+        <style>
+            /* Dark Mode Background and Text Color */
+            body { background-color: #0D0D0D; color: #E5E5E5; }
 
-        /* App container and font styling for dark mode */
-        .stApp { color: #F5F5F5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+            /* App container and font styling for dark mode */
+            .stApp { color: #E5E5E5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
-        /* Option card styling for dark mode */
-        .option-card { 
-            background-color: #1C1C1C; 
-            padding: 20px; 
-            margin: 10px; 
-            border-radius: 10px; 
-            text-align: center;
-            box-shadow: 2px 2px 15px rgba(255, 69, 58, 0.2); /* Soft red glow */
-            border: 1px solid #333333;
-        }
-        .option-card:hover { 
-            background-color: #333333; 
-            border: 1px solid #FF4500; /* Red border on hover */
-            cursor: pointer; 
-            transition: background-color 0.3s ease, border 0.3s ease;
-        }
+            /* Option card styling for dark mode */
+            .option-card { 
+                background-color: #1A1A1A; 
+                padding: 20px; 
+                margin: 10px; 
+                border-radius: 10px; 
+                text-align: center;
+                box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.2); /* Subtle gold glow */
+                border: 1px solid #333333;
+            }
+            .option-card:hover { 
+                background-color: #333333; 
+                border: 1px solid #FFD700; /* Gold border on hover */
+                cursor: pointer; 
+                transition: background-color 0.3s ease, border 0.3s ease;
+            }
 
-        /* Button styling for dark mode */
-        .stButton>button { 
-            background-color: #333333; 
-            color: #F5F5F5; 
-            border-radius: 8px; 
-            padding: 10px 20px; 
-            font-size: 18px; 
-            font-weight: bold;
-            border: 2px solid #FF4500;
-        }
-        .stButton>button:hover { 
-            background-color: #FF4500; /* Red hover effect */
-            color: #000000;
-            border: 2px solid #FF4500;
-        }
+            /* Button styling for dark mode */
+            .stButton>button { 
+                background-color: #333333; 
+                color: #FFD700; 
+                border-radius: 8px; 
+                padding: 10px 20px; 
+                font-size: 18px; 
+                font-weight: bold;
+                border: 2px solid #FFD700;
+            }
+            .stButton>button:hover { 
+                background-color: #FFD700; /* Gold hover effect */
+                color: #0D0D0D;
+                border: 2px solid #FFD700;
+            }
 
-        /* Sidebar styling for dark mode */
-        .stSidebar .sidebar-content { 
-            background: linear-gradient(180deg, #333333, #1C1C1C); 
-            color: #F5F5F5; 
-        }
+            /* Sidebar styling for dark mode */
+            .stSidebar .sidebar-content { 
+                background: linear-gradient(180deg, #333333, #1A1A1A); 
+                color: #E5E5E5; 
+            }
 
-        /* Header and title colors for dark mode */
-        h1, h2, h3, h4 { color: #F5F5F5; }
-        h2 { font-size: 24px; font-weight: bold; color: #FF4500; } /* Red color for headers */
-        h3 { font-size: 20px; font-weight: bold; color: #F5F5F5; }
+            /* Header and title colors for dark mode */
+            h1, h2, h3, h4 { color: #FFD700; } /* Gold color for headers */
+            h2 { font-size: 24px; font-weight: bold; }
+            h3 { font-size: 20px; font-weight: bold; color: #E5E5E5; }
 
-        /* Centered text for dark mode */
-        .center { text-align: center; color: #F5F5F5; font-weight: 500; }
-    </style>
+            /* Centered text for dark mode */
+            .center { text-align: center; color: #E5E5E5; font-weight: 500; }
+        </style>
     """, unsafe_allow_html=True)
-
 
 
         else:
             st.markdown("""
-    <style>
-        body { background-color: #F0F2F6; }
-        .stApp { color: #4B0082; }
-        .option-card { 
-            background-color: #E0E8F6; 
-            padding: 20px; 
-            margin: 10px; 
-            border-radius: 10px; 
-            text-align: center;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-        }
-        .option-card:hover { 
-            background-color: #d1d9f5; 
-            cursor: pointer; 
-            transition: background-color 0.3s ease;
-        }
-        .stButton>button { background-color: #6A5ACD; color: white; border-radius: 8px; padding: 10px 20px; font-size: 18px; }
-        .stButton>button:hover { background-color: #483D8B; }
-        .stSidebar .sidebar-content { background: linear-gradient(180deg, #6A5ACD, #483D8B); color: white; }
-        h1, h2, h3, h4 { color: #4B0082; }
-        .center { text-align: center; }
-    </style>
-    """, unsafe_allow_html=True)
+        <style>
+            /* Light Mode Background and Text Color */
+            body { background-color: #F9FAFB; }
+            .stApp { color: #333333; }
 
-        client_config = st.session_state.get('client_config')
-        
-        # Display client logo and name with theme color and style
-        if client_config:
-            st.image(client_config["logo"], width=120)
-            st.markdown(f"""
-                <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 10px 0; border-radius: 8px;">
-                    <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
-                </div>
-            """, unsafe_allow_html=True)
+            /* Option card styling for light mode */
+            .option-card { 
+                background-color: #FFFFFF; 
+                padding: 20px; 
+                margin: 10px; 
+                border-radius: 10px; 
+                text-align: center;
+                box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+                border: 1px solid #E5E5E5;
+            }
+            .option-card:hover { 
+                background-color: #E5E5F5; 
+                cursor: pointer; 
+                transition: background-color 0.3s ease;
+            }
+
+            /* Button styling for light mode */
+            .stButton>button { 
+                background-color: #6A5ACD; 
+                color: white; 
+                border-radius: 8px; 
+                padding: 10px 20px; 
+                font-size: 18px; 
+                font-weight: bold;
+                border: 2px solid #6A5ACD;
+            }
+            .stButton>button:hover { 
+                background-color: #483D8B; 
+                color: #FFFFFF;
+                border: 2px solid #483D8B;
+            }
+
+            /* Sidebar styling for light mode */
+            .stSidebar .sidebar-content { 
+                background: linear-gradient(180deg, #6A5ACD, #483D8B); 
+                color: white; 
+            }
+
+            /* Header and title colors for light mode */
+            h1, h2, h3, h4 { color: #4B0082; }
+            h2 { font-size: 24px; font-weight: bold; }
+            h3 { font-size: 20px; font-weight: bold; color: #4B0082; }
+
+            /* Centered text for light mode */
+            .center { text-align: center; color: #4B0082; font-weight: 500; }
+        </style>
+    """, unsafe_allow_html=True)
         
         # Sidebar with improved styling for module selection
         st.sidebar.markdown("""
