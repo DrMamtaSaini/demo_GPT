@@ -716,8 +716,8 @@ def main_app():
             with open(file_name_pdf, "rb") as file:
                 st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
    
-        elif task == "Create Lesson Plan":
-            st.header("Lesson Plan Creation")
+    elif task == "Create Lesson Plan":
+        st.header("Lesson Plan Creation")
     
         # Collect lesson plan details
         subject = st.text_input("Enter Subject:", key="subject_input")
