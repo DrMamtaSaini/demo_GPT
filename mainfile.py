@@ -711,7 +711,7 @@ def main_app():
                 st.write("learning_material")
                 st.write(learning_material)
                 st.write("assignment_response")
-                st.write(assignment_response)
+                st.write(assignment)
                 
                 assessment_report_pdf = f"assessment_report_{student_id}.pdf"
                 generatereport_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
