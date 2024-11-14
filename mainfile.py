@@ -17,6 +17,16 @@ from PyPDF2 import PdfReader
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import tempfile
 from pathlib import Path
+import tempfile
+from pathlib import Path
+
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from io import BytesIO
+from docx import Document
+from docx.shared import Inches
+import tempfile
 
 # Set OpenAI API key
 openai.api_key = st.secrets["api_key"]
@@ -119,13 +129,6 @@ def generate_question(topic, class_level, question_type, subtopic):
 
 
 
-import tempfile
-from pathlib import Path
-
-from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from io import BytesIO
 
 # Function to generate a quiz document
 def generate_question_and_options(topic, class_level, question_type, subtopic):
@@ -201,6 +204,68 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
     document.save(file_path)
 
 
+
+
+def create_quiz1_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers, include_images, file_path):
+    document = Document()
+
+    # Centered main title
+    document.add_heading('Quiz', level=1).alignment = 1  # Center align
+    document.add_heading(f'Class: {class_level}', level=2).alignment = 1
+    document.add_heading(f'Subject: {subject}', level=2).alignment = 1
+    document.add_heading(f'Topic: {topic}', level=2).alignment = 1
+    document.add_paragraph("\n")  # Blank line for spacing
+
+    # Add Duration and Max Marks on the same line, centered
+    details_paragraph = document.add_paragraph()
+    details_paragraph.alignment = 1  # Center align
+    details_paragraph.add_run(f'Duration: {duration}').bold = True
+    details_paragraph.add_run("    ")  # Add space between Duration and Max Marks
+    details_paragraph.add_run(f'Max. Marks: {max_marks}').bold = True
+    document.add_paragraph("\n")  # Extra line for spacing
+
+    # Loop to add questions and images
+    for i in range(num_questions):
+        # Placeholder question generation
+        question_text = f"Sample question {i+1} about {topic}."
+        
+        # Add question to the document
+        document.add_paragraph(f'Q{i+1}: {question_text}')
+        
+        # Conditionally add image if include_images is True
+        if include_images:
+            image_prompt = f"Image of {topic} for {class_level} related to {subject}"
+            image_data = fetch_image(image_prompt)  # Assuming fetch_image is defined elsewhere
+            if image_data:
+                document.add_picture(image_data, width=Inches(2))
+        
+        # Add answer options based on question type
+        if question_type == "MCQ":
+            options = ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"]
+            for option in options:
+                document.add_paragraph(option)
+        elif question_type == "true/false":
+            document.add_paragraph("A) True")
+            document.add_paragraph("B) False")
+        elif question_type == "yes/no":
+            document.add_paragraph("A) Yes")
+            document.add_paragraph("B) No")
+        
+        # Add correct answer if include_answers is True
+        if include_answers:
+            correct_answer = "B) Sample Answer"  # Placeholder, replace with actual logic
+            document.add_paragraph(f"Answer: {correct_answer}")
+        
+        document.add_paragraph("\n")  # Add spacing after each question
+
+    # Add an answer section if answers are not included inline
+    if not include_answers:
+        document.add_paragraph("\nAnswers:\n")
+        for i in range(num_questions):
+            document.add_paragraph(f'Q{i+1}: ________________')
+
+    # Save the document to the specified file path
+    document.save(file_path)
 
 
 
@@ -419,8 +484,24 @@ def generate_content(board, standard, topics, content_type, total_marks, time_du
         """
     elif category == "Image-based Questions":
         prompt += """
-        Design questions based on a single image related to the topic. For example, describe an image and ask students to observe details, make inferences, or answer questions based on what they see. Ensure the image is relevant to the topic and prompts critical thinking or observational skills.
+        Design questions based on an image related to the topic. For example, describe an image and ask students to observe details, make inferences, or answer questions based on what they see. Ensure the image is relevant to the topic and prompts critical thinking or observational skills.
         """
+        
+        # Call an image generation function to fetch a relevant image for this category
+        image_prompt = f"Generate an educational image related to {topics} for {standard} level."
+        image_data = fetch_image(image_prompt)  # Assuming fetch_image is defined elsewhere
+
+        if image_data:
+            # Return the generated content along with the image if available
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": prompt}]
+            )
+            content = response['choices'][0]['message']['content']
+            return content, image_data  # Return both content and image data
+        else:
+            return "Image generation failed.", None  # Handle the case where image generation fails
+
     elif category == "Paragraph-based Questions":
         prompt += """
         Provide a short paragraph about the topic and ask questions that test comprehension and understanding. The paragraph should contain key information related to the topic, and questions should encourage students to recall facts, infer meanings, and explain concepts based on the paragraph.
@@ -441,7 +522,8 @@ def generate_content(board, standard, topics, content_type, total_marks, time_du
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": prompt}]
     )
-    return response['choices'][0]['message']['content']
+    
+    return response['choices'][0]['message']['content'], None  # Return content without an image if not image-based
 
 def generate_lesson_plan(subject, grade, board, duration, topic):
     prompt = f"""
