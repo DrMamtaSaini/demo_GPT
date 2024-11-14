@@ -1027,99 +1027,113 @@ def student_assessment_assistant():
     and provides download and email options.
     """
     st.header("Student Assessment Assistant")
-    
+
     try:
-        # Student information inputs with validation
+        # Collect student information with unique labels for each field
         student_name = st.text_input("Enter Student Name", key="student_name_input")
-        student_id = st.text_input("Enter Student ID (alphanumeric only)", key="student_id_input")
+        student_id = st.text_input("Enter Student ID", key="student_id_input")
         assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
         class_name = st.text_input("Enter Class", key="class_name_input")
         email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
         exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
         subject = st.text_input("Enter Subject", key="subject_input")
 
-        # Validate and sanitize inputs
+        # Upload files with DOCX format
+        question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
+        marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
+        answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
+
         if st.button("Generate and Send Reports"):
-            # Check for missing fields
-            if not all([student_name, student_id, assessment_id, class_name, email_id, exam_type, subject]):
-                st.warning("Please fill in all fields.")
-                return
-
-            # Validate email format
-            if not validate_email(email_id):
-                st.warning("Invalid email format. Please enter a valid email.")
-                return
-
-            # Validate student ID format
-            if not validate_student_id(student_id):
-                st.warning("Invalid Student ID format. Only alphanumeric characters are allowed.")
-                return
-
-            # Sanitize other text inputs
-            student_name = sanitize_text_input(student_name)
-            assessment_id = sanitize_text_input(assessment_id)
-            class_name = sanitize_text_input(class_name)
-            exam_type = sanitize_text_input(exam_type)
-            subject = sanitize_text_input(subject)
-
-            # File uploads with validation
-            question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
-            marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
-            answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
-
-            if not all([question_paper, marking_scheme, answer_sheet]):
-                st.warning("Please upload all required files.")
-                return
-
-            try:
-                # Read content from uploaded DOCX files
-                question_paper_content = read_docx(question_paper)
-                marking_scheme_content = read_docx(marking_scheme)
-                answer_sheet_content = read_docx(answer_sheet)
-
-                # Generate assessment report
-                report = generate_assessment_report(
-                    question_paper_content, marking_scheme_content, answer_sheet_content,
-                    student_name, student_id, class_name, assessment_id, exam_type, subject
-                )
-                st.write("## Assessment Report")
-                st.write(report)
-
-                # Extract weak topics and generate personalized materials
-                weak_topics = extract_weak_topics(report)
-                learning_material = generate_personalized_material(weak_topics)
-                assignment = generate_personalized_assignment(weak_topics)
-
-                # Save and display PDFs with error handling
+            if student_id and assessment_id and email_id and question_paper and marking_scheme and answer_sheet:
                 try:
+                    # Read DOCX files
+                    question_paper_content = read_docx(question_paper)
+                    marking_scheme_content = read_docx(marking_scheme)
+                    answer_sheet_content = read_docx(answer_sheet)
+                    
+                    # Generate assessment report prompt
+                    prompt = f"""
+                    You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+                    Include the following sections:
+                    
+                    1. **Question Analysis** - Each question should include:
+                        - Topic
+                        - Subtopic
+                        - Question Number
+                        - Score for the answer based on accuracy and relevance
+                        - Concept Clarity (Yes/No)
+                        - Feedback and Suggestions
+
+                    2. **Summary Report** - Include:
+                        - Final Score
+                        - Grade
+                        - Areas of Strength
+                        - Areas for Improvement
+                        - Final Remarks
+                    """
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "system", "content": prompt}]
+                    )
+                    report = response['choices'][0]['message']['content']
+                    st.write("## Assessment Report")
+                    st.write(report)
+
+                    # Extract weak topics from report
+                    weak_topics_prompt = f"Identify topics and subtopics where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report}"
+                    weak_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": weak_topics_prompt}]
+                    )
+                    weak_topics = weak_response['choices'][0]['message']['content'].strip().split("\n")
+
+                    # Generate learning material and assignment
+                    learning_material_prompt = f"Create learning material covering weak areas: {', '.join(weak_topics)}."
+                    assignment_prompt = f"Create an assignment on weak areas for improvement."
+
+                    learning_material_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": learning_material_prompt}]
+                    )
+                    assignment_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": assignment_prompt}]
+                    )
+
+                    learning_material = learning_material_response['choices'][0]['message']['content']
+                    assignment = assignment_response['choices'][0]['message']['content']
+                    st.write("## Personalized Learning Material")
+                    st.write(learning_material)
+                    st.write("## Practice Assignment")
+                    st.write(assignment)
+
+                    # Generate PDFs
                     assessment_report_pdf = f"assessment_report_{student_id}.pdf"
                     generatereport_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
-                    
+
                     learning_material_pdf = f"learning_material_{student_id}.pdf"
                     generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
-                    
+
                     assignment_pdf = f"assignment_{student_id}.pdf"
                     generate_pdf(assignment, "Personalized Assignment", assignment_pdf)
-                    
+
+                    # Store file paths for download
                     st.session_state['assessment_report_pdf'] = assessment_report_pdf
                     st.session_state['learning_material_pdf'] = learning_material_pdf
                     st.session_state['assignment_pdf'] = assignment_pdf
-                    
-                    st.success("All reports generated successfully and are ready for download.")
-                
-                except Exception as e:
-                    st.error(f"Error saving PDF reports: {e}")
-                    return
 
-                # Email sending with error handling
-                try:
+                    st.success("Reports generated successfully and are ready for download.")
+
+                    # Email the reports to the parent
                     subject = f"Assessment Reports for {student_name}"
                     body = f"""
 Dear Parent,
 
-We have recently conducted an assessment for {student_name} and are sharing the evaluation reports.
-Please find attached the Assessment Report, Learning Material, and Practice Assignment.
-Thank you for your engagement in {student_name}'s education.
+Please find attached the assessment reports for {student_name}:
+
+1. **Assessment Report**: Detailed evaluation of {student_name}'s performance.
+2. **Personalized Learning Material**: Resources to reinforce understanding.
+3. **Practice Assignment**: Exercises to solidify learning.
 
 Best regards,
 Your School
@@ -1127,27 +1141,31 @@ Your School
                     attachments = [assessment_report_pdf, learning_material_pdf, assignment_pdf]
                     send_email_with_attachments(email_id, subject, body, attachments)
                 
+                except openai.error.OpenAIError as e:
+                    st.error(f"OpenAI API error: {e}")
                 except Exception as e:
-                    st.error(f"Error sending email: {e}")
-            
-            except Exception as e:
-                st.error(f"Error generating assessment report: {e}")
+                    st.error(f"Error in report generation: {e}")
+            else:
+                st.error("Please provide all required inputs.")
 
-        # Display download buttons
+        # Display download buttons for generated reports
         if 'assessment_report_pdf' in st.session_state:
+            st.write("### Assessment Report")
             with open(st.session_state['assessment_report_pdf'], "rb") as file:
                 st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
 
         if 'learning_material_pdf' in st.session_state:
+            st.write("### Personalized Learning Material")
             with open(st.session_state['learning_material_pdf'], "rb") as file:
                 st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=st.session_state['learning_material_pdf'])
 
         if 'assignment_pdf' in st.session_state:
+            st.write("### Personalized Assignment")
             with open(st.session_state['assignment_pdf'], "rb") as file:
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
-    
+
     except Exception as e:
-        st.error(f"Error in Student Assessment Assistant: {e}")
+        st.error(f"An error occurred in the Student Assessment Assistant: {e}")
 
 def generate_image_based_questions():
     """
