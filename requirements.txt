@@ -1,12 +1,7 @@
-openai==0.28.0          # For interacting with OpenAI API
-streamlit==1.39.0       # For building interactive web apps
-pandas==2.2.2           # For data manipulation and analysis
-fpdf==1.7.2             # PDF generation, though fpdf2 is a more recent alternative
-smtplib                 # Built-in library for sending emails via SMTP
-email                   # Built-in library for handling email message formats
-python-docx==1.1.2      # For creating and modifying DOCX files
-PyPDF2==3.0.1           # PDF reading and handling
-docx2pdf==0.1.7         # For converting DOCX files to PDF
-requests==2.31.0        # For handling HTTP requests
-pathlib                 # Built-in library for managing filesystem paths
-tempfile                # Built-in library for temporary file handling
+openai==0.28.0
+streamlit==1.39.0
+pandas==2.2.2
+fpdf==1.7.2
+python-docx==1.1.2
+PyPDF2
+docx2pdf
