@@ -1230,37 +1230,46 @@ def main_app():
         if st.session_state['dark_mode']:
             st.markdown("""
     <style>
-        /* Overall background and primary text color for dark mode */
+        /* Main application area (right side) dark styling */
         body { background-color: #000000; color: #FFFFFF; }
         .stApp { background-color: #000000; color: #FFFFFF; }
 
-        /* Main container and sidebar styling for uniformity in dark mode */
-        .css-18e3th9, .css-1aumxhk { background-color: #1A1A1A; color: #FFFFFF; }
-        .css-1aumxhk { color: #FFFFFF; }
+        /* Right-side module content area */
+        .css-18e3th9 { 
+            background-color: #1A1A1A; /* Dark gray for main content background */
+            color: #FFFFFF; /* White text for readability */
+            padding: 20px; 
+            border-radius: 10px;
+            box-shadow: 2px 2px 20px rgba(255, 215, 0, 0.1); /* Soft gold glow */
+        }
 
-        /* Option card styling with white text and gold highlights */
+        /* Module header and subheader styling */
+        h2, h3 { 
+            color: #FFD700; /* Gold for headers */
+            font-weight: bold;
+        }
+
+        /* Card styling in dark mode with gray and gold touches */
         .option-card { 
             background-color: #1C1C1C; 
+            color: #FFFFFF; 
             padding: 20px; 
             margin: 10px; 
-            border-radius: 10px; 
-            text-align: center;
-            color: #FFFFFF; /* White text for readability */
-            box-shadow: 2px 2px 15px rgba(255, 215, 0, 0.2); /* Soft gold glow */
+            border-radius: 10px;
+            box-shadow: 2px 2px 15px rgba(255, 215, 0, 0.2); /* Subtle gold shadow */
             border: 1px solid #333333;
+            transition: background-color 0.3s ease, border 0.3s ease;
         }
         .option-card:hover { 
             background-color: #333333; 
             border: 1px solid #FFD700; /* Gold border on hover */
-            color: #FFD700; /* Gold text on hover */
-            transition: background-color 0.3s ease, border 0.3s ease, color 0.3s ease;
             cursor: pointer;
         }
 
-        /* Button styling with gold accents */
+        /* Button styling in dark mode */
         .stButton>button { 
             background-color: #333333; 
-            color: #FFD700; /* Gold text for standout effect */
+            color: #FFD700; /* Gold for standout text */
             border-radius: 8px; 
             padding: 10px 20px; 
             font-size: 18px; 
@@ -1268,22 +1277,14 @@ def main_app():
             border: 2px solid #FFD700;
         }
         .stButton>button:hover { 
-            background-color: #FFD700; /* Gold hover effect */
+            background-color: #FFD700; /* Gold background on hover */
             color: #000000;
             border: 2px solid #FFD700;
         }
 
-        /* Sidebar styling with gradient and white text */
-        .stSidebar .sidebar-content { 
-            background: linear-gradient(180deg, #333333, #1A1A1A); 
-            color: #FFFFFF; 
-        }
-
-        /* Header styling with gold accents */
-        h1, h2, h3, h4 { color: #FFD700; } /* Gold headers for prominence */
-        
-        /* Text styling for clarity */
-        p, li, .center, .stApp { color: #FFFFFF; font-weight: 500; }
+        /* Regular text for main content */
+        p, li { color: #FFFFFF; }
+        .center { text-align: center; color: #FFFFFF; font-weight: 500; }
 
     </style>
 """, unsafe_allow_html=True)
