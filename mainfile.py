@@ -644,39 +644,27 @@ def main_app():
 
                 # Generate the assessment report
                 prompt = f"""
-                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
-                Student Name: {student_name}
-                Student ID: {student_id}
-                Class: {class_name}
-                Assessment ID: {assessment_id}
+Please generate a well-formatted assessment report without any special characters like asterisks (*) for emphasis or lists.
 
-                Question Paper:
-                {question_paper_content}
+Include the following sections in the report:
 
-                Marking Scheme:
-                {marking_scheme_content}
+1. **Question Analysis** - Each question should include:
+    - Topic
+    - Subtopic
+    - Question Number
+    - Score for the answer based on accuracy and relevance
+    - Concept Clarity (Yes/No)
+    - Feedback and Suggestions
 
-                Student's Answer Sheet:
-                {answer_sheet_content}
-
-                Please provide the following in the assessment report:
-                1. Question Analysis - Each question should include:
-                    - Topic
-                    - Subtopic
-                    - Question Number
-                    - Score for the answer based on accuracy and relevance
-                    - Concept Clarity (Yes/No)
-                    - Feedback and Suggestions
-
-                2. Summary Report - Include:
-                    - Final Score
-                    - Grade
-                    - Areas of Strength
-                    - Areas for Improvement
-                    - Final Remarks
-                """
-
+2. **Summary Report** - Include:
+    - Final Score
+    - Grade
+    - Areas of Strength
+    - Areas for Improvement
+    - Final Remarks
+"""
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "system", "content": prompt}]
