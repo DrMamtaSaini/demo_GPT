@@ -1243,12 +1243,12 @@ def main_app():
             margin: 10px; 
             border-radius: 10px; 
             text-align: center;
-            box-shadow: 2px 2px 15px rgba(255, 215, 0, 0.2); /* Gold glow */
+            box-shadow: 2px 2px 15px rgba(255, 69, 58, 0.2); /* Soft red glow */
             border: 1px solid #333333;
         }
         .option-card:hover { 
             background-color: #333333; 
-            border: 1px solid #D4AF37; /* Gold border on hover */
+            border: 1px solid #FF4500; /* Red border on hover */
             cursor: pointer; 
             transition: background-color 0.3s ease, border 0.3s ease;
         }
@@ -1261,12 +1261,12 @@ def main_app():
             padding: 10px 20px; 
             font-size: 18px; 
             font-weight: bold;
-            border: 2px solid #D4AF37;
+            border: 2px solid #FF4500;
         }
         .stButton>button:hover { 
-            background-color: #D4AF37; /* Gold hover effect */
+            background-color: #FF4500; /* Red hover effect */
             color: #000000;
-            border: 2px solid #D4AF37;
+            border: 2px solid #FF4500;
         }
 
         /* Sidebar styling for dark mode */
@@ -1277,13 +1277,14 @@ def main_app():
 
         /* Header and title colors for dark mode */
         h1, h2, h3, h4 { color: #F5F5F5; }
-        h2 { font-size: 24px; font-weight: bold; color: #D4AF37; } /* Gold color for headers */
+        h2 { font-size: 24px; font-weight: bold; color: #FF4500; } /* Red color for headers */
         h3 { font-size: 20px; font-weight: bold; color: #F5F5F5; }
 
         /* Centered text for dark mode */
         .center { text-align: center; color: #F5F5F5; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
+
 
 
         else:
