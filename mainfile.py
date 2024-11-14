@@ -1217,28 +1217,8 @@ def main_app():
     Provides error handling and UI feedback for each module.
     """
     try:
-        # Toggle for Dark Mode
-        if 'dark_mode' not in st.session_state:
-            st.session_state['dark_mode'] = False
-
-        if st.button("Toggle Dark Mode"):
-            st.session_state['dark_mode'] = not st.session_state['dark_mode']
-
-        # Apply dark or light theme based on toggle
-        if st.session_state['dark_mode']:
-            st.markdown(
-                "<style>body { background-color: #333; color: #FFF; }</style>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                "<style>body { background-color: #FFF; color: #000; }</style>",
-                unsafe_allow_html=True
-            )
-
         client_config = st.session_state.get('client_config')
         
-        # Display client logo and name with a theme color
         if client_config:
             st.image(client_config["logo"], width=120)
             st.markdown(f"""
@@ -1247,8 +1227,7 @@ def main_app():
                 </div>
             """, unsafe_allow_html=True)
         
-        # Sidebar with collapsible sections
-        st.sidebar.title("EduCreate Pro Dashboard")
+        st.sidebar.title("EduCreate Pro")
         task = st.sidebar.radio("Select Module", [
             "Home", 
             "Create Educational Content", 
@@ -1256,56 +1235,33 @@ def main_app():
             "Student Assessment Assistant", 
             "Generate Image Based Questions"
         ])
-
-        # Progress bar placeholder
-        progress_placeholder = st.empty()
         
         if task == "Home":
             show_home()
-
+        
         elif task == "Create Educational Content":
-            # Show progress for content creation task setup
-            with progress_placeholder:
-                st.info("Setting up Content Creator...")
-                progress_placeholder.progress(20)
             try:
                 create_educational_content()
             except Exception as e:
                 st.error(f"Error in Content Creation: {e}")
-            progress_placeholder.empty()
         
         elif task == "Create Lesson Plan":
-            # Show progress for lesson plan setup
-            with progress_placeholder:
-                st.info("Setting up Lesson Planner...")
-                progress_placeholder.progress(20)
             try:
                 create_lesson_plan()
             except Exception as e:
                 st.error(f"Error in Lesson Plan Generation: {e}")
-            progress_placeholder.empty()
         
         elif task == "Student Assessment Assistant":
-            # Show progress for assessment assistant setup
-            with progress_placeholder:
-                st.info("Setting up Assessment Assistant...")
-                progress_placeholder.progress(20)
             try:
                 student_assessment_assistant()
             except Exception as e:
                 st.error(f"Error in Assessment Generation: {e}")
-            progress_placeholder.empty()
         
         elif task == "Generate Image Based Questions":
-            # Show progress for image-based question generator setup
-            with progress_placeholder:
-                st.info("Setting up Image-Based Question Generator...")
-                progress_placeholder.progress(20)
             try:
                 generate_image_based_questions()
             except Exception as e:
                 st.error(f"Error in Image-Based Question Generation: {e}")
-            progress_placeholder.empty()
         
     except KeyError as e:
         st.error(f"Configuration error: {e}. Please log in again.")
