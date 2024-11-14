@@ -591,7 +591,7 @@ def main_app():
     st.sidebar.title("EduCreate Pro")
     task = st.sidebar.radio("Select Module", ["Home", "Create Educational Content", "Create Lesson Plan", "Student Assessment Assistant", "Generate Image Based Questions"])
 
-    if task == "Home":
+    if st.session_state['task'] == "Home":
        
         st.markdown("""
         <div style='text-align: center; font-size: 18px; color: #4B0082; padding: 20px 0;'>
@@ -644,7 +644,7 @@ def main_app():
    
         
     # The rest of the application follows the task selected in session state
-    elif task == "Create Educational Content":
+    elif st.session_state['task'] == "Create Educational Content":
         st.header("Educational Content Creation")
     
         # Collect basic information
@@ -690,7 +690,7 @@ def main_app():
 
   
 
-    elif task == "Create Lesson Plan":
+    elif st.session_state['task']== "Create Lesson Plan":
         st.header("Lesson Plan Creation")
     
         # Collect lesson plan details
@@ -723,7 +723,7 @@ def main_app():
             with open(file_name_pdf, "rb") as file:
                 st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
 
-    elif task == "Student Assessment Assistant":
+    elif st.session_state['task'] == "Student Assessment Assistant":
         st.header("Student Assessment Assistant")
 
         # Collect student information with unique labels for each field
@@ -866,7 +866,7 @@ Your School
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
     
     
-    elif task == "Generate Image Based Questions":
+    elif st.session_state['task'] == "Generate Image Based Questions":
         
         st.header("Generate Image Based Questions")
         topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography, Famous Landmarks):", key="image_topic_input")
