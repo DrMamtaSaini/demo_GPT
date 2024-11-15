@@ -965,64 +965,7 @@ def create_lesson_plan():
     except Exception as e:
         st.error(f"Error in lesson plan creation: {e}")
 
-def generate_assessment_report(question_paper_content, marking_scheme_content, answer_sheet_content,
-                               student_name, student_id, class_name, assessment_id, exam_type, subject):
-    """
-    Generates a detailed assessment report based on the provided question paper, marking scheme, and answer sheet.
-    """
-    try:
-        # Construct a prompt for OpenAI to generate the report
-        prompt = f"""
-You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
-Please generate a detailed assessment report in the following format:
-
-1. **Question Analysis** - For each question:
-    - Topic
-    - Subtopic
-    - Question Number
-    - Score based on answer accuracy and relevance
-    - Concept Clarity (Yes/No)
-    - Feedback and Suggestions
-
-2. **Summary Report** - Include:
-    - Final Score
-    - Grade
-    - Areas of Strength
-    - Areas for Improvement
-    - Final Remarks
-
-Information for Report:
-Student Name: {student_name}
-Student ID: {student_id}
-Class: {class_name}
-Assessment ID: {assessment_id}
-Exam Type: {exam_type}
-Subject: {subject}
-
-Question Paper:
-{question_paper_content}
-
-Marking Scheme:
-{marking_scheme_content}
-
-Answer Sheet:
-{answer_sheet_content}
-"""
-
-        # Call OpenAI's API to generate the report
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
-        # Extract the generated report content
-        report_content = response['choices'][0]['message']['content']
-        return report_content
-
-    except Exception as e:
-        print(f"Error in generating assessment report: {e}")
-        return "Error generating the assessment report."
 
 
 def student_assessment_assistant():
@@ -1033,16 +976,16 @@ def student_assessment_assistant():
     st.header("Student Assessment Assistant")
 
     try:
-        # Collect student information with unique labels for each field
+        # Collect student information
         student_name = st.text_input("Enter Student Name", key="student_name_input")
         student_id = st.text_input("Enter Student ID", key="student_id_input")
         assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
-        student_class = st.text_input("Enter Class/Standard", key="class_name_input")
+        class_name = st.text_input("Enter Class/Standard", key="class_name_input")
         email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
         exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
         subject = st.text_input("Enter Subject", key="subject_input")
 
-        # Upload files with DOCX format
+        # Upload files
         question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
         marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
         answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
@@ -1054,114 +997,69 @@ def student_assessment_assistant():
                     question_paper_content = read_docx(question_paper)
                     marking_scheme_content = read_docx(marking_scheme)
                     answer_sheet_content = read_docx(answer_sheet)
-                    
-                    # Generate assessment report prompt
+
+                    # Generate the assessment report
                     prompt = f"""
-                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
+Generate a structured report with the following format:
 
-                Student Name: {student_name}
-                Student ID: {student_id}
-                Standard: {student_class}
-                Assessment ID: {assessment_id}
+1. Student Information:
+    - Name: {student_name}
+    - ID: {student_id}
+    - Class: {class_name}
+    - Exam Type: {exam_type}
+    - Subject: {subject}
 
-                Question Paper:
-                {question_paper_content}
+2. Summary Report:
+    - Final Score
+    - Grade
+    - Areas of Strength
+    - Areas for Improvement
+    - Final Remarks
 
-                Marking Scheme:
-                {marking_scheme_content}
-
-                Student's Answer Sheet:
-                {answer_sheet_content}
-
-                Please provide the following in the assessment report:
-
-                1. Question Analysis - Each question should include:
-                    Topic
-                    Subtopic
-                    Question Number
-                    Score for the answer based on accuracy and relevance
-                    Concept Clarity (Yes/No)
-                    Feedback and Suggestions
-
-                2. Summary Report - Include:
-                    Final Score
-                    Grade
-                    Areas of Strength
-                    Areas for Improvement
-                    Final Remarks
-
-                    Avoid using any special characters or bullet points for emphasis. Present the report in a clear, concise manner suitable for parents and teachers.
-                """
-
+3. Detailed Questions Report (in tabular format):
+    | Topic          | Subtopic                 | Q. No. | Score | Concept Clarity | Feedback & Suggestions   | Right Answer      |
+    """
                     response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "system", "content": prompt}]
                     )
                     report = response['choices'][0]['message']['content']
-                    st.write(" Assessment Report")
-                    st.write(report)
 
-                    # Extract weak topics from report
-                    weak_topics_prompt = f"Identify topics and subtopics where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report}"
-                    weak_response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": weak_topics_prompt}]
-                    )
-                    weak_topics = weak_response['choices'][0]['message']['content'].strip().split("\n")
+                    st.write("### Assessment Report")
+                    st.text(report)
 
-                    # Generate learning material and assignment
-                    learning_material_prompt = f"Create learning material covering weak areas: {', '.join(weak_topics)}."
-                    assignment_prompt = f"Create an assignment on weak areas for improvement."
+                    # Extract tabular data for Detailed Questions Report
+                    question_table_pattern = r"\| Topic\s+\| Subtopic\s+\| Q\. No\.\s+\| Score\s+\| Concept Clarity\s+\| Feedback & Suggestions\s+\| Right Answer\s+\|\n(.*?)(?=\n\n|$)"
+                    match = re.search(question_table_pattern, report, re.DOTALL)
 
-                    learning_material_response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": learning_material_prompt}]
-                    )
-                    assignment_response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": assignment_prompt}]
-                    )
+                    if match:
+                        table_content = match.group(1).strip().split("\n")
+                        columns = [col.strip() for col in table_content[0].split("|") if col.strip()]
+                        data = [
+                            [cell.strip() for cell in row.split("|") if cell.strip()]
+                            for row in table_content[1:]
+                        ]
+                        question_df = pd.DataFrame(data, columns=columns)
+                    else:
+                        question_df = pd.DataFrame(columns=["Topic", "Subtopic", "Q. No.", "Score", "Concept Clarity", "Feedback & Suggestions", "Right Answer"])
 
-                    learning_material = learning_material_response['choices'][0]['message']['content']
-                    assignment = assignment_response['choices'][0]['message']['content']
-                    st.write("Personalized Learning Material")
-                    st.write(learning_material)
-                    st.write("Practice Assignment")
-                    st.write(assignment)
+                    # Display question-wise detailed report
+                    st.write("### Question-Wise Detailed Report")
+                    st.dataframe(question_df)
 
                     # Generate PDFs
                     assessment_report_pdf = f"assessment_report_{student_id}.pdf"
-                    generatereport_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
-
-                    learning_material_pdf = f"learning_material_{student_id}.pdf"
-                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
-
-                    assignment_pdf = f"assignment_{student_id}.pdf"
-                    generate_pdf(assignment, "Personalized Assignment", assignment_pdf)
+                    save_assess_report_to_pdf(assessment_report_pdf, student_name, class_name, subject, report, question_df)
 
                     # Store file paths for download
                     st.session_state['assessment_report_pdf'] = assessment_report_pdf
-                    st.session_state['learning_material_pdf'] = learning_material_pdf
-                    st.session_state['assignment_pdf'] = assignment_pdf
 
                     st.success("Reports generated successfully and are ready for download.")
 
-                    # Email the reports to the parent
-                    subject = f"Assessment Reports for {student_name}"
-                    body = f"""
-Dear Parent,
-
-Please find attached the assessment reports for {student_name}:
-
-1. *Assessment Report*: Detailed evaluation of {student_name}'s performance.
-2. *Personalized Learning Material*: Resources to reinforce understanding.
-3. *Practice Assignment*: Exercises to solidify learning.
-
-Best regards,
-Your School
-                    """
-                    attachments = [assessment_report_pdf, learning_material_pdf, assignment_pdf]
-                    send_email_with_attachments(email_id, subject, body, attachments)
+                    # Display download buttons for the PDF
+                    with open(st.session_state['assessment_report_pdf'], "rb") as file:
+                        st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
                 
                 except openai.error.OpenAIError as e:
                     st.error(f"OpenAI API error: {e}")
@@ -1169,25 +1067,52 @@ Your School
                     st.error(f"Error in report generation: {e}")
             else:
                 st.error("Please provide all required inputs.")
-
-        # Display download buttons for generated reports
-        if 'assessment_report_pdf' in st.session_state:
-            st.write("Assessment Report")
-            with open(st.session_state['assessment_report_pdf'], "rb") as file:
-                st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
-
-        if 'learning_material_pdf' in st.session_state:
-            st.write("Personalized Learning Material")
-            with open(st.session_state['learning_material_pdf'], "rb") as file:
-                st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=st.session_state['learning_material_pdf'])
-
-        if 'assignment_pdf' in st.session_state:
-            st.write("Personalized Assignment")
-            with open(st.session_state['assignment_pdf'], "rb") as file:
-                st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
-
     except Exception as e:
         st.error(f"An error occurred in the Student Assessment Assistant: {e}")
+
+# Helper function to save the PDF
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
+def save_assess_report_to_pdf(file_name, student_name, class_name, subject, summary, question_df):
+    pdf = SimpleDocTemplate(file_name, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Student Information
+    student_info = f"""
+    <b>Student Information:</b><br/>
+    Name: {student_name}<br/>
+    Class: {class_name}<br/>
+    Subject: {subject}<br/>
+    """
+    elements.append(Paragraph(student_info, styles['Normal']))
+
+    # Summary Report
+    elements.append(Paragraph("<b>Summary Report:</b>", styles['Normal']))
+    elements.append(Paragraph(summary, styles['Normal']))
+
+    # Question-Wise Detailed Report
+    if not question_df.empty:
+        elements.append(Paragraph("<b>Question-Wise Detailed Report:</b>", styles['Normal']))
+        data = [question_df.columns.tolist()] + question_df.values.tolist()
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(table)
+    else:
+        elements.append(Paragraph("No detailed questions report available.", styles['Normal']))
+
+    pdf.build(elements)
 
 def generate_image_based_questions():
     """
