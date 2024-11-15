@@ -1037,7 +1037,7 @@ def student_assessment_assistant():
         student_name = st.text_input("Enter Student Name", key="student_name_input")
         student_id = st.text_input("Enter Student ID", key="student_id_input")
         assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
-        class_name = st.text_input("Enter Class", key="class_name_input")
+        student_class = st.text_input("Enter Class/Standard", key="class_name_input")
         email_id = st.text_input("Enter Parent's Email ID", key="email_id_input")
         exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
         subject = st.text_input("Enter Subject", key="subject_input")
@@ -1057,30 +1057,48 @@ def student_assessment_assistant():
                     
                     # Generate assessment report prompt
                     prompt = f"""
-                    You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
-                    Include the following sections:
-                    
-                    1. **Question Analysis** - Each question should include:
-                        - Topic
-                        - Subtopic
-                        - Question Number
-                        - Score for the answer based on accuracy and relevance
-                        - Concept Clarity (Yes/No)
-                        - Feedback and Suggestions
+                You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
 
-                    2. **Summary Report** - Include:
-                        - Final Score
-                        - Grade
-                        - Areas of Strength
-                        - Areas for Improvement
-                        - Final Remarks
-                    """
+                Student Name: {student_name}
+                Student ID: {student_id}
+                Standard: {student_class}
+                Assessment ID: {assessment_id}
+
+                Question Paper:
+                {question_paper_content}
+
+                Marking Scheme:
+                {marking_scheme_content}
+
+                Student's Answer Sheet:
+                {answer_sheet_content}
+
+                Please provide the following in the assessment report:
+
+                1. Question Analysis - Each question should include:
+                    Topic
+                    Subtopic
+                    Question Number
+                    Score for the answer based on accuracy and relevance
+                    Concept Clarity (Yes/No)
+                    Feedback and Suggestions
+
+                2. Summary Report - Include:
+                    Final Score
+                    Grade
+                    Areas of Strength
+                    Areas for Improvement
+                    Final Remarks
+
+                    Avoid using any special characters or bullet points for emphasis. Present the report in a clear, concise manner suitable for parents and teachers.
+                """
+
                     response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "system", "content": prompt}]
                     )
                     report = response['choices'][0]['message']['content']
-                    st.write("## Assessment Report")
+                    st.write(" Assessment Report")
                     st.write(report)
 
                     # Extract weak topics from report
@@ -1106,9 +1124,9 @@ def student_assessment_assistant():
 
                     learning_material = learning_material_response['choices'][0]['message']['content']
                     assignment = assignment_response['choices'][0]['message']['content']
-                    st.write("## Personalized Learning Material")
+                    st.write("Personalized Learning Material")
                     st.write(learning_material)
-                    st.write("## Practice Assignment")
+                    st.write("Practice Assignment")
                     st.write(assignment)
 
                     # Generate PDFs
@@ -1135,9 +1153,9 @@ Dear Parent,
 
 Please find attached the assessment reports for {student_name}:
 
-1. **Assessment Report**: Detailed evaluation of {student_name}'s performance.
-2. **Personalized Learning Material**: Resources to reinforce understanding.
-3. **Practice Assignment**: Exercises to solidify learning.
+1. *Assessment Report*: Detailed evaluation of {student_name}'s performance.
+2. *Personalized Learning Material*: Resources to reinforce understanding.
+3. *Practice Assignment*: Exercises to solidify learning.
 
 Best regards,
 Your School
@@ -1154,17 +1172,17 @@ Your School
 
         # Display download buttons for generated reports
         if 'assessment_report_pdf' in st.session_state:
-            st.write("### Assessment Report")
+            st.write("Assessment Report")
             with open(st.session_state['assessment_report_pdf'], "rb") as file:
                 st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
 
         if 'learning_material_pdf' in st.session_state:
-            st.write("### Personalized Learning Material")
+            st.write("Personalized Learning Material")
             with open(st.session_state['learning_material_pdf'], "rb") as file:
                 st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=st.session_state['learning_material_pdf'])
 
         if 'assignment_pdf' in st.session_state:
-            st.write("### Personalized Assignment")
+            st.write("Personalized Assignment")
             with open(st.session_state['assignment_pdf'], "rb") as file:
                 st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
 
