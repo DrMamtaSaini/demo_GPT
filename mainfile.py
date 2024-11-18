@@ -48,6 +48,8 @@ from docx import Document
 import re
 from docx import Document
 from docx.shared import Inches
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Set OpenAI API key securely from Streamlit secrets
 try:
@@ -168,71 +170,23 @@ def fetch_image(prompt, retries=5):
     return None
 
 def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
-    """
-    Generates educational content based on input parameters using OpenAI's GPT API.
-    
-    Args:
-        board (str): Education board (e.g., CBSE, ICSE).
-        standard (str): Class or grade level.
-        topics (str): Topics to cover, comma-separated.
-        content_type (str): Type of content (e.g., Quiz, Assignment).
-        total_marks (int): Total marks for the content.
-        time_duration (str): Expected time duration.
-        question_types (list): List of question types (e.g., MCQs, Short answers).
-        difficulty (str): Difficulty level (e.g., Easy, Medium).
-        category (str): Category of questions (e.g., Value-based).
-        include_solutions (bool): Whether to include solutions.
-
-    Returns:
-        tuple: Generated content as text and optional image data.
-    """
-    # Define prompt based on input parameters and content type
     prompt = f"""
-    You are an expert educational content creator. Create {content_type} for the {board} board, {standard} class.
-    Topics to cover: {topics}. The content should be designed for a total of {total_marks} marks and a time duration of {time_duration}.
-    Include question types such as {', '.join(question_types)}, with an overall difficulty level of {difficulty}.
+    You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
+    Based on the topics: {topics}. The {content_type} should be of {total_marks} marks and a time duration of {time_duration}. 
+    The question types should include {', '.join(question_types)}, with a difficulty level of {difficulty}.
+    The category of questions should be {category}.
     """
     
-    # Modify prompt based on category for specific types of questions
-    if category == "Value-based Questions":
-        prompt += """
-        Create questions that prompt students to reflect on values related to the topic. Include real-life scenarios if possible.
-        """
-    elif category == "Competency Questions":
-        prompt += """
-        Create questions that test practical knowledge and problem-solving skills, encouraging students to apply learned concepts.
-        """
-    elif category == "Image-based Questions":
-        prompt += """
-        Design questions that use images as prompts for observational and critical thinking skills.
-        """
-        # Fetch an image for image-based questions
-        image_prompt = f"Educational image related to {topics} for {standard} level."
-        image_data = fetch_image(image_prompt)
-    else:
-        image_data = None  # No image needed for non-image-based categories
-
-    # Optionally add solutions to the prompt
     if include_solutions:
-        prompt += " Provide detailed solutions for each question."
-
-    # Call OpenAI API for content generation with error handling
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": prompt}]
-        )
-        content = response['choices'][0]['message']['content'].strip()
-        if not content:
-            raise ValueError("Generated content is empty. Check prompt structure or try again.")
-    except openai.error.OpenAIError as e:
-        st.error(f"OpenAI API error: {e}")
-        return "Error generating content.", None
-    except Exception as e:
-        st.error(f"Unexpected error generating content: {e}")
-        return "Error generating content.", None
-
-    return content, image_data  # Return content with optional image data
+        prompt += " Include the solution set."
+    else:
+        prompt += " Only include the question set without solutions."
+    
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
 
 
 
@@ -753,6 +707,40 @@ def generate_pdf(content, title, file_name):
     except Exception as e:
         print(f"Error in generating PDF: {e}")
 
+
+# Function to generate a PDF file with enhanced encoding
+def generatenew_pdf(content, title, file_name):
+    """
+    Generates a PDF report with sanitized text to handle Unicode issues.
+
+    Args:
+        content (str): The text content to include in the PDF.
+        title (str): The title for the PDF report.
+        file_name (str): The file path to save the PDF.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Set title
+    pdf.set_font("Arial", "B", 16)
+    sanitized_title = sanitize_text_for_pdf(title)
+    pdf.cell(0, 10, sanitized_title, ln=True, align='C')
+    pdf.ln(10)
+
+    # Add content
+    pdf.set_font("Arial", size=12)
+    sanitized_content = sanitize_text_for_pdf(content)
+    for line in sanitized_content.split("\n"):
+        pdf.cell(0, 10, line, ln=True)
+
+    # Save the PDF file
+    try:
+        pdf.output(file_name)
+        print(f"PDF saved as {file_name}")
+    except Exception as e:
+        print(f"Error in saving PDF: {e}")
+
+
 # Function to save content to a DOCX file with error handling
 def save_content_as_doc(content, file_name):
     try:
@@ -842,7 +830,7 @@ def show_home():
             </div>
             """, unsafe_allow_html=True)
         
-        col3, col4 = st.columns(2)
+        col3, col4, col5 = st.columns(3)
         
         with col3:
             st.markdown("""
@@ -857,6 +845,14 @@ def show_home():
             <div class="option-card">
                 <h3 style='color: #4B0082; text-align: center;'>Image-Based Question Generator</h3>
                 <p style='text-align: center;'>Generate image-based quizzes (MCQ, True/False, Yes/No).</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col5:
+            st.markdown("""
+            <div class="option-card">
+                <h3 style='color: #4B0082; text-align: center;'>Analyze Report and Generate Graph</h3>
+                <p style='text-align: center;'>Analyze Report and Generate Graph</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -879,35 +875,57 @@ def create_educational_content():
         board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):", key="board_input")
         standard = st.text_input("Enter Standard/Class (e.g., Class 10):", key="standard_input")
         topics = st.text_input("Enter Topics (comma-separated):", key="topics_input")
-        content_type = st.selectbox("Select Content Type", ["Quizzes", "Sample Paper", "Practice Questions", "Summary Notes", "Assignments"], key="content_type_select")
-        total_marks = st.number_input("Enter Total Marks", min_value=1, key="total_marks_input")
-        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes)", key="time_duration_input")
-        question_types = st.multiselect("Select Question Types", ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"], key="question_types_multiselect")
-        difficulty = st.selectbox("Select Difficulty Level", ["Easy", "Medium", "Hard"], key="difficulty_select")
-        category = st.selectbox("Select Category", ["Value-based Questions", "Competency Questions", "Image-based Questions", "Paragraph-based Questions", "Mixed of your choice"], key="category_select")
-        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"], key="include_solutions_radio")
+        content_type = st.selectbox(
+            "Select Content Type",
+            ["Quizzes", "Question paper", "Practice Questions", "Assignments"],
+            index=3,  # Default to "Assignments"
+            key="content_type_select"
+        )
+        total_marks = st.number_input("Enter Total Marks (optional)", min_value=10, key="total_marks_input")
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes, optional)", key="time_duration_input")
+        question_types = st.multiselect(
+            "Select Question Types (optional)",
+            ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"],
+            key="question_types_multiselect"
+        )
+        difficulty = st.selectbox(
+            "Select Difficulty Level (optional)", 
+            ["Easy", "Medium", "Hard"], 
+            key="difficulty_select"
+        )
+        category = st.selectbox(
+            "Select Category",
+            ["Value-based Questions", "Competency Questions", "Paragraph-based Questions", "Mixed of your choice"],
+            index=1,  # Default to "Competency Questions"
+            key="category_select"
+        )
+        include_solutions = st.radio(
+            "Would you like to include solutions?",
+            ["Yes", "No"],
+            key="include_solutions_radio"
+        )
 
         # Generate content with enhanced error handling
         if st.button("Generate Educational Content"):
-            if not board or not standard or not topics:
-                st.warning("Please fill in all required fields.")
+            # Check for required fields
+            if not board or not standard or not topics or not content_type:
+                st.warning("Please fill in all required fields: Board, Standard, Topics, and Content Type.")
                 return
             
-            content, image_data = generate_content(
+            # Call the content generation function
+            content = generate_content(
                 board, standard, topics, content_type, total_marks, time_duration,
                 question_types, difficulty, category, include_solutions == "Yes"
             )
             
+            # Display generated content
             st.write("### Generated Educational Content")
             st.write(content)
-            
-            if category == "Image-based Questions" and image_data:
-                st.image(image_data, caption="Generated Image for Image-based Question")
             
             # Downloadable documents
             try:
                 file_name_docx = f"{content_type}_{standard}.docx"
-                save_contentt_as_doc(content, file_name_docx, image_data=image_data, single_image=True)
+                save_content_as_doc(content, file_name_docx)
                 with open(file_name_docx, "rb") as file:
                     st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
                 
@@ -918,9 +936,10 @@ def create_educational_content():
             
             except Exception as e:
                 st.error(f"Error generating or downloading documents: {e}")
-    
+
     except Exception as e:
         st.error(f"Error in educational content creation: {e}")
+
 
 
 def create_lesson_plan():
@@ -966,6 +985,150 @@ def create_lesson_plan():
         st.error(f"Error in lesson plan creation: {e}")
 
 
+import matplotlib.pyplot as plt
+from PyPDF2 import PdfReader
+
+from fpdf import FPDF
+
+def parse_pdf_with_openai(file):
+    """
+    Extracts text from the PDF file and uses OpenAI to parse topics and concept clarity.
+
+    Args:
+        file: Uploaded PDF file.
+    
+    Returns:
+        dict: Parsed topics with their clarity percentages.
+    """
+    try:
+        # Step 1: Extract text from the PDF
+        reader = PdfReader(file)
+        content = ""
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                content += page_text
+
+        # Debugging: Display extracted content
+       # st.write("### Extracted Content")
+        #st.text(content)
+
+        # Step 2: Define the OpenAI prompt
+        prompt = f"""
+        The following text is an assessment report. Extract the topics and their concept clarity. 
+        If a topic is marked as 'Yes' for concept clarity, set the percentage to 100. If marked as 'No', set it to 0. 
+        Return the results as a JSON object with the format:
+        {{
+            "Topic 1": percentage,
+            "Topic 2": percentage,
+            ...
+        }}
+        
+        Assessment Report:
+        {content}
+        """
+
+        # Step 3: Use OpenAI to parse the report
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        parsed_data = response['choices'][0]['message']['content'].strip()
+
+        # Step 4: Convert the response to a dictionary
+        try:
+            topics_data = json.loads(parsed_data)
+            return topics_data
+        except json.JSONDecodeError:
+            st.error("Failed to parse the response into JSON format.")
+            return {}
+
+    except Exception as e:
+        st.error(f"Error during parsing with OpenAI: {e}")
+        return {}
+
+
+
+import matplotlib.pyplot as plt
+
+def generate_clarity_graph(data):
+    """
+    Generates a vertical bar chart for topics with concept clarity percentages.
+
+    Args:
+        data (dict): A dictionary with topics as keys and clarity percentages as values.
+    """
+    if not data:
+        st.error("No data available to generate the graph.")
+        return
+
+    # Extract topics and percentages
+    topics = list(data.keys())
+    clarity_percentages = list(data.values())
+
+    # Assign colors based on clarity zones
+    colors = []
+    for clarity in clarity_percentages:
+        if clarity <= 30:
+            colors.append("red")
+        elif clarity <= 50:
+            colors.append("orange")
+        elif clarity <= 74:
+            colors.append("yellow")
+        else:
+            colors.append("green")
+
+    # Plot the vertical bar graph
+    plt.figure(figsize=(12, 6))
+    plt.bar(topics, clarity_percentages, color=colors, edgecolor="black")
+    plt.xticks(rotation=45, ha='right', fontsize=10)  # Rotate topic labels for better readability
+    plt.xlabel("Topics", fontsize=14)
+    plt.ylabel("Clarity Percentage (%)", fontsize=14)
+    plt.title("Concept Clarity by Topic", fontsize=16, fontweight="bold")
+    plt.ylim(0, 100)  # Set y-axis limits
+    plt.tight_layout()
+
+    # Display the graph in Streamlit
+    st.pyplot(plt)
+
+def report_analysis_with_openai():
+    st.header("Analyze Report Using OpenAI")
+    
+    uploaded_file = st.file_uploader("Upload Assessment Report (PDF)", type=["pdf"])
+    
+    if uploaded_file:
+        try:
+            # Parse the report using OpenAI
+            topics_data = parse_pdf_with_openai(uploaded_file)
+
+            # Display the parsed data
+            if topics_data:
+               # st.write("### Parsed Topics and Clarity")
+                #st.json(topics_data)
+
+                # Generate a graph for visualization
+                st.write("### Concept Clarity Graph")
+                generate_clarity_graph(topics_data)
+            else:
+                st.warning("No topics or concept clarity data found in the report.")
+        
+        except Exception as e:
+            st.error(f"Error analyzing the report: {e}")
+
+
+
+
+def sanitize_text_for_pdf(text):
+    """Sanitizes text to ensure compatibility with PDF generation."""
+    return text.encode('latin-1', 'replace').decode('latin-1')
+
+# Example Usage
+    pdf.cell(0, 10, sanitize_text_for_pdf(line), ln=True)
+
+
+
+
+
 
 
 def student_assessment_assistant():
@@ -976,7 +1139,7 @@ def student_assessment_assistant():
     st.header("Student Assessment Assistant")
 
     try:
-        # Collect student information
+        # Collect student information with unique labels for each field
         student_name = st.text_input("Enter Student Name", key="student_name_input")
         student_id = st.text_input("Enter Student ID", key="student_id_input")
         assessment_id = st.text_input("Enter Assessment ID", key="assessment_id_input")
@@ -985,7 +1148,7 @@ def student_assessment_assistant():
         exam_type = st.text_input("Enter Exam Type (e.g., Midterm, Final Exam)", key="exam_type_input")
         subject = st.text_input("Enter Subject", key="subject_input")
 
-        # Upload files
+        # Upload files with DOCX format
         question_paper = st.file_uploader("Upload Question Paper (DOCX)", type=["docx"], key="question_paper_uploader")
         marking_scheme = st.file_uploader("Upload Marking Scheme (DOCX)", type=["docx"], key="marking_scheme_uploader")
         answer_sheet = st.file_uploader("Upload Student's Answer Sheet (DOCX)", type=["docx"], key="answer_sheet_uploader")
@@ -997,69 +1160,130 @@ def student_assessment_assistant():
                     question_paper_content = read_docx(question_paper)
                     marking_scheme_content = read_docx(marking_scheme)
                     answer_sheet_content = read_docx(answer_sheet)
-
-                    # Generate the assessment report
+                    
+                    # Generate assessment report prompt
                     prompt = f"""
 You are an educational assessment assistant. Using the question paper, marking scheme, and answer sheet, evaluate the student's answers.
-Generate a structured report with the following format:
+Avoid using any special characters or bullet points for emphasis. Present the report in a clear, concise manner suitable for parents and teachers.
+Please generate a detailed assessment report in the following format:
 
-1. Student Information:
-    - Name: {student_name}
-    - ID: {student_id}
-    - Class: {class_name}
-    - Exam Type: {exam_type}
-    - Subject: {subject}
+1. Question Analysis - For each question:
+    - Topic
+    - Subtopic
+    - Question Number
+    - Score based on answer accuracy and relevance
+    - Concept Clarity (Yes/No)
+    - Feedback and Suggestions
+    - Solution if concept clarity is 'NO'
 
-2. Summary Report:
+2. Summary Report - Include:
     - Final Score
     - Grade
     - Areas of Strength
     - Areas for Improvement
     - Final Remarks
 
-3. Detailed Questions Report (in tabular format):
-    | Topic          | Subtopic                 | Q. No. | Score | Concept Clarity | Feedback & Suggestions   | Right Answer      |
-    """
+Information for Report:
+Student Name: {student_name}
+Student ID: {student_id}
+Class: {class_name}
+Assessment ID: {assessment_id}
+Exam Type: {exam_type}
+Subject: {subject}
+
+Question Paper:
+{question_paper_content}
+
+Marking Scheme:
+{marking_scheme_content}
+
+Answer Sheet:
+{answer_sheet_content}
+"""
+
                     response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "system", "content": prompt}]
                     )
                     report = response['choices'][0]['message']['content']
+                    st.write(" Assessment Report")
+                    st.write(report)
 
-                    st.write("### Assessment Report")
-                    st.text(report)
 
-                    # Extract tabular data for Detailed Questions Report
-                    question_table_pattern = r"\| Topic\s+\| Subtopic\s+\| Q\. No\.\s+\| Score\s+\| Concept Clarity\s+\| Feedback & Suggestions\s+\| Right Answer\s+\|\n(.*?)(?=\n\n|$)"
-                    match = re.search(question_table_pattern, report, re.DOTALL)
+                    
+                    # Extract weak topics from report
+                    weak_topics_prompt = f"Identify topics and subtopics where 'Concept Clarity' is marked as 'No'.\n\nAssessment Report:\n{report}"
+                    weak_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": weak_topics_prompt}]
+                    )
+                    weak_topics = weak_response['choices'][0]['message']['content'].strip().split("\n")
+                                     
+                    # Clean and format the weak topics into plain text
+                    formatted_weak_topics = "Weak Topics Identified:\n"
+                    for line in weak_topics:
+                        if line.strip():  # Exclude empty lines
+                            formatted_weak_topics += line.strip() + "\n"
 
-                    if match:
-                        table_content = match.group(1).strip().split("\n")
-                        columns = [col.strip() for col in table_content[0].split("|") if col.strip()]
-                        data = [
-                            [cell.strip() for cell in row.split("|") if cell.strip()]
-                            for row in table_content[1:]
-                        ]
-                        question_df = pd.DataFrame(data, columns=columns)
-                    else:
-                        question_df = pd.DataFrame(columns=["Topic", "Subtopic", "Q. No.", "Score", "Concept Clarity", "Feedback & Suggestions", "Right Answer"])
+                    # Display weak topics in plain text format
+                    st.write("### Weak Topics")
+                    st.text(formatted_weak_topics)  # Use st.text for plain text display
 
-                    # Display question-wise detailed report
-                    st.write("### Question-Wise Detailed Report")
-                    st.dataframe(question_df)
+                    
+
+                    # Generate learning material and assignment
+                    learning_material_prompt = f"Create personalized learning material covering the following weak areas: {', '.join(weak_topics)}. Include explanations, examples, and practice questions."
+                    assignment_prompt = f"Create an assignment based on the following weak areas for the student to improve: {', '.join(weak_topics)}. Include questions that reinforce concepts with solutions."
+
+                    learning_material_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": learning_material_prompt}]
+                    )
+                    assignment_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": assignment_prompt}]
+                    )
+
+                    learning_material = learning_material_response['choices'][0]['message']['content']
+                    assignment = assignment_response['choices'][0]['message']['content']
+                    st.write("Personalized Learning Material")
+                    st.write(learning_material)
+                    st.write("Practice Assignment")
+                    st.write(assignment)
 
                     # Generate PDFs
                     assessment_report_pdf = f"assessment_report_{student_id}.pdf"
-                    save_assess_report_to_pdf(assessment_report_pdf, student_name, class_name, subject, report, question_df)
+                    generatereport_pdf(report, "Assessment Report", assessment_report_pdf, student_name, student_id, assessment_id, exam_type, subject)
+
+                    learning_material_pdf = f"learning_material_{student_id}.pdf"
+                    generate_pdf(learning_material, "Personalized Learning Material", learning_material_pdf)
+
+                    assignment_pdf = f"assignment_{student_id}.pdf"
+                    generate_pdf(assignment, "Personalized Assignment", assignment_pdf)
 
                     # Store file paths for download
                     st.session_state['assessment_report_pdf'] = assessment_report_pdf
+                    st.session_state['learning_material_pdf'] = learning_material_pdf
+                    st.session_state['assignment_pdf'] = assignment_pdf
 
                     st.success("Reports generated successfully and are ready for download.")
 
-                    # Display download buttons for the PDF
-                    with open(st.session_state['assessment_report_pdf'], "rb") as file:
-                        st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
+                    # Email the reports to the parent
+                    subject = f"Assessment Reports for {student_name}"
+                    body = f"""
+Dear Parent,
+
+Please find attached the assessment reports for {student_name}:
+
+1. *Assessment Report*: Detailed evaluation of {student_name}'s performance.
+2. *Personalized Learning Material*: Resources to reinforce understanding.
+3. *Practice Assignment*: Exercises to solidify learning.
+
+Best regards,
+Your School
+                    """
+                    attachments = [assessment_report_pdf, learning_material_pdf, assignment_pdf]
+                    send_email_with_attachments(email_id, subject, body, attachments)
                 
                 except openai.error.OpenAIError as e:
                     st.error(f"OpenAI API error: {e}")
@@ -1067,52 +1291,32 @@ Generate a structured report with the following format:
                     st.error(f"Error in report generation: {e}")
             else:
                 st.error("Please provide all required inputs.")
+
+        # Display download buttons for generated reports
+        if 'assessment_report_pdf' in st.session_state:
+            st.write("Assessment Report")
+            with open(st.session_state['assessment_report_pdf'], "rb") as file:
+                st.download_button(label="Download Assessment Report as PDF", data=file.read(), file_name=st.session_state['assessment_report_pdf'])
+
+        if 'learning_material_pdf' in st.session_state:
+            st.write("Personalized Learning Material")
+            with open(st.session_state['learning_material_pdf'], "rb") as file:
+                st.download_button(label="Download Learning Material as PDF", data=file.read(), file_name=st.session_state['learning_material_pdf'])
+
+        if 'assignment_pdf' in st.session_state:
+            st.write("Personalized Assignment")
+            with open(st.session_state['assignment_pdf'], "rb") as file:
+                st.download_button(label="Download Assignment as PDF", data=file.read(), file_name=st.session_state['assignment_pdf'])
+        
     except Exception as e:
         st.error(f"An error occurred in the Student Assessment Assistant: {e}")
 
-# Helper function to save the PDF
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
 
-def save_assess_report_to_pdf(file_name, student_name, class_name, subject, summary, question_df):
-    pdf = SimpleDocTemplate(file_name, pagesize=letter)
-    elements = []
-    styles = getSampleStyleSheet()
 
-    # Student Information
-    student_info = f"""
-    <b>Student Information:</b><br/>
-    Name: {student_name}<br/>
-    Class: {class_name}<br/>
-    Subject: {subject}<br/>
-    """
-    elements.append(Paragraph(student_info, styles['Normal']))
 
-    # Summary Report
-    elements.append(Paragraph("<b>Summary Report:</b>", styles['Normal']))
-    elements.append(Paragraph(summary, styles['Normal']))
 
-    # Question-Wise Detailed Report
-    if not question_df.empty:
-        elements.append(Paragraph("<b>Question-Wise Detailed Report:</b>", styles['Normal']))
-        data = [question_df.columns.tolist()] + question_df.values.tolist()
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        elements.append(table)
-    else:
-        elements.append(Paragraph("No detailed questions report available.", styles['Normal']))
 
-    pdf.build(elements)
+
 
 def generate_image_based_questions():
     """
@@ -1173,70 +1377,201 @@ def generate_image_based_questions():
 
 
 
+def generate_detailed_answers_with_marking_scheme(question_paper_content):
+    """Generates detailed answers and a marking scheme using OpenAI GPT."""
+    prompt = f"""
+    You are an expert educational content creator. Below is a question paper. Your task is to:
+    1. Generate **detailed answers** for each question with all necessary steps and explanations.
+    2. Create a **step-by-step marking scheme** with marks allocated for each component or step in the answer.
+    Ensure the answers are structured, and the marking scheme aligns with the board's standards.
 
+    Question Paper:
+    {question_paper_content}
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=3000
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        st.error(f"An error occurred while generating the detailed answers and marking scheme: {e}")
+        return None
+
+def create_answer_sheet_docx(content):
+    """Creates a DOCX file for the detailed answer sheet with marking scheme."""
+    doc = Document()
+    doc.add_heading("Detailed Answer Sheet with Marking Scheme", level=1)
+    doc.add_paragraph(content)
+    
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+def extract_text_from_docx(file):
+    doc = Document(file)
+    text = [para.text for para in doc.paragraphs if para.text.strip() != ""]
+    return "\n".join(text)
+
+# AI function to generate curriculum if not provided
+def generate_curriculum(board, subject, class_level):
+    prompt = f"""
+    You are a curriculum expert. Generate the official curriculum for the {board} board for {subject} in {class_level}.
+    Provide a detailed list of topics, subtopics, and learning objectives that align with the official guidelines.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
+# AI function to check alignment
+def check_alignment(assignment_text, curriculum_text):
+    prompt = f"""
+    You are an expert curriculum alignment checker. Compare the following assignment/lesson plan with the curriculum. 
+    Provide a detailed report of alignment, partial alignment, and misalignment with suggestions for improvement.
+
+    Assignment/Lesson Plan Text:
+    {assignment_text}
+
+    Curriculum Text:
+    {curriculum_text}
+
+    Output the results in the following format:
+    - Aligned Topics/Subtopics
+    - Partially Aligned Topics/Subtopics
+    - Not Aligned Topics/Subtopics
+    - Suggestions for Improvement
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
+def generate_detailed_answer_sheet(question_paper_content):
+    """Generates a detailed answer sheet using OpenAI GPT."""
+    prompt = f"""
+    You are an AI educational assistant. Below is a question paper. Your task is to:
+    1. Geneindentation error and give me code back without forgetting single line. return all lines please rate **detailed answers** for each question.
+       - For theoretical questions: Provide comprehensive explanations with context, examples, and any necessary diagrams (describe in text).
+       - For numerical or problem-solving questions: Show step-by-step calculations and explanations.
+       - For conceptual questions: Explain the concept thoroughly with real-life examples where applicable.
+    2. Ensure the numbering and structure exactly match the question paper.
+    3. Provide clear formatting for each question and its answer.
+
+    Question Paper:
+    {question_paper_content}
+
+    Deliver the answers in the following format:
+    ---
+    **Answer Sheet**
+    **Q1:** [Detailed answer with explanation, steps, examples, etc.]
+    **Q2:** [Detailed answer with explanation, steps, examples, etc.]
+    ...
+    ---
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=3000
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        st.error(f"An error occurred while generating the answer sheet: {e}")
+        return None
+
+def create_answer_sheet_docx(answer_sheet_content):
+    """Creates a DOCX file for the detailed answer sheet."""
+    doc = Document()
+    doc.add_heading("Answer Sheet", level=1)
+    doc.add_paragraph("Generated Detailed Answers for the Provided Question Paper")
+    doc.add_paragraph("\n")
+    for line in answer_sheet_content.split("\n"):
+        doc.add_paragraph(line)
+    
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+# Function to generate the sample paper using AI
+def generate_sample_paper(board, subject, grade, max_marks, medium):
+    prompt = f"""
+    You are an expert in educational content creation. Generate a sample paper strictly following the official pattern of the {board} board.
+    The subject is '{subject}' for grade '{grade}'. The maximum marks for the paper are {max_marks}, and the medium of the paper is '{medium}'.
+    Ensure the following:
+    1. The sample paper should strictly follow the board's format and guidelines.
+    2. Include all sections and instructions as per the board's official pattern (e.g., MCQs, short answers, long answers).
+    3. Adhere to the difficulty level and marks distribution prescribed by the board.
+    4. Avoid adding any fields or formats not part of the official pattern.
+
+    Generate content in the {medium} language.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
+
+# Function to create a Word document with the generated sample paper
+def create_docx(content):
+    doc = Document()
+    doc.add_paragraph(content)
+    doc_buffer = BytesIO()
+    doc.save(doc_buffer)
+    doc_buffer.seek(0)
+    return doc_buffer
+
+def generate_discussion_prompts(topic, grade, subject):
+    """
+    Generate discussion questions based on the topic, grade, and subject using gpt-3.5-turbo.
+    """
+    try:
+        # Construct the prompt for the GPT model
+        prompt = (
+            f"Generate 5 creative and engaging discussion questions for a classroom lesson on the topic "
+            f"'{topic}' for {grade} students in {subject}. Ensure the questions are age-appropriate, "
+            f"interactive, and designed to encourage critical thinking."
+        )
+        
+        # Call the OpenAI GPT model with the required 'messages' parameter
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Use gpt-3.5-turbo
+            messages=[{"role": "system", "content": "You are a helpful assistant."},
+                      {"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.7,
+        )
+        # Extract the generated content
+        return response["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 
 def main_app():
     """
     Main application function that controls the display and functionality of each app section.
     Provides error handling and UI feedback for each module.
-
-
     """
-
     if st.button("Logout"):
         logout()
+
     try:
-        # Initialize dark mode toggle state
-        if 'dark_mode' not in st.session_state:
-            st.session_state['dark_mode'] = False
-
-        # Dark Mode Toggle Button
-        st.sidebar.title("Settings")
-        if st.sidebar.button("Toggle Dark Mode"):
-            st.session_state['dark_mode'] = not st.session_state['dark_mode']
-
-        # Apply dark or light theme based on toggle
-        if st.session_state['dark_mode']:
-            st.markdown(
-                """
-                <style>
-                    body { background-color: #333; color: white; }
-                    .stApp { background-color: #333; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #444; color: white; }
-                    .css-1aumxhk { color: white; }
-                    h2, h3 { color: #FFD700; } /* Gold color for headers */
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-
-        else:
-            st.markdown(
-                """
-                <style>
-                    body { background-color: #FFF; color: #000; }
-                    .stApp { background-color: #FFF; }
-                    .css-18e3th9, .css-1aumxhk { background-color: #F0F2F6; color: #000; }
-                    h2, h3 { color: #4B0082; } /* Indigo color for headers */
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-
         client_config = st.session_state.get('client_config')
-        
+
         # Display client logo and name with theme color and style
         if client_config:
-            st.image(client_config["logo"], width=120)
             st.markdown(f"""
                 <div style="text-align: center; background: linear-gradient(180deg, #6A5ACD, {client_config['theme_color']}); padding: 10px 0; border-radius: 8px;">
                     <h2 style="margin: 0; font-size: 24px; color: white;">{client_config['name']}</h2>
                 </div>
             """, unsafe_allow_html=True)
-        
+
         # Sidebar with improved styling for module selection
         st.sidebar.markdown("""
             <style>
@@ -1245,68 +1580,348 @@ def main_app():
         """, unsafe_allow_html=True)
         st.sidebar.markdown("<div class='sidebar-title'>EduCreate Pro Dashboard</div>", unsafe_allow_html=True)
 
+        # Task Selection
         task = st.sidebar.radio("Select Module", [
-            "Home", 
-            "Create Educational Content", 
-            "Create Lesson Plan", 
-            "Student Assessment Assistant", 
-            "Generate Image Based Questions"
+            "Home",
+            "Create Educational Content",
+            "Create Lesson Plan",
+            "Student Assessment Assistant",
+            "Generate Image Based Questions",
+            "Analyze Report and Generate Graph",
+            "Text Generation",
+            "Curriculum Generator",
+            "Assignment Generator",
+            "Marking Scheme Generator",
+            "Alignment Checker",
+            "Advanced Editing",
+            "Generate Answer Sheet",
+            "Sample Paper Generator",
+            "Classroom Discussion Prompter",
+            "Subscription & Premium Features"
         ])
 
-        # Progress bar placeholder
-        progress_placeholder = st.empty()
+        # Dynamic Theme Selection
+        theme = st.sidebar.selectbox(
+            "Choose Theme", ["Default", "Dark", "Light", "Custom"]
+        )
+
+        # Apply the selected theme dynamically
+        if theme == "Default":
+            st.markdown("""
+                <style>
+                    body { background-color: #f0f2f6; color: #000000; }
+                    .stApp { background-color: #f0f2f6; }
+                </style>
+            """, unsafe_allow_html=True)
+        elif theme == "Dark":
+            st.markdown("""
+                <style>
+                    body { background-color: #121212; color: #e0e0e0; }
+                    .stApp { background-color: #121212; }
+                    h1, h2, h3, h4, h5, h6 { color: #ffffff; }
+                </style>
+            """, unsafe_allow_html=True)
+        elif theme == "Light":
+            st.markdown("""
+                <style>
+                    body { background-color: #ffffff; color: #000000; }
+                    .stApp { background-color: #ffffff; }
+                    h1, h2, h3, h4, h5, h6 { color: #000000; }
+                </style>
+            """, unsafe_allow_html=True)
+        elif theme == "Custom":
+            bg_color = st.sidebar.color_picker("Select Background Color", "#ffffff")
+            text_color = st.sidebar.color_picker("Select Text Color", "#000000")
+            st.markdown(f"""
+                <style>
+                    body {{ background-color: {bg_color}; color: {text_color}; }}
+                    .stApp {{ background-color: {bg_color}; }}
+                    h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
+                </style>
+            """, unsafe_allow_html=True)
+
+        # AI Model Selection
+        ai_model = st.sidebar.radio("Choose AI Model", ["gpt-3.5-turbo", "gpt-4"])
+
+        # Function to call OpenAI API based on selected model
+        def call_openai_api(prompt, max_tokens=1000):
+            response = openai.ChatCompletion.create(
+                model=ai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+            )
+            return response["choices"][0]["message"]["content"]
 
         # Content based on selected module
         if task == "Home":
             show_home()
 
         elif task == "Create Educational Content":
-            with progress_placeholder:
-                st.info("Setting up Content Creator...")
-                progress_placeholder.progress(20)
-            try:
-                create_educational_content()
-            except Exception as e:
-                st.error(f"Error in Content Creation: {e}")
-            progress_placeholder.empty()
-        
+            st.info("Setting up Content Creator...")
+            create_educational_content()
+
         elif task == "Create Lesson Plan":
-            with progress_placeholder:
-                st.info("Setting up Lesson Planner...")
-                progress_placeholder.progress(20)
-            try:
-                create_lesson_plan()
-            except Exception as e:
-                st.error(f"Error in Lesson Plan Generation: {e}")
-            progress_placeholder.empty()
-        
+            st.info("Setting up Lesson Planner...")
+            create_lesson_plan()
+
         elif task == "Student Assessment Assistant":
-            with progress_placeholder:
-                st.info("Setting up Assessment Assistant...")
-                progress_placeholder.progress(20)
-            try:
-                student_assessment_assistant()
-            except Exception as e:
-                st.error(f"Error in Assessment Generation: {e}")
-            progress_placeholder.empty()
-        
+            st.info("Setting up Assessment Assistant...")
+            student_assessment_assistant()
+
         elif task == "Generate Image Based Questions":
-            with progress_placeholder:
-                st.info("Setting up Image-Based Question Generator...")
-                progress_placeholder.progress(20)
-            try:
-                generate_image_based_questions()
-            except Exception as e:
-                st.error(f"Error in Image-Based Question Generation: {e}")
-            progress_placeholder.empty()
+            st.info("Setting up Image-Based Question Generator...")
+            generate_image_based_questions()
+
+        elif task == "Analyze Report and Generate Graph":
+            st.info("Setting up Report Analysis Module...")
+            report_analysis_with_openai()
+
+        elif task == "Text Generation":
+            st.title("AI Writing Assistant")
+            prompt = st.text_area("Enter your prompt for text generation:")
+            tone = st.selectbox("Select Tone", ["Formal", "Casual", "Creative", "Professional"])
+            length = st.slider("Select Content Length", 50, 1000, step=50)
+
+            if st.button("Generate Text"):
+                generated_text = call_openai_api(
+                    f"Tone: {tone}\nLength: {length} words\nPrompt: {prompt}"
+                )
+                st.write(generated_text)
+
+        elif task == "Curriculum Generator":
+            st.title("Curriculum Generator")
+            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IB", "State Board", "Others"])
+            grade = st.selectbox("Select Grade", ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"])
+            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "History", "Others"])
+
+            if st.button("Generate Curriculum"):
+                curriculum = call_openai_api(
+                    f"Generate a detailed curriculum for {subject} for {board}, {grade}.",
+                    max_tokens=1500,
+                )
+                st.write(curriculum)
+
+        elif task == "Assignment Generator":
+            st.title("Assignment Generator")
+            # Select inputs
+            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IB", "State Board", "Others"])
+            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "English", "Others"])
+            grade = st.selectbox("Select Grade", ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"])
+            topic = st.text_input("Enter Topic (Optional)", placeholder="e.g., Algebra, Photosynthesis")
+            marks = st.number_input("Enter Maximum Marks", min_value=10, max_value=100, value=50)
+
+            if st.button("Generate Assignment"):
+                assignment_prompt = f"Generate an assignment for {subject} for {grade} worth {marks} marks."
+                if board:
+                    assignment_prompt += f" Follow the {board} curriculum."
+                if topic:
+                    assignment_prompt += f" Focus on the topic: {topic}."
+
+                assignment = call_openai_api(assignment_prompt, max_tokens=1500)
+                st.write(assignment)
+
+        elif task == "Marking Scheme Generator":
+            st.title("Marking Scheme Generator")
+            st.markdown("""
+                1. Upload your question paper in .docx format.
+                2. The AI will generate **detailed answers** and a **step-by-step marking scheme**.
+                3. Download the generated answer sheet and marking scheme as a .docx file.
+            """)
+
+            uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
+
+            if uploaded_file and st.button("Generate Answer Sheet & Marking Scheme"):
+                with st.spinner("Generating detailed answers and marking scheme..."):
+                    question_paper_content = read_docx(uploaded_file)
+
+                    if not question_paper_content.strip():
+                        st.error("The uploaded question paper appears to be empty.")
+                        return
+
+                    detailed_content = generate_detailed_answers_with_marking_scheme(question_paper_content)
+
+                    if detailed_content:
+                        answer_sheet_file = create_answer_sheet_docx(detailed_content)
+                        st.success("Answer sheet and marking scheme generated successfully!")
+                        st.download_button(
+                            label="Download Answer Sheet with Marking Scheme",
+                            data=answer_sheet_file,
+                            file_name="Detailed_Answer_Sheet_with_Marking_Scheme.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        st.error("Failed to generate the detailed answers and marking scheme.")
+
+
+        elif task == "Alignment Checker":
+            st.title("Curriculum Alignment Checker")
+            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IGCSE", "State Board", "Enter Manually"])
+            if board == "Enter Manually":
+                board = st.text_input("Enter Board Name")
+            
+            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "English", "Social Studies", "Enter Manually"])
+            if subject == "Enter Manually":
+                subject = st.text_input("Enter Subject Name")
+            
+            class_level = st.selectbox("Select Class/Grade", [f"Class {i}" for i in range(1, 13)] + ["Enter Manually"])
+            if class_level == "Enter Manually":
+                class_level = st.text_input("Enter Class/Grade")
+
+            st.write("Upload the Assignment, Lesson Plan, or Question Paper:")
+            assignment_file = st.file_uploader("Upload DOCX file", type=["docx"])
+
+            st.write("Upload the Curriculum File (Optional):")
+            curriculum_file = st.file_uploader("Upload Curriculum DOCX file", type=["docx"])
+
+            if st.button("Check Curriculum Alignment"):
+                try:
+                    assignment_text = extract_text_from_docx(assignment_file) if assignment_file else ""
+                    curriculum_text = extract_text_from_docx(curriculum_file) if curriculum_file else ""
+
+                    if not curriculum_text:
+                        curriculum_text = generate_curriculum(board, subject, class_level)
+
+                    alignment_report = check_alignment(assignment_text, curriculum_text)
+                    st.subheader("Alignment Report")
+                    st.write(alignment_report)
+
+                    doc = Document()
+                    doc.add_heading("Curriculum Alignment Report", level=1)
+                    doc.add_paragraph(alignment_report)
+                    doc.save("alignment_report.docx")
+
+                    with open("alignment_report.docx", "rb") as file:
+                        st.download_button("Download Alignment Report", file, "alignment_report.docx")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+
+        elif task == "Advanced Editing":
+            st.title("Advanced Text Editing")
+            text = st.text_area("Enter Text for Editing:")
+            option = st.selectbox("Choose Editing Type", ["Grammar Check", "Rewrite", "Summarize"])
+
+            if st.button("Edit Text"):
+                try:
+                    edited_text = call_openai_api(
+                        f"Perform {option} on the following text:\n{text}", max_tokens=500
+                    )
+                    st.write(edited_text)
+                except Exception as e:
+                    st.error(f"Error during text editing: {e}")
+
+        elif task == "Generate Answer Sheet":
+            st.title("Answer Sheet Generator")
+            st.markdown("""
+                1. Upload your question paper in .docx format.
+                2. The AI will generate **detailed answers** for each question.
+                3. Download the generated answer sheet as a .docx file.
+            """)
+
+            uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
+
+            if uploaded_file and st.button("Generate Detailed Answer Sheet"):
+                try:
+                    question_paper_content = read_docx(uploaded_file)
+
+                    if not question_paper_content.strip():
+                        st.error("The uploaded question paper appears to be empty.")
+                        return
+
+                    answer_sheet_content = generate_detailed_answer_sheet(question_paper_content)
+
+                    if answer_sheet_content:
+                        answer_sheet_file = create_answer_sheet_docx(answer_sheet_content)
+                        st.success("Detailed answer sheet generated successfully!")
+                        st.download_button(
+                            "Download Detailed Answer Sheet",
+                            data=answer_sheet_file,
+                            file_name="Detailed_Answer_Sheet.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        st.error("Failed to generate the detailed answer sheet.")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+
+
+
+        elif task == "Sample Paper Generator":
+            st.title("Board-Specific Sample Paper Generator")
+            predefined_boards = ["CBSE", "ICSE", "IB", "Cambridge", "State Board"]
+            predefined_subjects = ["Mathematics", "Science", "English", "History"]
+            predefined_grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12"]
+            predefined_mediums = ["English", "Hindi", "French"]
+
+            board = st.selectbox("Select Board:", predefined_boards + ["Other"])
+            if board == "Other":
+                board = st.text_input("Enter Board:")
+
+            subject = st.selectbox("Select Subject:", predefined_subjects + ["Other"])
+            if subject == "Other":
+                subject = st.text_input("Enter Subject:")
+
+            grade = st.selectbox("Select Grade:", predefined_grades + ["Other"])
+            if grade == "Other":
+                grade = st.text_input("Enter Grade:")
+
+            max_marks = st.number_input("Maximum Marks:", min_value=10, value=100)
+
+            if st.button("Generate Sample Paper"):
+                paper_content = generate_sample_paper(board, subject, grade, max_marks)
+                st.write(paper_content)
+
         
+        
+         
+               
+    
+        elif task == "Classroom Discussion Prompter":
+            st.title("Classroom Discussion Prompter")
+            st.markdown("### Make your lessons more interactive with creative discussion prompts!")
+
+    # User inputs
+            topic = st.text_input("Enter the lesson topic:", placeholder="e.g., Photosynthesis, World War II, Algebra")
+            grade = st.selectbox("Select the grade level:", ["Grade 1", "Grade 5", "Grade 8", "Grade 12"])
+            subject = st.selectbox("Select the subject:", ["Mathematics", "Science", "History", "Geography", "English", "Others"])
+
+            if st.button("Generate Discussion Prompts"):
+                if topic and grade and subject:
+                    with st.spinner("Generating discussion prompts..."):
+                        prompts = generate_discussion_prompts(topic, grade, subject)
+                        st.subheader("Suggested Discussion Prompts:")
+                        st.write(prompts)
+                else:
+                    st.error("Please fill in all the fields to generate discussion prompts.")
+
+        elif task == "Subscription & Premium Features":
+            st.title("Upgrade to Premium")
+            st.markdown("### Support advanced AI features by subscribing to our service.")
+            payment_gateway = st.radio("Choose Payment Method", ["Stripe", "PayPal"])
+
+            if st.button("Subscribe Now"):
+                try:
+                    if payment_gateway == "Stripe":
+                        st.markdown("[Subscribe with Stripe](https://stripe.com/)")
+                    elif payment_gateway == "PayPal":
+                        st.markdown("[Subscribe with PayPal](https://paypal.com/)")
+                except Exception as e:
+                    st.error(f"Error in Subscription: {e}")
+        
+
+
     except KeyError as e:
         st.error(f"Configuration error: {e}. Please log in again.")
     except Exception as e:
         st.error(f"An unexpected error occurred in the main app: {e}")
 
 
-import streamlit as st
+
+
+
+    
+
+
+
 
 def landing_page():
     # Set page configuration for a better display on landing page
