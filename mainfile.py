@@ -51,6 +51,12 @@ from docx.shared import Inches
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+import streamlit as st
+from fpdf import FPDF
+from docx import Document
+import openai
+
 # Set OpenAI API key securely from Streamlit secrets
 try:
     openai.api_key = st.secrets["api_key"]
@@ -169,26 +175,98 @@ def fetch_image(prompt, retries=5):
     st.error("Failed to fetch image after multiple attempts.")
     return None
 
-def generate_content(board, standard, topics, content_type, total_marks, time_duration, question_types, difficulty, category, include_solutions):
-    prompt = f"""
-    You are an educational content creator. Create {content_type} for the {board} board, {standard} class. 
-    Based on the topics: {topics}. The {content_type} should be of {total_marks} marks and a time duration of {time_duration}. 
-    The question types should include {', '.join(question_types)}, with a difficulty level of {difficulty}.
-    The category of questions should be {category}.
+
+
+
+def generate_image_based_questions():
     """
+    Generates image-based questions for quizzes and provides download options for the generated documents.
+    """
+    st.header("Generate Image-Based Questions")
     
-    if include_solutions:
-        prompt += " Include the solution set."
-    else:
-        prompt += " Only include the question set without solutions."
+    try:
+        # Predefined options
+        predefined_subjects = ["Science", "Geography", "Mathematics", "English", "History"]
+        predefined_class_levels = ["Grade 1", "Grade 5", "Grade 10", "Grade 12"]
+        predefined_max_marks = ["10","20", "50", "100"]
+        predefined_durations = ["30 minutes", "1 hour", "2 hours"]
+
+        # Dropdowns with add-new functionality
+        subject = st.selectbox("Select Subject:", predefined_subjects + ["Add New"])
+        if subject == "Add New":
+            subject = st.text_input("Enter New Subject:")
+
+        class_level = st.selectbox("Select Class Level:", predefined_class_levels + ["Add New"])
+        if class_level == "Add New":
+            class_level = st.text_input("Enter New Class Level:")
+
+        max_marks = st.selectbox("Select Maximum Marks:", predefined_max_marks + ["Add New"])
+        if max_marks == "Add New":
+            max_marks = st.text_input("Enter New Maximum Marks:")
+
+        duration = st.selectbox("Select Duration:", predefined_durations + ["Add New"])
+        if duration == "Add New":
+            duration = st.text_input("Enter New Duration:")
+
+        # Other inputs
+        topic = st.text_input("Select a Topic (e.g., Plants, Animals, Geography):", key="image_topic_input")
+        num_questions = st.number_input("Enter the Number of Questions (minimum 5):", min_value=5, key="num_questions_input")
+        question_type = st.selectbox("Choose Question Type:", ["MCQ", "True/False", "Yes/No"], key="question_type_select")
+
+        # Generate Quiz Documents
+        if st.button("Generate Quiz Document"):
+            if not topic or not subject or not class_level or not max_marks or not duration:
+                st.warning("Please fill in all required fields.")
+                return
+
+            try:
+                # Temporary files for quiz documents
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
+                     tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
+
+                    quiz_filename_without_answers = tmp_file_without_answers.name
+                    quiz_filename_with_answers = tmp_file_with_answers.name
+
+                    create_quiz_document(
+                        topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                        include_answers=False, file_path=quiz_filename_without_answers
+                    )
+                    create_quiz_document(
+                        topic, subject, class_level, max_marks, duration, num_questions, question_type,
+                        include_answers=True, file_path=quiz_filename_with_answers
+                    )
+
+                    # Store filenames in session state for download
+                    st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
+                    st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
+
+                st.success("Quiz documents generated successfully!")
+
+            except Exception as e:
+                st.error(f"Error generating quiz documents: {e}")
+
+        # Download Buttons
+        if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
+            try:
+                with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
+                    st.download_button(
+                        label="Download Quiz Document (without answers)",
+                        data=file.read(),
+                        file_name=Path(st.session_state["quiz_filename_without_answers"]).name
+                    )
+
+                with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
+                    st.download_button(
+                        label="Download Quiz Document (with answers)",
+                        data=file.read(),
+                        file_name=Path(st.session_state["quiz_filename_with_answers"]).name
+                    )
+
+            except Exception as e:
+                st.error(f"Error providing download options: {e}")
     
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": prompt}]
-    )
-    return response['choices'][0]['message']['content']
-
-
+    except Exception as e:
+        st.error(f"Error in Generate Image-Based Questions: {e}")
 
 def create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type, include_answers, file_path):
     """
@@ -209,7 +287,7 @@ def create_quiz_document(topic, subject, class_level, max_marks, duration, num_q
         document = Document()
 
         # Centered title and details
-        document.add_heading('Quiz', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        document.add_heading('Assignment', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Grade: {class_level}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Subject: {subject}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         document.add_heading(f'Topic: {topic}', level=2).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -760,10 +838,93 @@ def sanitize_text(text):
     return text.encode('latin-1', 'replace').decode('latin-1')
 
 
-def generate_lesson_plan(subject, grade, board, duration, topic):
+def create_lesson_plan():
+    """
+    Collects input to generate a lesson plan and provides feedback for successful or unsuccessful generation.
+    """
+    st.header("Lesson Plan Creation")
+
+    try:
+        # Predefined options for subjects, boards, grades, and durations
+        predefined_subjects = ["Mathematics", "Science", "English", "History", "Geography"]
+        predefined_boards = ["CBSE", "ICSE", "State Board", "IB", "Cambridge"]
+        predefined_grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12"]
+        predefined_durations = ["30 minutes", "45 minutes", "1 hour", "1.5 hours"]
+
+        # Comprehensive list of languages with Kiswahili included
+        mediums = [
+            "English", "Hindi", "Gujarati", "Marathi", "Tamil", "Telugu", "Bengali", 
+            "Japanese", "Chinese (Mandarin)", "Korean", "French", "German", "Spanish", 
+            "Italian", "Russian", "Arabic", "Portuguese", "Kiswahili", "Malay", "Thai", 
+            "Vietnamese", "Urdu", "Punjabi", "Persian", "Turkish", "Dutch", "Greek", "Add New"
+        ]
+
+        # Subject selection with option to add a custom subject
+        subject = st.selectbox("Select Subject:", predefined_subjects + ["Add New"])
+        if subject == "Add New":
+            subject = st.text_input("Enter New Subject:", key="subject_input")
+
+        # Grade selection with option to add a custom grade
+        grade = st.selectbox("Select Grade/Class:", predefined_grades + ["Add New"])
+        if grade == "Add New":
+            grade = st.text_input("Enter New Grade/Class:", key="grade_input")
+
+        # Board selection with option to add a custom board
+        board = st.selectbox("Select Education Board:", predefined_boards + ["Add New"])
+        if board == "Add New":
+            board = st.text_input("Enter New Education Board:", key="board_input")
+
+        # Medium selection with English as the default
+        medium = st.selectbox("Select Medium:", mediums, index=0)
+        if medium == "Add New":
+            medium = st.text_input("Enter New Medium:")
+
+        # Lesson Duration selection with option to add a custom duration
+        duration = st.selectbox("Select Lesson Duration:", predefined_durations + ["Add New"])
+        if duration == "Add New":
+            duration = st.text_input("Enter New Duration (e.g., 2 hours):", key="duration_input")
+
+        # Topic input (removed dropdown for predefined topics)
+        topic = st.text_input("Enter Lesson Topic:", key="topic_input")
+
+        # Generate lesson plan
+        if st.button("Generate Lesson Plan"):
+            if not subject or not grade or not board or not duration or not topic or not medium:
+                st.warning("Please fill in all required fields.")
+                return
+
+            try:
+                # Call the lesson plan generation function
+                lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic, medium)
+                st.write("### Generated Lesson Plan")
+                st.write(lesson_plan)
+
+                # Save lesson plan as DOCX and PDF, with error handling
+                file_name_docx = f"{subject}_{grade}_LessonPlan.docx"
+                save_content_as_doc(lesson_plan, file_name_docx)
+                with open(file_name_docx, "rb") as file:
+                    st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
+
+                file_name_pdf = f"{subject}_{grade}_LessonPlan.pdf"
+                generate_pdf(lesson_plan, f"Lesson Plan: {subject} -  {grade}", file_name_pdf)
+                with open(file_name_pdf, "rb") as file:
+                    st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
+
+            except Exception as e:
+                st.error(f"Error generating lesson plan or saving files: {e}")
+
+    except Exception as e:
+        st.error(f"Error in lesson plan creation: {e}")
+
+
+def generate_lesson_plan(subject, grade, board, duration, topic, medium):
+    """
+    Generates a comprehensive lesson plan based on the given inputs.
+    """
     prompt = f"""
     Create a comprehensive lesson plan for teaching {subject} to {grade} under the {board} board. 
-    The lesson duration is {duration}, and the topic of the lesson is {topic}. The lesson plan should include:
+    The lesson medium is {medium}. The lesson duration is {duration}, and the topic of the lesson is {topic}. 
+    The lesson plan should include:
 
     - Lesson Title and Duration
     - Learning Objectives
@@ -775,9 +936,9 @@ def generate_lesson_plan(subject, grade, board, duration, topic):
         - Assessment and Recap to measure understanding
         - Homework/Assignments for reinforcement
     - Date and Schedule field
+
     Ensure flexibility to adapt to different student needs, learning speeds, and teaching styles.
     """
-    
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": prompt}]
@@ -866,123 +1027,130 @@ def show_home():
 
 def create_educational_content():
     """
-    Collects input to generate educational content and handles all errors gracefully.
+    Collects input to generate a question paper and handles all errors gracefully.
     """
-    st.header("Educational Content Creation")
+    st.header("Question Paper Creation")
     
     try:
-        # Input fields with validation messages
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):", key="board_input")
-        standard = st.text_input("Enter Standard/Class (e.g., Class 10):", key="standard_input")
-        topics = st.text_input("Enter Topics (comma-separated):", key="topics_input")
-        content_type = st.selectbox(
-            "Select Content Type",
-            ["Quizzes", "Question paper", "Practice Questions", "Assignments"],
-            index=3,  # Default to "Assignments"
-            key="content_type_select"
-        )
-        total_marks = st.number_input("Enter Total Marks (optional)", min_value=10, key="total_marks_input")
-        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes, optional)", key="time_duration_input")
-        question_types = st.multiselect(
-            "Select Question Types (optional)",
-            ["True/False", "Yes/No", "MCQs", "Very Short answers", "Short answers", "Long answers", "Very Long answers"],
-            key="question_types_multiselect"
-        )
-        difficulty = st.selectbox(
-            "Select Difficulty Level (optional)", 
-            ["Easy", "Medium", "Hard"], 
-            key="difficulty_select"
-        )
-        category = st.selectbox(
-            "Select Category",
-            ["Value-based Questions", "Competency Questions", "Paragraph-based Questions", "Mixed of your choice"],
-            index=1,  # Default to "Competency Questions"
-            key="category_select"
-        )
-        include_solutions = st.radio(
-            "Would you like to include solutions?",
-            ["Yes", "No"],
-            key="include_solutions_radio"
-        )
+        # Predefined options for dropdowns and checkboxes
+        BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Cambridge", "Others"]
+        GRADES = [f"Class {i}" for i in range(1, 13)] + ["Others"]
+        SUBJECTS = ["Mathematics", "Science", "History", "Geography", "English", "Others"]
+        DIFFICULTY_LEVELS = ["Easy", "Medium", "Hard"]
+        CATEGORIES = [
+            "Value-based Questions", "Competency Questions", "Mixed of your choice"
+        ]
+        QUESTION_TYPES = [
+            "True/False", "Yes/No", "MCQs", 
+            "Very Short Answers", "Short Answers", 
+            "Long Answers", "Very Long Answers"
+        ]
+        MEDIUMS = ["English", "Hindi", "Tamil", "Bengali", "Kiswahili", "Others"]
 
-        # Generate content with enhanced error handling
-        if st.button("Generate Educational Content"):
-            # Check for required fields
-            if not board or not standard or not topics or not content_type:
-                st.warning("Please fill in all required fields: Board, Standard, Topics, and Content Type.")
+        # Dropdowns with "Others" option for custom input
+        board = st.selectbox("Select Education Board:", BOARDS)
+        if board == "Others":
+            board = st.text_input("Enter Board Name:")
+
+        standard = st.selectbox("Select Standard/Class:", GRADES)
+        if standard == "Others":
+            standard = st.text_input("Enter Standard/Class:")
+
+        subject = st.selectbox("Select Subject:", SUBJECTS)
+        if subject == "Others":
+            subject = st.text_input("Enter Subject Name:")
+
+        medium = st.selectbox("Select Medium:", MEDIUMS)
+        if medium == "Others":
+            medium = st.text_input("Enter Medium of Instruction:")
+
+        topics = st.text_area("Enter Topics (comma-separated):", placeholder="E.g., Algebra, Photosynthesis")
+
+        total_marks = st.number_input("Enter Total Marks (optional):", min_value=10, step=5)
+
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes, optional):")
+
+        question_types = st.multiselect("Select Question Types (optional):", QUESTION_TYPES)
+
+        difficulty = st.selectbox("Select Difficulty Level:", DIFFICULTY_LEVELS)
+
+        # Category selection with checkboxes
+        st.markdown("### Select Question Categories")
+        selected_categories = []
+        for category in CATEGORIES:
+            if st.checkbox(category, key=category):
+                selected_categories.append(category)
+
+        # New field: Number of Questions
+        num_questions = st.number_input("Enter Number of Questions:", min_value=1, max_value=50, step=1, value=10)
+
+        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"]) == "Yes"
+
+        # Generate question paper button
+        if st.button("Generate Question Paper"):
+            if not board or not standard or not subject or not topics:
+                st.warning("Please fill in all required fields: Board, Standard, Subject, and Topics.")
                 return
             
-            # Call the content generation function
-            content = generate_content(
-                board, standard, topics, content_type, total_marks, time_duration,
-                question_types, difficulty, category, include_solutions == "Yes"
-            )
-            
-            # Display generated content
-            st.write("### Generated Educational Content")
-            st.write(content)
-            
-            # Downloadable documents
-            try:
-                file_name_docx = f"{content_type}_{standard}.docx"
-                save_content_as_doc(content, file_name_docx)
-                with open(file_name_docx, "rb") as file:
-                    st.download_button(label="Download Content as DOCX", data=file.read(), file_name=file_name_docx)
+            with st.spinner("Generating question paper..."):
+                # Generate content using OpenAI
+                content = generate_content(
+                    board, standard, topics, total_marks, 
+                    time_duration, question_types, difficulty, selected_categories, 
+                    include_solutions, num_questions
+                )
                 
-                file_name_pdf = f"{content_type}_{standard}.pdf"
-                generate_pdf(content, f"{content_type} for {standard}", file_name_pdf)
-                with open(file_name_pdf, "rb") as file:
-                    st.download_button(label="Download Content as PDF", data=file.read(), file_name=file_name_pdf)
-            
-            except Exception as e:
-                st.error(f"Error generating or downloading documents: {e}")
+                # Display content
+                st.write("### Generated Question Paper")
+                st.write(content)
+
+                # Save and allow download as DOCX and PDF
+                try:
+                    docx_file = create_answer_sheet_docx(content)
+
+                    st.download_button(
+                        label="Download Question Paper as DOCX",
+                        data=docx_file,
+                        file_name=f"Question_Paper_{standard}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+
+                except Exception as e:
+                    st.error(f"Error saving or downloading files: {e}")
 
     except Exception as e:
-        st.error(f"Error in educational content creation: {e}")
+        st.error(f"Error in question paper creation: {e}")
 
 
-
-def create_lesson_plan():
+def generate_content(board, standard, topics, total_marks, time_duration, question_types, difficulty, selected_categories, include_solutions, num_questions):
     """
-    Collects input to generate a lesson plan and provides feedback for successful or unsuccessful generation.
+    Generates a question paper based on the inputs.
     """
-    st.header("Lesson Plan Creation")
+    category_list = ", ".join(selected_categories)
+    
+    # General content generation
+    prompt = f"""
+    You are an educational content creator. Create a question paper for the {board} board, {standard} class. 
+    Based on the topics: {topics}. The question paper should contain {num_questions} questions, of {total_marks} marks 
+    and a time duration of {time_duration}. The question types should include {', '.join(question_types)}, with 
+    a difficulty level of {difficulty}. The categories of questions should be: {category_list}.
+    """
+    
+    if include_solutions:
+        prompt += " Include the solution set."
+    else:
+        prompt += " Only include the question set without solutions."
     
     try:
-        # Input collection with validation messages
-        subject = st.text_input("Enter Subject:", key="subject_input")
-        grade = st.text_input("Enter Class/Grade:", key="grade_input")
-        board = st.text_input("Enter Education Board (e.g., CBSE, ICSE):", key="lesson_board_input")
-        duration = st.text_input("Enter Lesson Duration (e.g., 45 minutes, 1 hour):", key="duration_input")
-        topic = st.text_input("Enter Lesson Topic:", key="topic_input")
-
-        # Generate lesson plan
-        if st.button("Generate Lesson Plan"):
-            if not subject or not grade or not board or not duration or not topic:
-                st.warning("Please fill in all required fields.")
-                return
-            
-            try:
-                lesson_plan = generate_lesson_plan(subject, grade, board, duration, topic)
-                st.write("### Generated Lesson Plan")
-                st.write(lesson_plan)
-                
-                # Save lesson plan as DOCX and PDF, with error handling
-                file_name_docx = f"{subject}_{grade}_LessonPlan.docx"
-                save_content_as_doc(lesson_plan, file_name_docx)
-                with open(file_name_docx, "rb") as file:
-                    st.download_button(label="Download Lesson Plan as DOCX", data=file.read(), file_name=file_name_docx)
-                
-                file_name_pdf = f"{subject}_{grade}_LessonPlan.pdf"
-                generate_pdf(lesson_plan, f"Lesson Plan: {subject} - Grade {grade}", file_name_pdf)
-                with open(file_name_pdf, "rb") as file:
-                    st.download_button(label="Download Lesson Plan as PDF", data=file.read(), file_name=file_name_pdf)
-            
-            except Exception as e:
-                st.error(f"Error generating lesson plan or saving files: {e}")
-    
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content']
     except Exception as e:
-        st.error(f"Error in lesson plan creation: {e}")
+        raise Exception(f"Error generating question paper: {e}")
+
+
 
 
 import matplotlib.pyplot as plt
@@ -1318,86 +1486,23 @@ Your School
 
 
 
-def generate_image_based_questions():
-    """
-    Generates image-based questions for quizzes and provides download options for the generated documents.
-    """
-    st.header("Generate Image Based Questions")
-    
-    try:
-        # Input collection with validation
-        topic = st.text_input("Select a topic (e.g., Plants, Animals, Geography):", key="image_topic_input")
-        subject = st.text_input("Enter the subject (e.g., Science, Geography):", key="subject_input")
-        class_level = st.text_input("Select a class level (e.g., Grade 1, Grade 2):", key="class_level_input")
-        max_marks = st.text_input("Enter maximum marks:", key="max_marks_input")
-        duration = st.text_input("Enter duration (e.g., 1 hour):", key="duration_input")
-        num_questions = st.number_input("Enter the number of questions (minimum 5):", min_value=5, key="num_questions_input")
-        question_type = st.selectbox("Choose question type", ["MCQ", "true/false", "yes/no"], key="question_type_select")
-
-        if st.button("Generate Quiz Document"):
-            if not topic or not subject or not class_level or not max_marks or not duration:
-                st.warning("Please fill in all required fields.")
-                return
-
-            # Generate documents with error handling
-            try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_without_answers, \
-                     tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file_with_answers:
-
-                    quiz_filename_without_answers = tmp_file_without_answers.name
-                    quiz_filename_with_answers = tmp_file_with_answers.name
-
-                    create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                                         include_answers=False, file_path=quiz_filename_without_answers)
-                    create_quiz_document(topic, subject, class_level, max_marks, duration, num_questions, question_type,
-                                         include_answers=True, file_path=quiz_filename_with_answers)
-
-                    st.session_state["quiz_filename_without_answers"] = quiz_filename_without_answers
-                    st.session_state["quiz_filename_with_answers"] = quiz_filename_with_answers
-
-                st.success("Quiz documents generated successfully!")
-
-            except Exception as e:
-                st.error(f"Error generating quiz documents: {e}")
-
-        # Download buttons with error handling
-        if "quiz_filename_without_answers" in st.session_state and "quiz_filename_with_answers" in st.session_state:
-            try:
-                with open(st.session_state["quiz_filename_without_answers"], "rb") as file:
-                    st.download_button(label="Download Quiz Document (without answers)", data=file.read(), file_name=Path(st.session_state["quiz_filename_without_answers"]).name)
-                
-                with open(st.session_state["quiz_filename_with_answers"], "rb") as file:
-                    st.download_button(label="Download Quiz Document (with answers)", data=file.read(), file_name=Path(st.session_state["quiz_filename_with_answers"]).name)
-            
-            except Exception as e:
-                st.error(f"Error providing download options: {e}")
-    
-    except Exception as e:
-        st.error(f"Error in Generate Image Based Questions: {e}")
 
 
 
 def generate_detailed_answers_with_marking_scheme(question_paper_content):
-    """Generates detailed answers and a marking scheme using OpenAI GPT."""
+    """
+    Generates detailed answers and a step-by-step marking scheme based on the question paper content.
+    """
     prompt = f"""
-    You are an expert educational content creator. Below is a question paper. Your task is to:
-    1. Generate **detailed answers** for each question with all necessary steps and explanations.
-    2. Create a **step-by-step marking scheme** with marks allocated for each component or step in the answer.
-    Ensure the answers are structured, and the marking scheme aligns with the board's standards.
-
-    Question Paper:
+    Provide detailed answers and a step-by-step marking scheme for the following questions:
     {question_paper_content}
     """
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=3000
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        st.error(f"An error occurred while generating the detailed answers and marking scheme: {e}")
-        return None
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response["choices"][0]["message"]["content"]
+
 
 def create_answer_sheet_docx(content):
     """Creates a DOCX file for the detailed answer sheet with marking scheme."""
@@ -1452,51 +1557,103 @@ def check_alignment(assignment_text, curriculum_text):
     return response['choices'][0]['message']['content']
 
 def generate_detailed_answer_sheet(question_paper_content):
-    """Generates a detailed answer sheet using OpenAI GPT."""
-    prompt = f"""
-    You are an AI educational assistant. Below is a question paper. Your task is to:
-    1. Geneindentation error and give me code back without forgetting single line. return all lines please rate **detailed answers** for each question.
-       - For theoretical questions: Provide comprehensive explanations with context, examples, and any necessary diagrams (describe in text).
-       - For numerical or problem-solving questions: Show step-by-step calculations and explanations.
-       - For conceptual questions: Explain the concept thoroughly with real-life examples where applicable.
-    2. Ensure the numbering and structure exactly match the question paper.
-    3. Provide clear formatting for each question and its answer.
-
-    Question Paper:
-    {question_paper_content}
-
-    Deliver the answers in the following format:
-    ---
-    **Answer Sheet**
-    **Q1:** [Detailed answer with explanation, steps, examples, etc.]
-    **Q2:** [Detailed answer with explanation, steps, examples, etc.]
-    ...
-    ---
+    """
+    Generates detailed answers for the provided question paper content.
     """
     try:
+        # Check if the question paper content is valid
+        if not question_paper_content.strip():
+            raise ValueError("Question paper content is empty or invalid.")
+
+        # Prepare the prompt for generating answers
+        prompt = f"""
+        Provide detailed answers for the following questions:
+        {question_paper_content}
+        """
+        
+        # Call the OpenAI API
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=3000
+            messages=[{"role": "user", "content": prompt}]
         )
-        return response['choices'][0]['message']['content']
+
+        # Extract and return the response content
+        if response and "choices" in response and response["choices"]:
+            return response["choices"][0]["message"]["content"]
+        else:
+            raise ValueError("Failed to retrieve a valid response from the AI.")
+
+    except openai.error.OpenAIError as e:
+        # Handle OpenAI API errors
+        st.error(f"An error occurred with the OpenAI API: {e}")
+        return None
+    except ValueError as e:
+        # Handle validation errors
+        st.error(f"Validation Error: {e}")
+        return None
     except Exception as e:
-        st.error(f"An error occurred while generating the answer sheet: {e}")
+        # Handle any other unexpected errors
+        st.error(f"An unexpected error occurred: {e}")
         return None
 
-def create_answer_sheet_docx(answer_sheet_content):
-    """Creates a DOCX file for the detailed answer sheet."""
+import io
+
+def create_answer_sheet_docx(answer_content):
+    """
+    Creates a .docx file from the provided answer content.
+    Returns the file data as a byte stream.
+    """
     doc = Document()
-    doc.add_heading("Answer Sheet", level=1)
-    doc.add_paragraph("Generated Detailed Answers for the Provided Question Paper")
-    doc.add_paragraph("\n")
-    for line in answer_sheet_content.split("\n"):
+    doc.add_heading("Detailed Answer Sheet", level=1)
+    for line in answer_content.split("\n"):
         doc.add_paragraph(line)
+    byte_stream = io.BytesIO()
+    doc.save(byte_stream)
+    byte_stream.seek(0)
+    return byte_stream
+
+from fpdf import FPDF
+
+from fpdf import FPDF
+import io
+
+from fpdf import FPDF
+import io
+
+from fpdf import FPDF
+import io
+
+from fpdf import FPDF
+import io
+
+from fpdf import FPDF
+import io
+import textwrap
+
+from fpdf import FPDF
+
+def create_answer_sheet_pdf(answer_content):
+    """
+    Creates a .pdf file from the provided answer content.
+    Returns the file data as a byte stream.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    pdf.cell(200, 10, txt="Detailed Answer Sheet", ln=True, align='C')
+    pdf.ln(10)  # Add a line break
+
+    for line in answer_content.split("\n"):
+        pdf.multi_cell(0, 10, line)
     
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+    byte_stream = io.BytesIO()
+    pdf.output(byte_stream)
+    byte_stream.seek(0)
+    return byte_stream
+
+
+
 
 
 # Function to generate the sample paper using AI
@@ -1514,8 +1671,11 @@ def generate_sample_paper(board, subject, grade, max_marks, medium):
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=4000  #High token limit for a complete sample paper
     )
+    
     return response['choices'][0]['message']['content']
 
 # Function to create a Word document with the generated sample paper
@@ -1527,30 +1687,1261 @@ def create_docx(content):
     doc_buffer.seek(0)
     return doc_buffer
 
-def generate_discussion_prompts(topic, grade, subject):
+
+
+
+def generate_discussion_prompts(topic, grade, subject, board, medium):
     """
     Generate discussion questions based on the topic, grade, and subject using gpt-3.5-turbo.
     """
     try:
         # Construct the prompt for the GPT model
-        prompt = (
-            f"Generate 5 creative and engaging discussion questions for a classroom lesson on the topic "
-            f"'{topic}' for {grade} students in {subject}. Ensure the questions are age-appropriate, "
-            f"interactive, and designed to encourage critical thinking."
-        )
+        prompt = f"""
+    Generate five discussion prompts for a classroom lesson on the topic '{topic}', for {grade}, 
+    in the subject '{subject}', under the {board} education board. The medium of instruction is {medium}. 
+    Ensure the prompts are age-appropriate, engaging, and encourage critical thinking.
+    """
         
         # Call the OpenAI GPT model with the required 'messages' parameter
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Use gpt-3.5-turbo
             messages=[{"role": "system", "content": "You are a helpful assistant."},
                       {"role": "user", "content": prompt}],
-            max_tokens=200,
+            max_tokens=1000,
             temperature=0.7,
         )
         # Extract the generated content
         return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
         return f"An error occurred: {e}"
+
+from fpdf import FPDF
+
+def save_prompts_as_pdf(prompts, topic, grade, subject, board, medium):
+    """
+    Save the generated discussion prompts as a PDF file.
+    """
+    file_name = f"{topic}_Discussion_Prompts.pdf"
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    pdf.cell(200, 10, txt="Classroom Discussion Prompts", ln=True, align='C')
+    pdf.ln(10)  # Add a line break
+
+    pdf.multi_cell(0, 10, f"Topic: {topic}")
+    pdf.multi_cell(0, 10, f"Grade: {grade}")
+    pdf.multi_cell(0, 10, f"Subject: {subject}")
+    pdf.multi_cell(0, 10, f"Board: {board}")
+    pdf.multi_cell(0, 10, f"Medium: {medium}")
+    pdf.ln(5)  # Add a line break
+    pdf.multi_cell(0, 10, f"Prompts:\n{prompts}")
+
+    pdf.output(file_name)
+    return file_name
+
+from docx import Document
+
+def save_prompts_as_docx(prompts, topic, grade, subject, board, medium):
+    """
+    Save the generated discussion prompts as a DOCX file.
+    """
+    file_name = f"{topic}_Discussion_Prompts.docx"
+    document = Document()
+
+    document.add_heading("Classroom Discussion Prompts", level=1)
+    document.add_paragraph(f"Topic: {topic}")
+    document.add_paragraph(f"Grade: {grade}")
+    document.add_paragraph(f"Subject: {subject}")
+    document.add_paragraph(f"Board: {board}")
+    document.add_paragraph(f"Medium: {medium}")
+    document.add_paragraph("\nPrompts:")
+    document.add_paragraph(prompts)
+
+    document.save(file_name)
+    return file_name
+
+def Question_Paper():
+    """
+    Generates a question paper with customized number of questions for each question type.
+    """
+    st.header("Question Paper Creation")
+    
+    try:
+        # Predefined options
+        BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Cambridge", "Others"]
+        GRADES = [f"Class {i}" for i in range(1, 13)] + ["Others"]
+        SUBJECTS = ["Mathematics", "Science", "History", "Geography", "English", "Others"]
+        DIFFICULTY_LEVELS = ["Easy", "Medium", "Hard"]
+        QUESTION_TYPES = [
+            "True/False", "Yes/No", "MCQs", 
+            "Short Answers", "Long Answers", 
+            "Fill in the Blanks", "Match the Following"
+        ]
+        MEDIUMS = ["English", "Hindi", "Tamil", "Bengali", "Kiswahili", "Others"]
+
+        # Input fields
+        board = st.selectbox("Select Education Board:", BOARDS)
+        if board == "Others":
+            board = st.text_input("Enter Board Name:")
+
+        standard = st.selectbox("Select Standard/Class:", GRADES)
+        if standard == "Others":
+            standard = st.text_input("Enter Standard/Class:")
+
+        subject = st.selectbox("Select Subject:", SUBJECTS)
+        if subject == "Others":
+            subject = st.text_input("Enter Subject Name:")
+
+        medium = st.selectbox("Select Medium:", MEDIUMS)
+        if medium == "Others":
+            medium = st.text_input("Enter Medium of Instruction:")
+
+        topics = st.text_area("Enter Topics (comma-separated):", placeholder="E.g., Algebra, Photosynthesis")
+
+        total_marks = st.number_input("Enter Total Marks (optional):", min_value=10, step=5)
+
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes, optional):")
+
+        difficulty = st.selectbox("Select Difficulty Level:", DIFFICULTY_LEVELS)
+
+        # Dynamic input for question types and their count
+        st.markdown("### Select Question Types and Enter Count for Each")
+        question_counts = {}
+        for qtype in QUESTION_TYPES:
+            count = st.number_input(f"Number of {qtype} Questions:", min_value=0, max_value=50, step=1, key=qtype)
+            if count > 0:
+                question_counts[qtype] = count
+
+        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"]) == "Yes"
+
+        # Generate question paper button
+        if st.button("Generate Question Paper"):
+            if not board or not standard or not subject or not topics or not question_counts:
+                st.warning("Please fill in all required fields and specify at least one question type with a count.")
+                return
+            
+            with st.spinner("Generating question paper..."):
+                # Generate content using OpenAI
+                content = generate_question_paper(
+                    board, standard, subject, topics, total_marks, 
+                    time_duration, difficulty, question_counts, 
+                    include_solutions
+                )
+                
+                # Display content
+                st.write("### Generated Question Paper")
+                st.write(content)
+
+                # Save and allow download as DOCX and PDF
+                try:
+                    docx_file = create_answer_sheet_docx(content)
+
+                    st.download_button(
+                        label="Download Question Paper as DOCX",
+                        data=docx_file,
+                        file_name=f"Question_Paper_{standard}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+
+                except Exception as e:
+                    st.error(f"Error saving or downloading files: {e}")
+
+    except Exception as e:
+        st.error(f"Error in question paper creation: {e}")
+
+
+def generate_question_paper(board, standard, subject, topics, total_marks, time_duration, difficulty, question_counts, include_solutions):
+    """
+    Generates a question paper based on the inputs.
+    """
+    question_summary = "\n".join([f"{count} {qtype} questions" for qtype, count in question_counts.items()])
+    prompt = f"""
+    You are an educational content creator. Create a question paper for the {board} board, {standard} class, subject: {subject}.
+    Based on the topics: {topics}. The question paper should contain questions as follows:
+    {question_summary}. The total marks should be {total_marks}, with a time duration of {time_duration}. 
+    The difficulty level should be {difficulty}.
+    """
+    
+    if include_solutions:
+        prompt += " Include the solution set."
+    else:
+        prompt += " Only include the question set without solutions."
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        raise Exception(f"Error generating question paper: {e}")
+
+# Function to create a PDF from the questions
+def create_apdf(content, filename="practice_questions.pdf"):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in content.split("\n"):
+        pdf.cell(0, 10, line, ln=True)
+    pdf.output(filename)
+    return filename
+
+# Function to create a DOC file from the questions
+def create_adoc(content, filename="practice_questions.docx"):
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    doc.save(filename)
+    return filename
+
+
+# create Quiz
+
+
+
+
+def create_quiz():
+    SUBJECTS = ["Mathematics", "History", "Science", "Geography", "English"]
+    DIFFICULTY_LEVELS = ["Beginner", "Intermediate", "Advanced"]
+    BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Add New"]
+
+    st.title("AI-Powered Quiz Generator")
+    st.write("Generate quizzes dynamically using OpenAI GPT and export them as PDF or DOC!")
+
+    st.header("Quiz Parameters")
+
+    # Board selection with option to add custom boards
+    board = st.selectbox("Choose a Board", BOARDS)
+    if board == "Add New":
+        board = st.text_input("Enter New Board")
+        if board and board not in BOARDS:
+            BOARDS.append(board)
+
+    # Subject selection with option to add custom subjects
+    subject = st.selectbox("Choose a Subject", SUBJECTS + ["Add New"])
+    if subject == "Add New":
+        subject = st.text_input("Enter New Subject")
+        if subject and subject not in SUBJECTS:
+            SUBJECTS.append(subject)
+
+    # Topic input
+    topic = st.text_input("Enter Topic (e.g., Algebra, World War II)")
+
+    # Difficulty level selection with option to add custom difficulty levels
+    difficulty = st.selectbox("Choose Difficulty Level", DIFFICULTY_LEVELS + ["Add New"])
+    if difficulty == "Add New":
+        difficulty = st.text_input("Enter New Difficulty Level")
+        if difficulty and difficulty not in DIFFICULTY_LEVELS:
+            DIFFICULTY_LEVELS.append(difficulty)
+
+    # Number of questions
+    num_questions = st.slider("Number of Questions", min_value=1, max_value=10, value=5)
+
+    # Include answers option
+    include_answers = st.radio("Include Answers in Quiz?", ("Yes", "No")) == "Yes"
+
+    # Generate quiz button
+    generate_button = st.button("Generate Quiz")
+
+    if generate_button:
+        st.write(f"Generating your quiz for the {board} board... Please wait.")
+        quiz_text = generate_quiz(subject, topic, difficulty, num_questions, board, include_answers)
+        if quiz_text:
+            st.text_area("Generated Quiz", quiz_text, height=300)
+
+            # Buttons to download as PDF or DOC
+            pdf_filename = "quiz.pdf"
+            doc_filename = "quiz.docx"
+
+            if st.button("Download as PDF"):
+                create_pdf(quiz_text, pdf_filename)
+                with open(pdf_filename, "rb") as pdf_file:
+                    st.download_button(
+                        label="Download PDF",
+                        data=pdf_file,
+                        file_name=pdf_filename,
+                        mime="application/pdf"
+                    )
+
+            if st.button("Download as DOC"):
+                create_doc(quiz_text, doc_filename)
+                with open(doc_filename, "rb") as doc_file:
+                    st.download_button(
+                        label="Download DOC",
+                        data=doc_file,
+                        file_name=doc_filename,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+
+def generate_quiz(subject, topic, difficulty, num_questions, board, include_answers):
+    """
+    Generates quiz content using OpenAI GPT based on the provided parameters.
+    """
+    prompt = f"""
+    Create a quiz for {board} board on the topic "{topic}" in {subject}. 
+    Difficulty level: {difficulty}. Number of questions: {num_questions}.
+    {"Include answers and explanations." if include_answers else "Do not include answers or explanations."}
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that generates quizzes."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        st.error(f"Error generating quiz: {e}")
+        return None
+
+
+def create_pdf(content, filename):
+    """
+    Creates a PDF file from the quiz content.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in content.split("\n"):
+        pdf.cell(0, 10, line, ln=True)
+    pdf.output(filename)
+
+
+def create_doc(content, filename):
+    """
+    Creates a DOCX file from the quiz content.
+    """
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    doc.save(filename)
+
+
+
+#All functions calling
+#Generate Question Paper
+
+def Question_Paper():
+    """
+    Generates a question paper with customized number of questions for each question type.
+    """
+    st.header("Question Paper Creation")
+
+    try:
+        # Predefined options
+        BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Cambridge", "Others"]
+        GRADES = [f"Class {i}" for i in range(1, 13)] + ["Others"]
+        SUBJECTS = ["Mathematics", "Science", "History", "Geography", "English", "Others"]
+        DIFFICULTY_LEVELS = ["Easy", "Medium", "Hard"]
+        QUESTION_TYPES = [
+            "True/False", "Yes/No", "MCQs",
+            "Short Answers", "Long Answers",
+            "Fill in the Blanks", "Match the Following"
+        ]
+        MEDIUMS = ["English", "Hindi", "Tamil", "Bengali", "Kiswahili", "Others"]
+
+        # Input fields
+        board = st.selectbox("Select Education Board:", BOARDS)
+        if board == "Others":
+            board = st.text_input("Enter Board Name:")
+
+        standard = st.selectbox("Select Standard/Class:", GRADES)
+        if standard == "Others":
+            standard = st.text_input("Enter Standard/Class:")
+
+        subject = st.selectbox("Select Subject:", SUBJECTS)
+        if subject == "Others":
+            subject = st.text_input("Enter Subject Name:")
+
+        medium = st.selectbox("Select Medium:", MEDIUMS)
+        if medium == "Others":
+            medium = st.text_input("Enter Medium of Instruction:")
+
+        topics = st.text_area("Enter Topics (comma-separated):", placeholder="E.g., Algebra, Photosynthesis")
+
+        total_marks = st.number_input("Enter Total Marks (optional):", min_value=10, step=5)
+
+        time_duration = st.text_input("Enter Time Duration (e.g., 60 minutes, optional):")
+
+        difficulty = st.selectbox("Select Difficulty Level:", DIFFICULTY_LEVELS)
+
+        # Dynamic input for question types and their count
+        st.markdown("### Select Question Types and Enter Count for Each")
+        question_counts = {}
+        for qtype in QUESTION_TYPES:
+            count = st.number_input(f"Number of {qtype} Questions:", min_value=0, max_value=50, step=1, key=qtype)
+            if count > 0:
+                question_counts[qtype] = count
+
+        include_solutions = st.radio("Would you like to include solutions?", ["Yes", "No"]) == "Yes"
+
+        # Generate question paper button
+        if st.button("Generate Question Paper"):
+            if not board or not standard or not subject or not topics or not question_counts:
+                st.warning("Please fill in all required fields and specify at least one question type with a count.")
+                return
+
+            with st.spinner("Generating question paper..."):
+                # Generate content using OpenAI
+                content = generate_question_paper(
+                    board, standard, subject, topics, total_marks,
+                    time_duration, difficulty, question_counts,
+                    include_solutions
+                )
+
+                # Display content
+                st.write("### Generated Question Paper")
+                st.write(content)
+
+                # Save and allow download as DOCX and PDF
+                try:
+                    docx_file = create_answer_sheet_docx(content)
+
+                    st.download_button(
+                        label="Download Question Paper as DOCX",
+                        data=docx_file,
+                        file_name=f"Question_Paper_{standard}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+
+                except Exception as e:
+                    st.error(f"Error saving or downloading files: {e}")
+
+    except Exception as e:
+        st.error(f"Error in question paper creation: {e}")
+
+
+def generate_question_paper(board, standard, subject, topics, total_marks, time_duration, difficulty, question_counts, include_solutions):
+    """
+    Generates a question paper based on the inputs.
+    """
+    question_summary = "\n".join([f"{count} {qtype} questions" for qtype, count in question_counts.items()])
+    prompt = f"""
+    You are an educational content creator. Create a question paper for the {board} board, {standard} class, subject: {subject}.
+    Based on the topics: {topics}. The question paper should contain questions as follows:
+    {question_summary}. The total marks should be {total_marks}, with a time duration of {time_duration}. 
+    The difficulty level should be {difficulty}.
+    """
+
+    if include_solutions:
+        prompt += " Include the solution set."
+    else:
+        prompt += " Only include the question set without solutions."
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        raise Exception(f"Error generating question paper: {e}")
+
+
+def create_apdf(content, filename="practice_questions.pdf"):
+    """
+    Function to create a PDF from the questions.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in content.split("\n"):
+        pdf.cell(0, 10, line, ln=True)
+    pdf.output(filename)
+    return filename
+
+
+def create_adoc(content, filename="practice_questions.docx"):
+    """
+    Function to create a DOC file from the questions.
+    """
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    doc.save(filename)
+    return filename
+
+#sample paper generator function
+def Sample_Paper():
+            st.title("Board-Specific Sample Paper Generator")
+            
+            # Predefined lists for selection
+            predefined_boards = ["CBSE", "ICSE", "IB", "Cambridge", "State Board"]
+            predefined_subjects = ["Mathematics", "Science", "English", "History"]
+            predefined_grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12"]
+            predefined_mediums = ["English", "Hindi", "French"]
+
+            # Board selection
+            board = st.selectbox("Select Board:", predefined_boards + ["Other"])
+            if board == "Other":
+                board = st.text_input("Enter Board:")
+
+            # Subject selection
+            subject = st.selectbox("Select Subject:", predefined_subjects + ["Other"])
+            if subject == "Other":
+                subject = st.text_input("Enter Subject:")
+
+            # Grade selection
+            grade = st.selectbox("Select Grade:", predefined_grades + ["Other"])
+            if grade == "Other":
+                grade = st.text_input("Enter Grade:")
+
+            # Medium selection
+            medium = st.selectbox("Select Medium:", predefined_mediums + ["Other"])
+            if medium == "Other":
+                medium = st.text_input("Enter Medium:")
+
+            # Maximum marks input
+            max_marks = st.number_input("Maximum Marks:", min_value=10, value=100)
+
+            # Generate sample paper
+            if st.button("Generate Sample Paper"):
+                if not board or not subject or not grade or not medium:
+                    st.error("Please fill in all the required fields.")
+                else:
+                    try:
+                        # Generate sample paper content
+                        sample_paper_content = generate_sample_paper(board, subject, grade, max_marks, medium)
+
+                        # Display the sample paper content on the screen
+                        st.subheader("Generated Sample Paper:")
+                        st.write(sample_paper_content)
+
+                        # Create downloadable DOCX and PDF files using reusable functions
+                        docx_file = create_answer_sheet_docx(sample_paper_content)
+                        
+                        # Provide download buttons
+                        st.download_button(
+                            label="Download Sample Paper (DOCX)",
+                            data=docx_file,
+                            file_name=f"{board}_{subject}_{grade}_Sample_Paper.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+
+                        
+                    except Exception as e:
+                        st.error(f"An error occurred: {e}")
+#generate assignment
+def Assignment():
+    st.title("Assignment Generator")
+
+    # Predefined options
+    boards = ["CBSE", "ICSE", "IB", "State Board", "Others"]
+    subjects = ["Mathematics", "Science", "English", "Others"]
+    grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"]
+
+    # Select inputs
+    board = st.selectbox("Select Board", boards)
+    if board == "Others":
+        board = st.text_input("Enter Board Name:")
+
+    subject = st.selectbox("Select Subject", subjects)
+    if subject == "Others":
+        subject = st.text_input("Enter Subject Name:")
+
+    grade = st.selectbox("Select Grade", grades)
+    if grade == "Others":
+        grade = st.text_input("Enter Grade/Level:")
+
+    # Topics input: Allow adding multiple topics
+    topics = st.text_area("Enter Topics (comma-separated):", placeholder="e.g., Algebra, Photosynthesis")
+
+    # Optional marks input
+    marks = st.number_input("Enter Maximum Marks (Optional):", min_value=10, max_value=100, step=5)
+
+    # Generate Assignment button
+    if st.button("Generate Assignment"):
+        # Validation for required fields
+        if not board or not subject or not grade or not topics.strip():
+            st.warning("Please fill in all required fields (Board, Subject, Grade, and Topics).")
+        else:
+            # Prepare assignment prompt
+            assignment_prompt = f"Generate an assignment for {subject} for {grade}."
+            assignment_prompt += f" Follow the {board} curriculum."
+            assignment_prompt += f" Focus on the topics: {topics}."
+            if marks:
+                assignment_prompt += f" The assignment should be worth {marks} marks."
+
+            # Call OpenAI API
+            with st.spinner("Generating assignment..."):
+                try:
+                    assignment = call_openai_api(assignment_prompt, max_tokens=1500)
+                    st.write("### Generated Assignment:")
+                    st.write(assignment)
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+
+
+
+#create quiz function
+def Quiz():
+    SUBJECTS = ["Mathematics", "History", "Science", "Geography", "English"]
+    DIFFICULTY_LEVELS = ["Beginner", "Intermediate", "Advanced"]
+    BOARDS = ["CBSE", "ICSE", "State Board", "IB", "Add New"]
+
+    st.title("AI-Powered Quiz Generator")
+    st.write("Generate quizzes dynamically using OpenAI GPT and export them as PDF or DOC!")
+
+    st.header("Quiz Parameters")
+
+    # Board selection with option to add custom boards
+    board = st.selectbox("Choose a Board", BOARDS)
+    if board == "Add New":
+        board = st.text_input("Enter New Board")
+        if board and board not in BOARDS:
+            BOARDS.append(board)
+
+    # Subject selection with option to add custom subjects
+    subject = st.selectbox("Choose a Subject", SUBJECTS + ["Add New"])
+    if subject == "Add New":
+        subject = st.text_input("Enter New Subject")
+        if subject and subject not in SUBJECTS:
+            SUBJECTS.append(subject)
+
+    # Topic input
+    topic = st.text_input("Enter Topic (e.g., Algebra, World War II)")
+
+    # Difficulty level selection with option to add custom difficulty levels
+    difficulty = st.selectbox("Choose Difficulty Level", DIFFICULTY_LEVELS + ["Add New"])
+    if difficulty == "Add New":
+        difficulty = st.text_input("Enter New Difficulty Level")
+        if difficulty and difficulty not in DIFFICULTY_LEVELS:
+            DIFFICULTY_LEVELS.append(difficulty)
+
+    # Number of questions
+    num_questions = st.slider("Number of Questions", min_value=1, max_value=10, value=5)
+
+    # Include answers option
+    include_answers = st.radio("Include Answers in Quiz?", ("Yes", "No")) == "Yes"
+
+    # Generate quiz button
+    generate_button = st.button("Generate Quiz")
+
+    if generate_button:
+        st.write(f"Generating your quiz for the {board} board... Please wait.")
+        quiz_text = generate_quiz(subject, topic, difficulty, num_questions, board, include_answers)
+        if quiz_text:
+            st.text_area("Generated Quiz", quiz_text, height=300)
+
+            # Buttons to download as PDF or DOC
+            pdf_filename = "quiz.pdf"
+            doc_filename = "quiz.docx"
+
+            if st.button("Download as PDF"):
+                create_pdf(quiz_text, pdf_filename)
+                with open(pdf_filename, "rb") as pdf_file:
+                    st.download_button(
+                        label="Download PDF",
+                        data=pdf_file,
+                        file_name=pdf_filename,
+                        mime="application/pdf"
+                    )
+
+            if st.button("Download as DOC"):
+                create_doc(quiz_text, doc_filename)
+                with open(doc_filename, "rb") as doc_file:
+                    st.download_button(
+                        label="Download DOC",
+                        data=doc_file,
+                        file_name=doc_filename,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+
+
+def generate_quiz(subject, topic, difficulty, num_questions, board, include_answers):
+    """
+    Generates quiz content using OpenAI GPT based on the provided parameters.
+    """
+    prompt = f"""
+    Create a quiz for {board} board on the topic "{topic}" in {subject}. 
+    Difficulty level: {difficulty}. Number of questions: {num_questions}.
+    {"Include answers and explanations." if include_answers else "Do not include answers or explanations."}
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that generates quizzes."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        st.error(f"Error generating quiz: {e}")
+        return None
+
+
+def create_pdf(content, filename):
+    """
+    Creates a PDF file from the quiz content.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in content.split("\n"):
+        pdf.cell(0, 10, line, ln=True)
+    pdf.output(filename)
+
+
+def create_doc(content, filename):
+    """
+    Creates a DOCX file from the quiz content.
+    """
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    doc.save(filename)
+
+
+
+
+
+#Generate Lesson Plan
+def Lesson_Plans():
+    create_lesson_plan()
+
+
+# Generate Image Based Questions
+def Image_Based_Questions():
+    generate_image_based_questions()
+
+#Generate Paragraph based Questions
+#def Paragraph_Based_Question():
+
+#Generate Classroom Discussion Prompt
+def Classroom_Discussion_Prompter():
+    st.title("Classroom Discussion Prompter")
+    st.markdown("### Make your lessons more interactive with creative discussion prompts!")
+
+    try:
+        # Predefined options for boards, mediums, and subjects
+        predefined_boards = ["CBSE", "ICSE", "State Board", "IB", "Cambridge", "Others"]
+        predefined_mediums = ["English", "Kiswahili", "Hindi", "Gujarati", "French", "Others"]
+        predefined_subjects = ["Mathematics", "Science", "History", "Geography", "English", "Others"]
+
+        # User inputs
+        topic = st.text_input("Enter the lesson topic:", placeholder="e.g., Photosynthesis, World War II, Algebra")
+        grade = st.selectbox(
+            "Select the grade level:",
+            ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7",
+             "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+        )
+
+        # Dropdown for subject with "Add Another" functionality
+        subject = st.selectbox("Select the subject:", predefined_subjects + ["Add Another"])
+        if subject == "Add Another":
+            subject = st.text_input("Enter your subject:")
+
+        # Dropdown fields for Board and Medium
+        board = st.selectbox("Select the education board:", predefined_boards)
+        if board == "Others":
+            board = st.text_input("Enter your board name:")
+
+        medium = st.selectbox("Select the medium of instruction:", predefined_mediums)
+        if medium == "Others":
+            medium = st.text_input("Enter your preferred medium:")
+
+        # Generate discussion prompts
+        if st.button("Generate Discussion Prompts"):
+            if topic and grade and subject and board and medium:
+                with st.spinner("Generating discussion prompts..."):
+                    try:
+                        # Call a function to generate discussion prompts
+                        prompts = generate_discussion_prompts(topic, grade, subject, board, medium)
+                        
+                        if prompts.strip():
+                            st.subheader("Suggested Discussion Prompts:")
+                            st.write(prompts)
+
+                            # Save prompts as DOCX and provide a download option
+                            docx_file = create_answer_sheet_docx(prompts)
+                            st.download_button(
+                                label="Download as DOCX",
+                                data=docx_file,
+                                file_name=f"{topic}_Discussion_Prompts.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            )
+                        else:
+                            st.error("Failed to generate valid discussion prompts.")
+                    except Exception as e:
+                        st.error(f"An error occurred during prompt generation: {e}")
+            else:
+                st.error("Please fill in all the fields to generate discussion prompts.")
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+
+
+
+# Module2
+ # Add logic for assessment assistance
+def Assessment_Assistant():
+    # Add logic for answer sheet generation   
+    student_assessment_assistant()
+
+
+
+def Generate_Answer_Sheets():
+    # Add logic for marking scheme generation
+    st.title("Answer Sheet Generator")
+    st.markdown("""
+        1. Upload your question paper in .docx format.
+        2. The AI will generate **detailed answers** for each question.
+        3. View the generated answer sheet on screen.
+        4. Download the generated answer sheet as a .docx or .pdf file.
+    """)
+
+    # File uploader for the question paper
+    uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
+
+    if uploaded_file and st.button("Generate Detailed Answer Sheet"):
+        try:
+            # Read the content of the uploaded question paper
+            question_paper_content = read_docx(uploaded_file)
+
+            if not question_paper_content.strip():
+                st.error("The uploaded question paper appears to be empty.")
+                return
+
+            # Generate detailed answer sheet content
+            answer_sheet_content = generate_detailed_answer_sheet(question_paper_content)
+
+            if answer_sheet_content:
+                # Display the answer sheet content on the screen
+                st.subheader("Generated Answer Sheet:")
+                st.write(answer_sheet_content)
+
+                # Create downloadable .docx file
+                docx_file = create_answer_sheet_docx(answer_sheet_content)
+                st.download_button(
+                    "Download Detailed Answer Sheet (DOCX)",
+                    data=docx_file,
+                    file_name="Detailed_Answer_Sheet.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+
+            else:
+                st.error("Failed to generate the detailed answer sheet.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+
+
+# Placeholder for read_docx function
+def read_docx(file):
+    """
+    Reads the content of a .docx file and returns it as a string.
+    """
+    try:
+        doc = Document(file)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except Exception as e:
+        raise Exception(f"Error reading DOCX file: {e}")
+
+
+    # Placeholder for generate_detailed_answer_sheet function
+    def generate_detailed_answer_sheet(question_paper_content):
+        """
+        Generates a detailed answer sheet based on the question paper content.
+        """
+        prompt = f"Provide detailed answers for the following questions:\n{question_paper_content}"
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant for generating answer sheets."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response['choices'][0]['message']['content']
+        except Exception as e:
+            raise Exception(f"Error generating detailed answer sheet: {e}")
+
+
+# Placeholder for create_answer_sheet_docx function
+def create_answer_sheet_docx(content):
+    """
+    Creates a DOCX file from the provided content.
+    """
+    try:
+        doc = Document()
+        for line in content.split("\n"):
+            doc.add_paragraph(line)
+        doc_file = io.BytesIO()
+        doc.save(doc_file)
+        doc_file.seek(0)
+        return doc_file
+    except Exception as e:
+        raise Exception(f"Error creating DOCX file: {e}")
+
+
+def Marking_Scheme():
+    # Add logic for analyzing reports
+    st.title("Marking Scheme Generator")
+    st.markdown("""
+        1. Upload your question paper in .docx format.
+        2. The AI will generate **detailed answers** and a **step-by-step marking scheme**.
+        3. View the content on the screen and download it as a **DOCX** or **PDF** file.
+    """)
+
+    # File uploader for question paper
+    uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
+
+    if uploaded_file and st.button("Generate Answer Sheet & Marking Scheme"):
+        with st.spinner("Generating detailed answers and marking scheme..."):
+            try:
+                # Read the uploaded question paper
+                question_paper_content = read_docx(uploaded_file)
+
+                if not question_paper_content.strip():
+                    st.error("The uploaded question paper appears to be empty.")
+                    return
+
+                # Generate detailed answers and marking scheme
+                detailed_content = generate_detailed_answers_with_marking_scheme(question_paper_content)
+
+                if detailed_content:
+                    # Display the content on the screen
+                    st.subheader("Generated Answer Sheet and Marking Scheme:")
+                    st.write(detailed_content)
+
+                    # Create downloadable DOCX file
+                    docx_file = create_answer_sheet_docx(detailed_content)
+                    st.download_button(
+                        label="Download Answer Sheet with Marking Scheme (DOCX)",
+                        data=docx_file,
+                        file_name="Detailed_Answer_Sheet_with_Marking_Scheme.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
+                else:
+                    st.error("Failed to generate the detailed answers and marking scheme.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+
+# Placeholder for read_docx function
+def read_docx(file):
+    """
+    Reads the content of a .docx file and returns it as a string.
+    """
+    try:
+        doc = Document(file)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except Exception as e:
+        raise Exception(f"Error reading DOCX file: {e}")
+
+
+# Placeholder for generate_detailed_answers_with_marking_scheme function
+def generate_detailed_answers_with_marking_scheme(question_paper_content):
+    """
+    Generates detailed answers and a marking scheme based on the question paper content.
+    """
+    prompt = f"""
+    Generate detailed answers and a marking scheme for the following question paper:
+    {question_paper_content}
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for generating marking schemes."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        raise Exception(f"Error generating marking scheme: {e}")
+
+
+# Placeholder for create_answer_sheet_docx function
+def create_answer_sheet_docx(content):
+    """
+    Creates a DOCX file from the provided content.
+    """
+    try:
+        doc = Document()
+        for line in content.split("\n"):
+            doc.add_paragraph(line)
+        doc_file = io.BytesIO()
+        doc.save(doc_file)
+        doc_file.seek(0)
+        return doc_file
+    except Exception as e:
+        raise Exception(f"Error creating DOCX file: {e}")
+
+
+def Analyze_Reports():
+    report_analysis_with_openai()
+
+
+#Module3
+
+# Add logic for curriculum generation
+def Curriculum_Generator():
+    st.title("Curriculum Generator")
+
+    # Predefined options for Board, Grade, and Subject
+    predefined_boards = ["CBSE", "ICSE", "IB", "State Board", "Others"]
+    predefined_grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"]
+    predefined_subjects = ["Mathematics", "Science", "History", "Others"]
+
+    # Board selection with "Others" handling
+    board = st.selectbox("Select Board", predefined_boards)
+    if board == "Others":
+        board = st.text_input("Enter Board Name:")
+
+    # Grade selection with "Others" handling
+    grade = st.selectbox("Select Grade", predefined_grades)
+    if grade == "Others":
+        grade = st.text_input("Enter Grade/Level:")
+
+    # Subject selection with "Others" handling
+    subject = st.selectbox("Select Subject", predefined_subjects)
+    if subject == "Others":
+        subject = st.text_input("Enter Subject Name:")
+
+    # Generate Curriculum
+    if st.button("Generate Curriculum"):
+        if board.strip() and grade.strip() and subject.strip():
+            with st.spinner("Generating curriculum..."):
+                try:
+                    # Call OpenAI API to generate the curriculum
+                    curriculum = call_openai_api(
+                        f"Generate a detailed curriculum for {subject} for {board}, {grade}.",
+                        max_tokens=1500,
+                    )
+
+                    if curriculum.strip():
+                        # Display the curriculum on the screen
+                        st.subheader("Generated Curriculum")
+                        for line in curriculum.split("\n"):  # Ensure long lines are broken
+                            st.write(line)
+
+                        # Create downloadable DOCX file
+                        docx_file = create_answer_sheet_docx(curriculum)
+
+                        # Provide download button
+                        st.download_button(
+                            label="Download Curriculum (DOCX)",
+                            data=docx_file,
+                            file_name=f"{board}_{grade}_{subject}_Curriculum.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        st.error("Failed to generate a valid curriculum. Please try again.")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+        else:
+            st.error("Please fill in all the required fields.")
+
+def Alignment_Checker():
+    st.title("Curriculum Alignment Checker")
+
+    # User inputs for Board, Subject, and Class/Grade
+    board = st.selectbox("Select Board", ["CBSE", "ICSE", "IGCSE", "State Board", "Enter Manually"])
+    if board == "Enter Manually":
+        board = st.text_input("Enter Board Name")
+
+    subject = st.selectbox("Select Subject", ["Mathematics", "Science", "English", "Social Studies", "Enter Manually"])
+    if subject == "Enter Manually":
+        subject = st.text_input("Enter Subject Name")
+
+    class_level = st.selectbox("Select Class/Grade", [f"Class {i}" for i in range(1, 13)] + ["Enter Manually"])
+    if class_level == "Enter Manually":
+        class_level = st.text_input("Enter Class/Grade")
+
+    # File upload inputs
+    st.write("Upload the Assignment, Lesson Plan, or Question Paper:")
+    assignment_file = st.file_uploader("Upload DOCX file", type=["docx"])
+
+    st.write("Upload the Curriculum File (Optional):")
+    curriculum_file = st.file_uploader("Upload Curriculum DOCX file", type=["docx"])
+
+    # Generate Alignment Report
+    if st.button("Check Curriculum Alignment"):
+        try:
+            # Extract text from uploaded files
+            assignment_text = extract_text_from_docx(assignment_file) if assignment_file else ""
+            curriculum_text = extract_text_from_docx(curriculum_file) if curriculum_file else ""
+
+            # Generate curriculum if not provided
+            if not curriculum_text and board.strip() and subject.strip() and class_level.strip():
+                curriculum_text = generate_curriculum(board, subject, class_level)
+
+            # Check alignment
+            if assignment_text and curriculum_text:
+                alignment_report = check_alignment(assignment_text, curriculum_text)
+
+                # Display alignment report on the screen
+                st.subheader("Alignment Report")
+                st.write(alignment_report)
+
+                # Create downloadable DOCX file
+                docx_file = create_answer_sheet_docx(alignment_report)
+
+                # Provide download button
+                st.download_button(
+                    label="Download Alignment Report (DOCX)",
+                    data=docx_file,
+                    file_name="alignment_report.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            else:
+                st.error("Please upload the necessary files or fill in all required fields.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+
+def call_openai_api(prompt, max_tokens=1500):
+    """
+    Calls OpenAI API with the given prompt and returns the generated text.
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        raise Exception(f"Error calling OpenAI API: {e}")
+
+
+def extract_text_from_docx(file):
+    """
+    Extracts text from a .docx file.
+    """
+    try:
+        doc = Document(file)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except Exception as e:
+        raise Exception(f"Error extracting text from DOCX file: {e}")
+
+
+def generate_curriculum(board, subject, class_level):
+    """
+    Generates a default curriculum based on board, subject, and class level.
+    """
+    prompt = f"Create a curriculum for {board} board in {subject} for {class_level}."
+    return call_openai_api(prompt)
+
+
+def check_alignment(assignment_text, curriculum_text):
+    """
+    Checks alignment between the assignment and curriculum text.
+    """
+    prompt = f"""
+    Compare the following assignment with the curriculum and identify alignment or gaps:
+    Assignment: {assignment_text}
+    Curriculum: {curriculum_text}
+    """
+    return call_openai_api(prompt)
+
+
+def create_answer_sheet_docx(content):
+    """
+    Creates a DOCX file from the provided content.
+    """
+    try:
+        doc = Document()
+        for line in content.split("\n"):
+            doc.add_paragraph(line)
+        doc_file = io.BytesIO()
+        doc.save(doc_file)
+        doc_file.seek(0)
+        return doc_file
+    except Exception as e:
+        raise Exception(f"Error creating DOCX file: {e}")
+
+
+    
+#Module4
+ # Add logic for text generation
+def Text_Generation():
+    st.title("AI Writing Assistant")
+
+    # Input fields for prompt, tone, and length
+    prompt = st.text_area("Enter your prompt for text generation:")
+    tone = st.selectbox("Select Tone", ["Formal", "Casual", "Creative", "Professional"])
+    length = st.slider("Select Content Length", 50, 1000, step=50)
+
+    # Generate text button
+    if st.button("Generate Text"):
+        if prompt.strip():
+            try:
+                # Call OpenAI API to generate text
+                generated_text = call_openai_api(
+                    f"Tone: {tone}\nLength: {length} words\nPrompt: {prompt}"
+                )
+                if generated_text.strip():
+                    st.subheader("Generated Text:")
+                    st.write(generated_text)
+                else:
+                    st.error("No text was generated. Please try again with a different prompt.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+        else:
+            st.error("Please enter a prompt for text generation.")
+def Text_Generation():
+    st.title("AI Writing Assistant")
+
+    # Input fields for prompt, tone, and length
+    prompt = st.text_area("Enter your prompt for text generation:")
+    tone = st.selectbox("Select Tone", ["Formal", "Casual", "Creative", "Professional"])
+    length = st.slider("Select Content Length", 50, 1000, step=50)
+
+    # Generate text button
+    if st.button("Generate Text"):
+        if prompt.strip():
+            try:
+                # Call OpenAI API to generate text
+                generated_text = call_openai_api(
+                    f"Tone: {tone}\nLength: {length} words\nPrompt: {prompt}"
+                )
+                if generated_text.strip():
+                    st.subheader("Generated Text:")
+                    st.write(generated_text)
+                else:
+                    st.error("No text was generated. Please try again with a different prompt.")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+        else:
+            st.error("Please enter a prompt for text generation.")
+
+def Advanced_Editing():
+    st.title("Advanced Text Editing")
+
+    # Input fields for text and editing type
+    text = st.text_area("Enter Text for Editing:")
+    option = st.selectbox("Choose Editing Type", ["Grammar Check", "Rewrite", "Summarize"])
+
+    # Edit text button
+    if st.button("Edit Text"):
+        if text.strip():
+            try:
+                # Call OpenAI API for editing
+                edited_text = call_openai_api(
+                    f"Perform {option} on the following text:\n{text}", max_tokens=500
+                )
+
+                if edited_text.strip():
+                    st.subheader("Edited Text:")
+                    st.write(edited_text)
+
+                    # Create downloadable DOCX file
+                    try:
+                        docx_file = create_answer_sheet_docx(edited_text)
+                        st.download_button(
+                            label="Download Edited Text (DOCX)",
+                            data=docx_file,
+                            file_name="Edited_Text.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    except Exception as e:
+                        st.error(f"Error creating downloadable files: {e}")
+                else:
+                    st.error("The API returned an empty response. Please try again.")
+            except Exception as e:
+                st.error(f"An unexpected error occurred: {e}")
+
 
 
 def main_app():
@@ -1578,29 +2969,142 @@ def main_app():
                 .sidebar-title { font-size: 22px; color: #4B0082; margin-bottom: 15px; text-align: center; }
             </style>
         """, unsafe_allow_html=True)
-        st.sidebar.markdown("<div class='sidebar-title'>EduCreate Pro Dashboard</div>", unsafe_allow_html=True)
 
-        # Task Selection
-        task = st.sidebar.radio("Select Module", [
-            "Home",
-            "Create Educational Content",
-            "Create Lesson Plan",
-            "Student Assessment Assistant",
-            "Generate Image Based Questions",
-            "Analyze Report and Generate Graph",
-            "Text Generation",
-            "Curriculum Generator",
-            "Assignment Generator",
-            "Marking Scheme Generator",
-            "Alignment Checker",
-            "Advanced Editing",
-            "Generate Answer Sheet",
-            "Sample Paper Generator",
-            "Classroom Discussion Prompter",
-            "Subscription & Premium Features"
-        ])
+       # st.title("Educational Tools Hub")
+       # st.write("Welcome to the AI-powered educational tools platform! Use the sidebar to navigate through the modules.")
 
-        # Dynamic Theme Selection
+        # Sidebar task selection
+        task = st.sidebar.selectbox(
+            "Select a Module",
+            [
+                "Home",
+                "Educational Content Creation",
+                "Student Assessment & Evaluation",
+                "Curriculum & Alignment",
+                "Advanced Editing & Text Generation",
+            ]
+        )
+         
+        # Function to call OpenAI API based on selected model
+        def call_openai_api(prompt, max_tokens=1000):
+            response = openai.ChatCompletion.create(
+                model=ai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+            )
+            return response["choices"][0]["message"]["content"]
+
+        # Content based on selected module
+        if task == "Home":
+            show_home()
+            
+       
+        # Educational Content Creation
+        elif task == "Educational Content Creation":
+            subtask = st.sidebar.radio("Select a Submodule", [
+                "Generate Question Paper",
+                "Generate Sample Paper",
+                "Generate Assignment",
+                "Generate Quiz",
+                "Generate Lesson Plans",
+                "Generate Image-Based Questions",
+                "Generate Paragraph Based Question",
+                "Generate Classroom Discussion Prompter"
+            ])
+            if subtask == "Generate Question Paper":
+                #st.header("Question Paper Generator")
+                Question_Paper()
+
+            elif subtask == "Generate Sample Paper":
+               # st.header("Sample Paper Generator")
+                Sample_Paper()
+
+            elif subtask == "Generate Assignment":
+                #st.header("Assignment Generator")
+                Assignment()
+
+            elif subtask == "Generate Quiz":
+                #st.header("Quiz Generator")
+                Quiz()
+
+            elif subtask == "Generate Lesson Plans":
+                #st.header("Lesson Plan Generator")
+                Lesson_Plans()
+
+            elif subtask == "Generate Image-Based Questions":
+                #st.header("Image-Based Question Generator")
+                Image_Based_Questions()
+
+            elif subtask == "Generate Paragraph Based Question":
+                #st.header("Paragraph-Based Question Generator")
+                Paragraph_Based_Questions()
+
+            elif subtask == "Generate Classroom Discussion Prompter":
+                #st.header("Classroom Discussion Prompter")
+                Classroom_Discussion_Prompter()
+
+        # Student Assessment & Evaluation
+        elif task == "Student Assessment & Evaluation":
+            subtask = st.sidebar.radio("Select a Submodule", [
+                "Student Assessment Assistant",
+                "Generate Answer Sheets",
+                "Marking Scheme Generator",
+                "Analyze Reports",
+                "Grading",
+                "Performance Graph"
+            ])
+            if subtask == "Student Assessment Assistant":
+                #st.header("Student Assessment Assistant")
+                Assessment_Assistant()
+
+            elif subtask == "Generate Answer Sheets":
+                #st.header("Answer Sheet Generator")
+                Generate_Answer_Sheets()
+
+            elif subtask == "Marking Scheme Generator":
+                #st.header("Marking Scheme Generator")
+                Marking_Scheme()
+
+            elif subtask == "Analyze Reports":
+                #st.header("Assessment Report Analyzer")
+                Analyze_Reports()
+
+            elif subtask == "Grading":
+                grading()
+
+            elif subtask == "Performance Graph":
+                performance_graph()
+
+        # Curriculum & Alignment
+        elif task == "Curriculum & Alignment":
+            subtask = st.sidebar.radio("Select a Submodule", [
+                "Curriculum Generator",
+                "Alignment Checker"
+            ])
+            if subtask == "Curriculum Generator":
+                #st.header("Curriculum Generator")
+                Curriculum_Generator()
+
+            elif subtask == "Alignment Checker":
+                #st.header("Curriculum Alignment Checker")
+                Alignment_Checker()
+
+        # Advanced Editing & Text Generation
+        elif task == "Advanced Editing & Text Generation":
+
+            subtask = st.sidebar.radio("Select a Submodule", [
+                "Text Generation",
+                "Advanced Editing"
+            ])
+            if subtask == "Text Generation":
+                #st.header("Text Generator")
+                Text_Generation()
+
+            elif subtask == "Advanced Editing":
+                #st.header("Advanced Editing Tools")
+                Advanced_Editing()
+
+    # Dynamic Theme Selection
         theme = st.sidebar.selectbox(
             "Choose Theme", ["Default", "Dark", "Light", "Custom"]
         )
@@ -1642,273 +3146,8 @@ def main_app():
 
         # AI Model Selection
         ai_model = st.sidebar.radio("Choose AI Model", ["gpt-3.5-turbo", "gpt-4"])
-
-        # Function to call OpenAI API based on selected model
-        def call_openai_api(prompt, max_tokens=1000):
-            response = openai.ChatCompletion.create(
-                model=ai_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens,
-            )
-            return response["choices"][0]["message"]["content"]
-
-        # Content based on selected module
-        if task == "Home":
-            show_home()
-
-        elif task == "Create Educational Content":
-            st.info("Setting up Content Creator...")
-            create_educational_content()
-
-        elif task == "Create Lesson Plan":
-            st.info("Setting up Lesson Planner...")
-            create_lesson_plan()
-
-        elif task == "Student Assessment Assistant":
-            st.info("Setting up Assessment Assistant...")
-            student_assessment_assistant()
-
-        elif task == "Generate Image Based Questions":
-            st.info("Setting up Image-Based Question Generator...")
-            generate_image_based_questions()
-
-        elif task == "Analyze Report and Generate Graph":
-            st.info("Setting up Report Analysis Module...")
-            report_analysis_with_openai()
-
-        elif task == "Text Generation":
-            st.title("AI Writing Assistant")
-            prompt = st.text_area("Enter your prompt for text generation:")
-            tone = st.selectbox("Select Tone", ["Formal", "Casual", "Creative", "Professional"])
-            length = st.slider("Select Content Length", 50, 1000, step=50)
-
-            if st.button("Generate Text"):
-                generated_text = call_openai_api(
-                    f"Tone: {tone}\nLength: {length} words\nPrompt: {prompt}"
-                )
-                st.write(generated_text)
-
-        elif task == "Curriculum Generator":
-            st.title("Curriculum Generator")
-            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IB", "State Board", "Others"])
-            grade = st.selectbox("Select Grade", ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"])
-            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "History", "Others"])
-
-            if st.button("Generate Curriculum"):
-                curriculum = call_openai_api(
-                    f"Generate a detailed curriculum for {subject} for {board}, {grade}.",
-                    max_tokens=1500,
-                )
-                st.write(curriculum)
-
-        elif task == "Assignment Generator":
-            st.title("Assignment Generator")
-            # Select inputs
-            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IB", "State Board", "Others"])
-            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "English", "Others"])
-            grade = st.selectbox("Select Grade", ["Grade 1", "Grade 5", "Grade 10", "Grade 12", "Others"])
-            topic = st.text_input("Enter Topic (Optional)", placeholder="e.g., Algebra, Photosynthesis")
-            marks = st.number_input("Enter Maximum Marks", min_value=10, max_value=100, value=50)
-
-            if st.button("Generate Assignment"):
-                assignment_prompt = f"Generate an assignment for {subject} for {grade} worth {marks} marks."
-                if board:
-                    assignment_prompt += f" Follow the {board} curriculum."
-                if topic:
-                    assignment_prompt += f" Focus on the topic: {topic}."
-
-                assignment = call_openai_api(assignment_prompt, max_tokens=1500)
-                st.write(assignment)
-
-        elif task == "Marking Scheme Generator":
-            st.title("Marking Scheme Generator")
-            st.markdown("""
-                1. Upload your question paper in .docx format.
-                2. The AI will generate **detailed answers** and a **step-by-step marking scheme**.
-                3. Download the generated answer sheet and marking scheme as a .docx file.
-            """)
-
-            uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
-
-            if uploaded_file and st.button("Generate Answer Sheet & Marking Scheme"):
-                with st.spinner("Generating detailed answers and marking scheme..."):
-                    question_paper_content = read_docx(uploaded_file)
-
-                    if not question_paper_content.strip():
-                        st.error("The uploaded question paper appears to be empty.")
-                        return
-
-                    detailed_content = generate_detailed_answers_with_marking_scheme(question_paper_content)
-
-                    if detailed_content:
-                        answer_sheet_file = create_answer_sheet_docx(detailed_content)
-                        st.success("Answer sheet and marking scheme generated successfully!")
-                        st.download_button(
-                            label="Download Answer Sheet with Marking Scheme",
-                            data=answer_sheet_file,
-                            file_name="Detailed_Answer_Sheet_with_Marking_Scheme.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
-                    else:
-                        st.error("Failed to generate the detailed answers and marking scheme.")
-
-
-        elif task == "Alignment Checker":
-            st.title("Curriculum Alignment Checker")
-            board = st.selectbox("Select Board", ["CBSE", "ICSE", "IGCSE", "State Board", "Enter Manually"])
-            if board == "Enter Manually":
-                board = st.text_input("Enter Board Name")
-            
-            subject = st.selectbox("Select Subject", ["Mathematics", "Science", "English", "Social Studies", "Enter Manually"])
-            if subject == "Enter Manually":
-                subject = st.text_input("Enter Subject Name")
-            
-            class_level = st.selectbox("Select Class/Grade", [f"Class {i}" for i in range(1, 13)] + ["Enter Manually"])
-            if class_level == "Enter Manually":
-                class_level = st.text_input("Enter Class/Grade")
-
-            st.write("Upload the Assignment, Lesson Plan, or Question Paper:")
-            assignment_file = st.file_uploader("Upload DOCX file", type=["docx"])
-
-            st.write("Upload the Curriculum File (Optional):")
-            curriculum_file = st.file_uploader("Upload Curriculum DOCX file", type=["docx"])
-
-            if st.button("Check Curriculum Alignment"):
-                try:
-                    assignment_text = extract_text_from_docx(assignment_file) if assignment_file else ""
-                    curriculum_text = extract_text_from_docx(curriculum_file) if curriculum_file else ""
-
-                    if not curriculum_text:
-                        curriculum_text = generate_curriculum(board, subject, class_level)
-
-                    alignment_report = check_alignment(assignment_text, curriculum_text)
-                    st.subheader("Alignment Report")
-                    st.write(alignment_report)
-
-                    doc = Document()
-                    doc.add_heading("Curriculum Alignment Report", level=1)
-                    doc.add_paragraph(alignment_report)
-                    doc.save("alignment_report.docx")
-
-                    with open("alignment_report.docx", "rb") as file:
-                        st.download_button("Download Alignment Report", file, "alignment_report.docx")
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
-
-        elif task == "Advanced Editing":
-            st.title("Advanced Text Editing")
-            text = st.text_area("Enter Text for Editing:")
-            option = st.selectbox("Choose Editing Type", ["Grammar Check", "Rewrite", "Summarize"])
-
-            if st.button("Edit Text"):
-                try:
-                    edited_text = call_openai_api(
-                        f"Perform {option} on the following text:\n{text}", max_tokens=500
-                    )
-                    st.write(edited_text)
-                except Exception as e:
-                    st.error(f"Error during text editing: {e}")
-
-        elif task == "Generate Answer Sheet":
-            st.title("Answer Sheet Generator")
-            st.markdown("""
-                1. Upload your question paper in .docx format.
-                2. The AI will generate **detailed answers** for each question.
-                3. Download the generated answer sheet as a .docx file.
-            """)
-
-            uploaded_file = st.file_uploader("Upload Question Paper (.docx)", type=["docx"])
-
-            if uploaded_file and st.button("Generate Detailed Answer Sheet"):
-                try:
-                    question_paper_content = read_docx(uploaded_file)
-
-                    if not question_paper_content.strip():
-                        st.error("The uploaded question paper appears to be empty.")
-                        return
-
-                    answer_sheet_content = generate_detailed_answer_sheet(question_paper_content)
-
-                    if answer_sheet_content:
-                        answer_sheet_file = create_answer_sheet_docx(answer_sheet_content)
-                        st.success("Detailed answer sheet generated successfully!")
-                        st.download_button(
-                            "Download Detailed Answer Sheet",
-                            data=answer_sheet_file,
-                            file_name="Detailed_Answer_Sheet.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
-                    else:
-                        st.error("Failed to generate the detailed answer sheet.")
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
-
-
-
-        elif task == "Sample Paper Generator":
-            st.title("Board-Specific Sample Paper Generator")
-            predefined_boards = ["CBSE", "ICSE", "IB", "Cambridge", "State Board"]
-            predefined_subjects = ["Mathematics", "Science", "English", "History"]
-            predefined_grades = ["Grade 1", "Grade 5", "Grade 10", "Grade 12"]
-            predefined_mediums = ["English", "Hindi", "French"]
-
-            board = st.selectbox("Select Board:", predefined_boards + ["Other"])
-            if board == "Other":
-                board = st.text_input("Enter Board:")
-
-            subject = st.selectbox("Select Subject:", predefined_subjects + ["Other"])
-            if subject == "Other":
-                subject = st.text_input("Enter Subject:")
-
-            grade = st.selectbox("Select Grade:", predefined_grades + ["Other"])
-            if grade == "Other":
-                grade = st.text_input("Enter Grade:")
-
-            max_marks = st.number_input("Maximum Marks:", min_value=10, value=100)
-
-            if st.button("Generate Sample Paper"):
-                paper_content = generate_sample_paper(board, subject, grade, max_marks)
-                st.write(paper_content)
-
-        
-        
-         
-               
     
-        elif task == "Classroom Discussion Prompter":
-            st.title("Classroom Discussion Prompter")
-            st.markdown("### Make your lessons more interactive with creative discussion prompts!")
-
-    # User inputs
-            topic = st.text_input("Enter the lesson topic:", placeholder="e.g., Photosynthesis, World War II, Algebra")
-            grade = st.selectbox("Select the grade level:", ["Grade 1", "Grade 5", "Grade 8", "Grade 12"])
-            subject = st.selectbox("Select the subject:", ["Mathematics", "Science", "History", "Geography", "English", "Others"])
-
-            if st.button("Generate Discussion Prompts"):
-                if topic and grade and subject:
-                    with st.spinner("Generating discussion prompts..."):
-                        prompts = generate_discussion_prompts(topic, grade, subject)
-                        st.subheader("Suggested Discussion Prompts:")
-                        st.write(prompts)
-                else:
-                    st.error("Please fill in all the fields to generate discussion prompts.")
-
-        elif task == "Subscription & Premium Features":
-            st.title("Upgrade to Premium")
-            st.markdown("### Support advanced AI features by subscribing to our service.")
-            payment_gateway = st.radio("Choose Payment Method", ["Stripe", "PayPal"])
-
-            if st.button("Subscribe Now"):
-                try:
-                    if payment_gateway == "Stripe":
-                        st.markdown("[Subscribe with Stripe](https://stripe.com/)")
-                    elif payment_gateway == "PayPal":
-                        st.markdown("[Subscribe with PayPal](https://paypal.com/)")
-                except Exception as e:
-                    st.error(f"Error in Subscription: {e}")
-        
-
-
+    
     except KeyError as e:
         st.error(f"Configuration error: {e}. Please log in again.")
     except Exception as e:
@@ -1923,23 +3162,25 @@ def main_app():
 
 
 
+import streamlit as st
+
 def landing_page():
-    # Set page configuration for a better display on landing page
-    st.set_page_config(page_title="EduPro - Transform Your Teaching Experience", page_icon="📘")
-    
-    # Apply custom CSS for the landing page design
+    # Set page configuration for better display
+    st.set_page_config(page_title="EduPro - Transform Your Teaching Experience", page_icon="📘", layout="wide")
+
+    # Apply custom CSS for the landing page
     st.markdown(
         """
         <style>
             /* Centered main container styling */
             .container {
                 text-align: center;
-                margin-top: 15%;
+                margin-top: 5%; /* Reduced top margin for better alignment */
                 max-width: 800px;
                 margin-left: auto;
                 margin-right: auto;
             }
-            
+
             /* Logo styling */
             .logo {
                 font-size: 36px;
@@ -1962,7 +3203,7 @@ def landing_page():
                 font-weight: 800;
                 color: #4B0082;
                 line-height: 1.2;
-                margin-bottom: 10px;
+                margin-bottom: 20px;
                 font-family: 'Arial', sans-serif;
             }
             .highlight {
@@ -1982,10 +3223,8 @@ def landing_page():
             .button-container {
                 display: flex;
                 justify-content: center;
-                gap: 20px;
                 margin-top: 30px;
             }
-
             /* Button styling */
             .stButton>button {
                 font-size: 18px;
@@ -1998,70 +3237,525 @@ def landing_page():
                 font-family: 'Arial', sans-serif;
             }
             /* Primary button style */
-            .stButton>button.primary {
+            .stButton>button {
                 background: linear-gradient(90deg, #5A5DF5, #9933FF);
                 color: white;
                 font-weight: 700;
                 box-shadow: 0px 6px 15px rgba(90, 93, 245, 0.4);
             }
-            .stButton>button.primary:hover {
+            .stButton>button:hover {
                 background: linear-gradient(90deg, #4A4CE3, #802DD4);
                 box-shadow: 0px 8px 18px rgba(90, 93, 245, 0.6);
             }
-            /* Secondary button style */
-            .stButton>button.secondary {
-                background-color: #E0E1FF;
-                color: #5A5DF5;
-                font-weight: 700;
-                box-shadow: 0px 4px 10px rgba(224, 225, 255, 0.6);
+
+            /* Category cards */
+            .category-cards {
+                display: flex;
+                justify-content: center;
+                gap: 30px;
+                margin-top: 40px;
+                flex-wrap: wrap;
             }
-            .stButton>button.secondary:hover {
-                background-color: #D0D1F7;
-                box-shadow: 0px 6px 12px rgba(224, 225, 255, 0.8);
+            .category-card {
+                background-color: #F8F9FC;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+                width: 250px;
+                text-align: center;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .category-card:hover {
+                transform: translateY(-10px);
+                box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
+            }
+            .category-icon {
+                font-size: 40px;
+                color: #5A5DF5;
+                margin-bottom: 10px;
+            }
+            .category-title {
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 5px;
+                color: #333;
+            }
+            .category-description {
+                font-size: 14px;
+                color: #666;
             }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # Main content for the landing page
-    st.markdown('<div class="container">', unsafe_allow_html=True)
-    
-    # Logo
-    st.markdown('<div class="logo"><span class="logo-icon">📘</span>EduPro</div>', unsafe_allow_html=True)
-    
-    # Headline with highlighted text
+    # Landing page content
     st.markdown(
         """
-        <div class="headline">
-            Transform your<br><span class="highlight">teaching experience</span>
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">📘</span> EduPro
+            </div>
+            <div class="headline">
+                Transform Your <span class="highlight">Teaching Experience</span>
+            </div>
+            <div class="subtext">
+                Empowering educators with cutting-edge tools to create engaging content, evaluate students effectively, and streamline classroom activities.
+            </div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
-    
-    # Subtext below the headline
-    st.markdown(
-        '<div class="subtext">Create personalized assessments, generate content, and track student progress with our AI-powered educational platform.</div>',
-        unsafe_allow_html=True
-    )
-    
-    # Button container with primary and secondary buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Get started ➔", key="get_started", help="Click to proceed to the login page"):
-            st.session_state['page'] = 'login'  # Set page to 'login' to navigate to login page
-    with col2:
-        st.button("Learn more", key="learn_more", help="Click to learn more about EduPro")
 
+    # Button container
+    st.markdown('<div class="button-container">', unsafe_allow_html=True)
+    if st.button("Get started ➔", key="get_started", help="Click to proceed to the login page"):
+        st.session_state['page'] = 'login'  # Set page to 'login' to navigate to login page
     st.markdown('</div>', unsafe_allow_html=True)
 
-    
-# Ensure that session state for 'page' is initialized
+    # Categories Section
+    st.markdown(
+        """
+        <div class="category-cards">
+            <div class="category-card">
+                <div class="category-icon">📚</div>
+                <div class="category-title">Content Creation</div>
+                <div class="category-description">Design quizzes, lessons, and materials with ease.</div>
+            </div>
+            <div class="category-card">
+                <div class="category-icon">📝</div>
+                <div class="category-title">Student Assessments</div>
+                <div class="category-description">Evaluate student performance with precision.</div>
+            </div>
+            <div class="category-card">
+                <div class="category-icon">📊</div>
+                <div class="category-title">Report Analysis</div>
+                <div class="category-description">Generate insightful reports and visualizations.</div>
+            </div>
+            <div class="category-card">
+                <div class="category-icon">💡</div>
+                <div class="category-title">AI Assistance</div>
+                <div class="category-description">Leverage AI to make informed decisions effortlessly.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Ensure session state for 'page' is initialized
 if 'page' not in st.session_state:
     st.session_state['page'] = 'home'  # Set a default value, e.g., 'home'
 
-# Main function to handle navigation
+
+
+
+import pandas as pd
+import streamlit as st
+
+# Grading logic based on percentage
+def calculate_grade(percentage):
+    if percentage >= 90:
+        return "A+"
+    elif percentage >= 80:
+        return "A"
+    elif percentage >= 70:
+        return "B"
+    elif percentage >= 60:
+        return "C"
+    elif percentage >= 50:
+        return "D"
+    else:
+        return "F"
+
+# Comment logic based on grade
+def get_comment(grade):
+    comments = {
+        "A+": "Excellent performance!",
+        "A": "Very good! Keep it up.",
+        "B": "Good effort, aim higher!",
+        "C": "Needs improvement.",
+        "D": "Work harder!",
+        "F": "Failed. Please focus on weak areas."
+    }
+    return comments.get(grade, "No comment")
+
+# Process grading for students
+def process_grading(df):
+    try:
+        # Ensure required columns are present
+        required_columns = ["Name", "Subject", "Score", "Maximum Marks"]
+        for col in required_columns:
+            if col not in df.columns:
+                raise ValueError(f"Missing required column: {col}")
+
+        # Prepare results for both overall and subject-level details
+        results = []
+
+        # Process data for each student and subject
+        for name, group in df.groupby("Name"):
+            total_score = group["Score"].sum()
+            total_max_marks = group["Maximum Marks"].sum()
+            overall_percentage = (total_score / total_max_marks) * 100
+            overall_grade = calculate_grade(overall_percentage)
+            overall_comment = get_comment(overall_grade)
+
+            # Add subject-level details
+            for _, row in group.iterrows():
+                subject_percentage = (row["Score"] / row["Maximum Marks"]) * 100
+                subject_grade = calculate_grade(subject_percentage)
+                results.append({
+                    "Name": name,
+                    "Subject": row["Subject"],
+                    "Score": row["Score"],
+                    "Maximum Marks": row["Maximum Marks"],
+                    "Subject Percentage": round(subject_percentage, 2),
+                    "Subject Grade": subject_grade,
+                    "Overall Percentage": round(overall_percentage, 2),
+                    "Overall Grade": overall_grade,
+                    "Overall Comment": overall_comment
+                })
+
+        return pd.DataFrame(results)
+
+    except Exception as e:
+        st.error(f"Error processing grading: {e}")
+        return None
+
+# Streamlit app
+def grading():
+    st.title("Automated Grading System with Maximum Marks per Subject")
+    st.write("Upload an Excel or CSV file containing student data with maximum marks for each subject to calculate grades.")
+
+    # File uploader
+    uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["csv", "xlsx"])
+
+    if uploaded_file:
+        try:
+            # Read the uploaded file
+            if uploaded_file.name.endswith(".xlsx"):
+                df = pd.read_excel(uploaded_file)
+            else:
+                df = pd.read_csv(uploaded_file)
+
+            # Display the uploaded data
+            st.subheader("Uploaded Data")
+            st.write(df)
+
+            # Process grading
+            st.subheader("Grading Results")
+            results = process_grading(df)
+            if results is not None:
+                st.write(results)
+
+                # Option to download the results
+                st.subheader("Download Results")
+                output_file = "grading_results_with_subjects.xlsx"
+                results.to_excel(output_file, index=False)
+
+                with open(output_file, "rb") as file:
+                    st.download_button(
+                        label="Download Excel",
+                        data=file,
+                        file_name=output_file,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+
+        except Exception as e:
+            st.error(f"Error processing the file: {e}")
+
+
+
+
+
+
+
+import pandas as pd
+import streamlit as st
+import matplotlib.pyplot as plt
+from io import BytesIO
+
+# Grading logic based on percentage
+def calculate_grade(percentage):
+    if percentage >= 90:
+        return "A+"
+    elif percentage >= 80:
+        return "A"
+    elif percentage >= 70:
+        return "B"
+    elif percentage >= 60:
+        return "C"
+    elif percentage >= 50:
+        return "D"
+    else:
+        return "F"
+
+# Comment logic based on grade
+def get_comment(grade):
+    comments = {
+        "A+": "Excellent performance!",
+        "A": "Very good! Keep it up.",
+        "B": "Good effort, aim higher!",
+        "C": "Needs improvement.",
+        "D": "Work harder!",
+        "F": "Failed. Please focus on weak areas."
+    }
+    return comments.get(grade, "No comment")
+
+# Process grading for students
+def process_grading(df):
+    try:
+        # Ensure required columns are present
+        required_columns = ["Name", "Subject", "Score", "Maximum Marks"]
+        for col in required_columns:
+            if col not in df.columns:
+                raise ValueError(f"Missing required column: {col}")
+
+        # Initialize results
+        overall_results = []
+        subject_results = []
+
+        for name, group in df.groupby("Name"):
+            total_score = group["Score"].sum()
+            total_max_marks = group["Maximum Marks"].sum()
+            overall_percentage = (total_score / total_max_marks) * 100
+            overall_grade = calculate_grade(overall_percentage)
+            overall_comment = get_comment(overall_grade)
+
+            # Store overall results
+            overall_results.append({
+                "Name": name,
+                "Total Score": total_score,
+                "Total Maximum Marks": total_max_marks,
+                "Overall Percentage": round(overall_percentage, 2),
+                "Overall Grade": overall_grade,
+                "Overall Comment": overall_comment
+            })
+
+            # Store subject-level results
+            for _, row in group.iterrows():
+                subject_percentage = (row["Score"] / row["Maximum Marks"]) * 100
+                subject_grade = calculate_grade(subject_percentage)
+                subject_results.append({
+                    "Name": name,
+                    "Subject": row["Subject"],
+                    "Score": row["Score"],
+                    "Maximum Marks": row["Maximum Marks"],
+                    "Percentage": round(subject_percentage, 2),
+                    "Grade": subject_grade
+                })
+
+        return pd.DataFrame(overall_results), pd.DataFrame(subject_results)
+
+    except Exception as e:
+        st.error(f"Error processing grading: {e}")
+        return None, None
+
+# Plot a graph for subject vs. percentage for a chosen student
+def plot_subject_vs_percentage(subject_data, student_name):
+    student_data = subject_data[subject_data["Name"] == student_name]
+    if student_data.empty:
+        st.warning(f"No data available for {student_name}.")
+        return None
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(student_data["Subject"], student_data["Percentage"], color="skyblue", edgecolor="black")
+    plt.xlabel("Subject")
+    plt.ylabel("Percentage")
+    plt.title(f"Performance of {student_name}")
+    plt.ylim(0, 100)
+    plt.xticks(rotation=45)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.clf()
+    return buf
+
+# Plot a comparative graph for subject vs. average percentage across all students
+def plot_subject_vs_avg_percentage(subject_data):
+    avg_percentage = subject_data.groupby("Subject")["Percentage"].mean()
+    if avg_percentage.empty:
+        st.warning("No data available for subjects.")
+        return None
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(avg_percentage.index, avg_percentage.values, color="lightgreen", edgecolor="black")
+    plt.xlabel("Subject")
+    plt.ylabel("Average Percentage")
+    plt.title("Average Performance per Subject")
+    plt.ylim(0, 100)
+    plt.xticks(rotation=45)
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.clf()
+    return buf
+
+# Streamlit app
+def performance_graph():
+    st.title("Automated Grading System with Graphical Analysis")
+    st.write("Upload an Excel or CSV file containing student data with maximum marks for each subject to calculate grades and visualize performance.")
+
+    # File uploader
+    uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["csv", "xlsx"])
+
+    if uploaded_file:
+        try:
+            # Read the uploaded file
+            if uploaded_file.name.endswith(".xlsx"):
+                df = pd.read_excel(uploaded_file)
+            else:
+                df = pd.read_csv(uploaded_file)
+
+            # Display the uploaded data
+            st.subheader("Uploaded Data")
+            st.write(df)
+
+            # Process grading
+            st.subheader("Grading Results")
+            overall_results, subject_results = process_grading(df)
+            if overall_results is not None and subject_results is not None:
+                st.write(overall_results)
+
+                # Allow download of detailed results
+                st.subheader("Download Grading Results")
+                output_file = BytesIO()
+                with pd.ExcelWriter(output_file) as writer:
+                    overall_results.to_excel(writer, index=False, sheet_name="Overall Results")
+                    subject_results.to_excel(writer, index=False, sheet_name="Subject Results")
+                output_file.seek(0)
+                st.download_button(
+                    label="Download Results",
+                    data=output_file,
+                    file_name="grading_results.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+                # Graph dropdown selection
+                st.subheader("Visualizations")
+                graph_option = st.selectbox("Select a Graph Type", ["Individual Student Performance", "Average Performance per Subject"])
+
+                if graph_option == "Individual Student Performance":
+                    selected_student = st.selectbox("Select a student to view their performance:", overall_results["Name"].unique())
+                    if selected_student:
+                        buf = plot_subject_vs_percentage(subject_results, selected_student)
+                        if buf:
+                            st.image(buf, caption=f"Performance of {selected_student}", use_column_width=True)
+                            st.download_button(
+                                label="Download Graph (Individual Student)",
+                                data=buf,
+                                file_name=f"{selected_student}_performance.png",
+                                mime="image/png"
+                            )
+
+                elif graph_option == "Average Performance per Subject":
+                    buf_avg = plot_subject_vs_avg_percentage(subject_results)
+                    if buf_avg:
+                        st.image(buf_avg, caption="Average Performance per Subject", use_column_width=True)
+                        st.download_button(
+                            label="Download Graph (All Students)",
+                            data=buf_avg,
+                            file_name="average_subject_performance.png",
+                            mime="image/png"
+                        )
+
+        except Exception as e:
+            st.error(f"Error processing the file: {e}")
+
+
+
+
+# Function to generate questions using OpenAI
+def generate_questions(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an educational content creator."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response["choices"][0]["message"]["content"]
+    except Exception as e:
+        st.error(f"Error generating questions: {e}")
+        return None
+
+# Function to create a DOCX file
+def create_docx(content, filename="questions.docx"):
+    doc = Document()
+    for line in content.split("\n"):
+        doc.add_paragraph(line)
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+# Streamlit App
+def Pragraph_Based_Questions():
+    st.title("Paragraph-Based Question Generator")
+    st.write("Generate educational questions based on input parameters.")
+
+    # Inputs for question generation
+    boards = ["CBSE", "ICSE", "State Board", "IB", "Others"]
+    classes = [f"Class {i}" for i in range(1, 13)]
+    subjects = ["Mathematics", "Science", "English", "History", "Geography", "Others"]
+    question_types = ["True/False", "Yes/No", "Short Answers", "Very Short Answers", "Mixed"]
+    mediums = ["English", "Hindi", "Others"]
+
+    board = st.selectbox("Select Board", boards)
+    if board == "Others":
+        board = st.text_input("Enter Board Name:")
+
+    grade = st.selectbox("Select Class", classes)
+    subject = st.selectbox("Select Subject", subjects)
+    if subject == "Others":
+        subject = st.text_input("Enter Subject Name:")
+
+    topic = st.text_input("Enter Topic", placeholder="E.g., Photosynthesis, Algebra")
+    question_type = st.selectbox("Select Question Type", question_types)
+    medium = st.selectbox("Select Medium of Instruction", mediums)
+    if medium == "Others":
+        medium = st.text_input("Enter Medium:")
+
+    num_questions = st.number_input("Enter Number of Questions", min_value=1, max_value=50, step=1)
+    max_marks = st.number_input("Enter Maximum Marks (Optional)", min_value=1, step=1, value=1)
+
+    include_answers = st.radio("Include Answers in the Questions?", ["Yes", "No"]) == "Yes"
+
+    # Generate questions button
+    if st.button("Generate Questions"):
+        if not all([board, grade, subject, topic, question_type, medium]):
+            st.warning("Please fill in all the required fields.")
+        else:
+            # Prepare the prompt
+            prompt = f"""
+            Generate {num_questions} {question_type} questions for {subject} for {grade} under the {board} board.
+            The topic is "{topic}", and the medium of instruction is {medium}.
+            {"Include answers for each question." if include_answers else "Do not include answers."}
+            {"The total marks should not exceed " + str(max_marks) + "." if max_marks > 0 else ""}
+            """
+
+            with st.spinner("Generating questions..."):
+                questions = generate_questions(prompt)
+
+                if questions:
+                    st.subheader("Generated Questions")
+                    st.write(questions)
+
+                    # Allow download as DOCX
+                    docx_file = create_docx(questions)
+                    st.download_button(
+                        label="Download Questions as DOCX",
+                        data=docx_file,
+                        file_name="generated_questions.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+
+
+
+
+
+
+
 # Main function to handle page navigation
 def main():
     if st.session_state['page'] == 'home':
@@ -2072,6 +3766,18 @@ def main():
         main_app()
     else:
         st.error("An error occurred. Please refresh the page.")
+
+def call_openai_api(prompt, max_tokens=1500):
+    """
+    Calls OpenAI API with the given prompt and returns the generated content.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens
+    )
+    return response["choices"][0]["message"]["content"]
+
 
 if __name__ == "__main__":
     main()
