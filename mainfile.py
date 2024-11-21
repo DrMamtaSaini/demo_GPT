@@ -3664,14 +3664,35 @@ def performance_graph():
 
 
 
-# Function to generate questions using OpenAI
-def generate_questions(prompt):
+import streamlit as st
+from docx import Document
+from io import BytesIO
+import openai
+
+# Function to generate a paragraph using OpenAI
+def generate_paragraph(prompt):
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are an educational content creator."},
                 {"role": "user", "content": prompt},
+            ],
+        )
+        return response["choices"][0]["message"]["content"]
+    except Exception as e:
+        st.error(f"Error generating paragraph: {e}")
+        return None
+
+# Function to generate questions using OpenAI
+def paragraph_questions(paragraph, question_prompt, medium):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"You are an educational content creator creating questions in {medium}."},
+                {"role": "user", "content": f"Here is the paragraph: {paragraph}"},
+                {"role": "user", "content": question_prompt},
             ],
         )
         return response["choices"][0]["message"]["content"]
@@ -3690,9 +3711,9 @@ def create_docx(content, filename="questions.docx"):
     return buffer
 
 # Streamlit App
-def Pragraph_Based_Questions():
-    st.title("Paragraph-Based Question Generator")
-    st.write("Generate educational questions based on input parameters.")
+def Paragraph_Based_Questions():
+    st.title("Paragraph and Question Generator")
+    st.write("Generate a paragraph and corresponding questions based on input parameters.")
 
     # Inputs for question generation
     boards = ["CBSE", "ICSE", "State Board", "IB", "Others"]
@@ -3721,32 +3742,45 @@ def Pragraph_Based_Questions():
 
     include_answers = st.radio("Include Answers in the Questions?", ["Yes", "No"]) == "Yes"
 
-    # Generate questions button
-    if st.button("Generate Questions"):
+    # Generate paragraph and questions button
+    if st.button("Generate Paragraph and Questions"):
         if not all([board, grade, subject, topic, question_type, medium]):
             st.warning("Please fill in all the required fields.")
         else:
-            # Prepare the prompt
-            prompt = f"""
-            Generate {num_questions} {question_type} questions for {subject} for {grade} under the {board} board.
-            The topic is "{topic}", and the medium of instruction is {medium}.
-            {"Include answers for each question." if include_answers else "Do not include answers."}
-            {"The total marks should not exceed " + str(max_marks) + "." if max_marks > 0 else ""}
+            # Prepare the paragraph prompt
+            paragraph_prompt = f"""
+            Generate an educational paragraph for {subject} for {grade} under the {board} board.
+            The topic is "{topic}" and the medium of instruction is {medium}.
             """
 
-            with st.spinner("Generating questions..."):
-                questions = generate_questions(prompt)
+            with st.spinner("Generating paragraph..."):
+                paragraph = generate_paragraph(paragraph_prompt)
+
+            if paragraph:
+                st.subheader("Generated Paragraph")
+                st.write(paragraph)
+
+                # Prepare the question prompt
+                question_prompt = f"""
+                Based on the provided paragraph, generate {num_questions} {question_type} questions in {medium}.
+                {"Include answers for each question." if include_answers else "Do not include answers."}
+                {"The total marks should not exceed " + str(max_marks) + "." if max_marks > 0 else ""}
+                """
+
+                with st.spinner("Generating questions..."):
+                    questions = paragraph_questions(paragraph, question_prompt, medium)
 
                 if questions:
                     st.subheader("Generated Questions")
                     st.write(questions)
 
                     # Allow download as DOCX
-                    docx_file = create_docx(questions)
+                    combined_content = f"Paragraph:\n\n{paragraph}\n\nQuestions:\n\n{questions}"
+                    docx_file = create_docx(combined_content)
                     st.download_button(
-                        label="Download Questions as DOCX",
+                        label="Download Paragraph and Questions as DOCX",
                         data=docx_file,
-                        file_name="generated_questions.docx",
+                        file_name="paragraph_and_questions.docx",
                         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     )
 
