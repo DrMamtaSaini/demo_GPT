@@ -3353,7 +3353,7 @@ import pandas as pd
 import streamlit as st
 
 # Grading logic based on percentage
-def calculate_grade(percentage):
+def calculate_grade_grading(percentage):
     if percentage >= 90:
         return "A+"
     elif percentage >= 80:
@@ -3368,7 +3368,7 @@ def calculate_grade(percentage):
         return "F"
 
 # Comment logic based on grade
-def get_comment(grade):
+def get_comment_grading(grade):
     comments = {
         "A+": "Excellent performance!",
         "A": "Very good! Keep it up.",
@@ -3380,7 +3380,7 @@ def get_comment(grade):
     return comments.get(grade, "No comment")
 
 # Process grading for students
-def process_grading(df):
+def process_grading_grading(df):
     try:
         # Ensure required columns are present
         required_columns = ["Name", "Subject", "Score", "Maximum Marks"]
@@ -3388,31 +3388,22 @@ def process_grading(df):
             if col not in df.columns:
                 raise ValueError(f"Missing required column: {col}")
 
-        # Prepare results for both overall and subject-level details
+        # Group data by student and subject
         results = []
-
-        # Process data for each student and subject
         for name, group in df.groupby("Name"):
-            total_score = group["Score"].sum()
-            total_max_marks = group["Maximum Marks"].sum()
-            overall_percentage = (total_score / total_max_marks) * 100
-            overall_grade = calculate_grade(overall_percentage)
-            overall_comment = get_comment(overall_grade)
-
-            # Add subject-level details
             for _, row in group.iterrows():
-                subject_percentage = (row["Score"] / row["Maximum Marks"]) * 100
-                subject_grade = calculate_grade(subject_percentage)
+                percentage = (row["Score"] / row["Maximum Marks"]) * 100
+                grade = calculate_grade_grading(percentage)
+                comment = get_comment_grading(grade)
+
                 results.append({
                     "Name": name,
                     "Subject": row["Subject"],
                     "Score": row["Score"],
                     "Maximum Marks": row["Maximum Marks"],
-                    "Subject Percentage": round(subject_percentage, 2),
-                    "Subject Grade": subject_grade,
-                    "Overall Percentage": round(overall_percentage, 2),
-                    "Overall Grade": overall_grade,
-                    "Overall Comment": overall_comment
+                    "Percentage": round(percentage, 2),
+                    "Grade": grade,
+                    "Comment": comment
                 })
 
         return pd.DataFrame(results)
@@ -3423,8 +3414,8 @@ def process_grading(df):
 
 # Streamlit app
 def grading():
-    st.title("Automated Grading System with Maximum Marks per Subject")
-    st.write("Upload an Excel or CSV file containing student data with maximum marks for each subject to calculate grades.")
+    st.title("Automated Grading System with Subject Details")
+    st.write("Upload an Excel or CSV file containing student data with maximum marks and subjects to calculate grades.")
 
     # File uploader
     uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["csv", "xlsx"])
@@ -3443,7 +3434,7 @@ def grading():
 
             # Process grading
             st.subheader("Grading Results")
-            results = process_grading(df)
+            results = process_grading_grading(df)
             if results is not None:
                 st.write(results)
 
@@ -3466,89 +3457,10 @@ def grading():
 
 
 
-
-
-
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from io import BytesIO
-
-# Grading logic based on percentage
-def calculate_grade(percentage):
-    if percentage >= 90:
-        return "A+"
-    elif percentage >= 80:
-        return "A"
-    elif percentage >= 70:
-        return "B"
-    elif percentage >= 60:
-        return "C"
-    elif percentage >= 50:
-        return "D"
-    else:
-        return "F"
-
-# Comment logic based on grade
-def get_comment(grade):
-    comments = {
-        "A+": "Excellent performance!",
-        "A": "Very good! Keep it up.",
-        "B": "Good effort, aim higher!",
-        "C": "Needs improvement.",
-        "D": "Work harder!",
-        "F": "Failed. Please focus on weak areas."
-    }
-    return comments.get(grade, "No comment")
-
-# Process grading for students
-def process_grading(df):
-    try:
-        # Ensure required columns are present
-        required_columns = ["Name", "Subject", "Score", "Maximum Marks"]
-        for col in required_columns:
-            if col not in df.columns:
-                raise ValueError(f"Missing required column: {col}")
-
-        # Initialize results
-        overall_results = []
-        subject_results = []
-
-        for name, group in df.groupby("Name"):
-            total_score = group["Score"].sum()
-            total_max_marks = group["Maximum Marks"].sum()
-            overall_percentage = (total_score / total_max_marks) * 100
-            overall_grade = calculate_grade(overall_percentage)
-            overall_comment = get_comment(overall_grade)
-
-            # Store overall results
-            overall_results.append({
-                "Name": name,
-                "Total Score": total_score,
-                "Total Maximum Marks": total_max_marks,
-                "Overall Percentage": round(overall_percentage, 2),
-                "Overall Grade": overall_grade,
-                "Overall Comment": overall_comment
-            })
-
-            # Store subject-level results
-            for _, row in group.iterrows():
-                subject_percentage = (row["Score"] / row["Maximum Marks"]) * 100
-                subject_grade = calculate_grade(subject_percentage)
-                subject_results.append({
-                    "Name": name,
-                    "Subject": row["Subject"],
-                    "Score": row["Score"],
-                    "Maximum Marks": row["Maximum Marks"],
-                    "Percentage": round(subject_percentage, 2),
-                    "Grade": subject_grade
-                })
-
-        return pd.DataFrame(overall_results), pd.DataFrame(subject_results)
-
-    except Exception as e:
-        st.error(f"Error processing grading: {e}")
-        return None, None
 
 # Plot a graph for subject vs. percentage for a chosen student
 def plot_subject_vs_percentage(subject_data, student_name):
@@ -3590,13 +3502,13 @@ def plot_subject_vs_avg_percentage(subject_data):
     plt.clf()
     return buf
 
-# Streamlit app
+# Streamlit app for performance graph
 def performance_graph():
-    st.title("Automated Grading System with Graphical Analysis")
-    st.write("Upload an Excel or CSV file containing student data with maximum marks for each subject to calculate grades and visualize performance.")
+    st.title("Performance Graph Module")
+    st.write("Upload the Excel or CSV file generated by the Grading module to visualize performance and analyze data.")
 
     # File uploader
-    uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("Upload the file generated by the Grading module", type=["csv", "xlsx"])
 
     if uploaded_file:
         try:
@@ -3610,58 +3522,43 @@ def performance_graph():
             st.subheader("Uploaded Data")
             st.write(df)
 
-            # Process grading
-            st.subheader("Grading Results")
-            overall_results, subject_results = process_grading(df)
-            if overall_results is not None and subject_results is not None:
-                st.write(overall_results)
+            # Check required columns
+            required_columns = ["Name", "Subject", "Score", "Maximum Marks", "Percentage", "Grade"]
+            for col in required_columns:
+                if col not in df.columns:
+                    st.error(f"Missing required column: {col}. Ensure the file is generated by the Grading module.")
+                    return
 
-                # Allow download of detailed results
-                st.subheader("Download Grading Results")
-                output_file = BytesIO()
-                with pd.ExcelWriter(output_file) as writer:
-                    overall_results.to_excel(writer, index=False, sheet_name="Overall Results")
-                    subject_results.to_excel(writer, index=False, sheet_name="Subject Results")
-                output_file.seek(0)
-                st.download_button(
-                    label="Download Results",
-                    data=output_file,
-                    file_name="grading_results.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+            # Graph dropdown selection
+            st.subheader("Visualizations")
+            graph_option = st.selectbox("Select a Graph Type", ["Individual Student Performance", "Average Performance per Subject"])
 
-                # Graph dropdown selection
-                st.subheader("Visualizations")
-                graph_option = st.selectbox("Select a Graph Type", ["Individual Student Performance", "Average Performance per Subject"])
-
-                if graph_option == "Individual Student Performance":
-                    selected_student = st.selectbox("Select a student to view their performance:", overall_results["Name"].unique())
-                    if selected_student:
-                        buf = plot_subject_vs_percentage(subject_results, selected_student)
-                        if buf:
-                            st.image(buf, caption=f"Performance of {selected_student}", use_column_width=True)
-                            st.download_button(
-                                label="Download Graph (Individual Student)",
-                                data=buf,
-                                file_name=f"{selected_student}_performance.png",
-                                mime="image/png"
-                            )
-
-                elif graph_option == "Average Performance per Subject":
-                    buf_avg = plot_subject_vs_avg_percentage(subject_results)
-                    if buf_avg:
-                        st.image(buf_avg, caption="Average Performance per Subject", use_column_width=True)
+            if graph_option == "Individual Student Performance":
+                selected_student = st.selectbox("Select a student to view their performance:", df["Name"].unique())
+                if selected_student:
+                    buf = plot_subject_vs_percentage(df, selected_student)
+                    if buf:
+                        st.image(buf, caption=f"Performance of {selected_student}", use_column_width=True)
                         st.download_button(
-                            label="Download Graph (All Students)",
-                            data=buf_avg,
-                            file_name="average_subject_performance.png",
+                            label="Download Graph (Individual Student)",
+                            data=buf,
+                            file_name=f"{selected_student}_performance.png",
                             mime="image/png"
                         )
 
+            elif graph_option == "Average Performance per Subject":
+                buf_avg = plot_subject_vs_avg_percentage(df)
+                if buf_avg:
+                    st.image(buf_avg, caption="Average Performance per Subject", use_column_width=True)
+                    st.download_button(
+                        label="Download Graph (All Students)",
+                        data=buf_avg,
+                        file_name="average_subject_performance.png",
+                        mime="image/png"
+                    )
+
         except Exception as e:
             st.error(f"Error processing the file: {e}")
-
-
 
 
 import streamlit as st
