@@ -9,3 +9,8 @@ matplotlib
 streamlit
 openai
 openpyxl
+
+
+streamlit
+paypalrestsdk
+firebase-admin
