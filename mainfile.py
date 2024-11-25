@@ -7,6 +7,18 @@ import random
 import string
 import os
 
+
+import json
+from firebase_admin import credentials, initialize_app
+
+# Load the service account key JSON from Streamlit secrets
+service_account_info = json.loads(st.secrets["firebase"]["service_account_key"])
+
+# Pass the dictionary directly to the Firebase credentials
+cred = credentials.Certificate(service_account_info)
+initialize_app(cred)
+
+
 # Set up the Streamlit page configuration (must be the first Streamlit command)
 st.set_page_config(
     page_title="Edu Pro - Accelerate Your Growth",
