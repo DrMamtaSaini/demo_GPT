@@ -3,23 +3,10 @@ import paypalrestsdk
 from paypalrestsdk import Payment
 import firebase_admin
 from firebase_admin import credentials, firestore, auth as admin_auth
-import random
-import string
+import json
 import os
 
-
-import json
-from firebase_admin import credentials, initialize_app
-
-# Load the service account key JSON from Streamlit secrets
-service_account_info = json.loads(st.secrets["firebase"]["service_account_key"])
-
-# Pass the dictionary directly to the Firebase credentials
-cred = credentials.Certificate(service_account_info)
-initialize_app(cred)
-
-
-# Set up the Streamlit page configuration (must be the first Streamlit command)
+# Set up the Streamlit page configuration
 st.set_page_config(
     page_title="Edu Pro - Accelerate Your Growth",
     page_icon="🚀",
@@ -28,96 +15,55 @@ st.set_page_config(
 
 # Initialize Firebase Admin SDK (only once)
 if not firebase_admin._apps:  # Check if Firebase app is already initialized
-    cred = credentials.Certificate(st.secrets["firebase"]["service_account_key"])
+    service_account_info = json.loads(st.secrets["firebase"]["service_account_key"])
+    cred = credentials.Certificate(service_account_info)
     firebase_admin.initialize_app(cred)
-db = firestore.client()  # Firestore database instance
+
+# Initialize Firestore database
+db = firestore.client()
 
 # Initialize PayPal SDK
 paypalrestsdk.configure({
-    "mode": "sandbox",  # Use "live" for production
+    "mode": "sandbox",  # Change to "live" for production
     "client_id": st.secrets["paypal"]["client_id"],
     "client_secret": st.secrets["paypal"]["client_secret"]
 })
 
 
 def landing_page():
-    # CSS to enforce background color
+    """Landing Page with a Proceed Button"""
     st.markdown("""
         <style>
-            /* Set the background color for the full page */
             .stApp {
-                background-color: #0D1117; /* Dark background */
-                color: white; /* Light text */
-                font-family: 'Arial', sans-serif;
+                background-color: #0D1117;
+                color: white;
             }
             .main-container {
                 text-align: center;
-                padding-top: 15%; /* Adjust spacing to center vertically */
+                margin-top: 15%;
             }
-            /* Title styling */
             .header-title {
                 font-size: 3.5rem;
-                color: #58A6FF; /* Light Cyan Title */
-                font-weight: bold;
+                color: #58A6FF;
             }
-            /* Subtitle styling */
             .sub-title {
                 font-size: 1.2rem;
-                color: #8B949E; /* Muted gray for subtitle */
+                color: #8B949E;
                 margin-top: 20px;
-            }
-            /* Buttons styling */
-            .button-container {
-                display: flex;
-                justify-content: center;
-                gap: 20px;
-                margin-top: 30px;
-            }
-            .btn {
-                padding: 12px 30px;
-                font-size: 1rem;
-                font-weight: bold;
-                color: #58A6FF; /* Button text cyan */
-                background: transparent;
-                border: 2px solid #58A6FF; /* Button border */
-                border-radius: 5px;
-                text-decoration: none;
-                cursor: pointer;
-                transition: 0.3s;
-            }
-            .btn:hover {
-                background: #58A6FF; /* Cyan background on hover */
-                color: #0D1117; /* Dark text on hover */
-            }
-            /* Footer text styling */
-            .footer-text {
-                margin-top: 50px;
-                font-size: 0.9rem;
-                color: #8B949E; /* Muted gray for footer */
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # HTML structure for the landing page
     st.markdown("""
         <div class="main-container">
-            <div class="logo">
-                <span class="logo-icon">📘</span> 
-                EduPro
-            </div>
-            <h1 class="header-title">Accelerate Your Growth with Advanced AI</h1>
-            <p class="sub-title">Experience the next generation of AI assistance. Process data, generate insights, and automate workflows with unparalleled speed and precision.</p>
-            <div class="button-container">
-                <a href="#" class="btn">Get Started</a>
-                <a href="#" class="btn">Watch Demo</a>
-            </div>
-            <p class="footer-text">Trusted by 150+ enterprise companies worldwide</p>
+            <h1 class="header-title">Welcome to EduPro</h1>
+            <p class="sub-title">Accelerate Your Growth with AI-Powered Tools</p>
         </div>
     """, unsafe_allow_html=True)
 
     if st.button("Get Started"):
         st.session_state["page"] = "signup_signin"
-        st.stop()
+        st.experimental_rerun()
 
 
 def signup_page():
@@ -126,7 +72,7 @@ def signup_page():
     col1, col2 = st.columns(2)
 
     with col1:
-        # Verify and display image
+        # Display image or fallback placeholder
         if os.path.exists("school.jpg"):
             st.image("school.jpg", use_container_width=True)
         else:
@@ -143,15 +89,12 @@ def signup_page():
 
             if st.button("Proceed to Payment"):
                 if school_name and email and password:
-                    # Create a PayPal payment
                     payment = Payment({
                         "intent": "sale",
-                        "payer": {
-                            "payment_method": "paypal"
-                        },
+                        "payer": {"payment_method": "paypal"},
                         "redirect_urls": {
-                            "return_url": "https://your-app-name.streamlit.app/success",  # Replace with your public URL
-                            "cancel_url": "https://your-app-name.streamlit.app/cancel"
+                            "return_url": "http://localhost:8501/success",
+                            "cancel_url": "http://localhost:8501/cancel"
                         },
                         "transactions": [{
                             "item_list": {
@@ -171,7 +114,6 @@ def signup_page():
                         }]
                     })
 
-
                     if payment.create():
                         st.success("Payment created successfully!")
                         for link in payment.links:
@@ -184,7 +126,7 @@ def signup_page():
                                 }
                                 break
                     else:
-                        st.error(f"Error while creating payment: {payment.error}")
+                        st.error(f"Error creating payment: {payment.error}")
                 else:
                     st.warning("Please fill all fields.")
 
@@ -194,25 +136,22 @@ def signup_page():
             password = st.text_input("Password", type="password")
             if st.button("Log In"):
                 try:
-                    # Authenticate using Firebase Admin
                     user = admin_auth.get_user_by_email(email)
-                    if user:
-                        # Fetch school data from Firestore
-                        school_ref = db.collection("schools").where("email", "==", email).get()
-                        if school_ref:
-                            school_data = school_ref[0].to_dict()
-                            st.session_state["user"] = school_data
-                            st.success(f"Welcome back, {school_data['name']}!")
-                            st.session_state["page"] = "main_app"
-                            st.stop()
-                        else:
-                            st.error("School data not found.")
+                    school_ref = db.collection("schools").where("email", "==", email).get()
+                    if school_ref:
+                        school_data = school_ref[0].to_dict()
+                        st.session_state["user"] = school_data
+                        st.success(f"Welcome back, {school_data['name']}!")
+                        st.session_state["page"] = "main_app"
+                        st.experimental_rerun()
+                    else:
+                        st.error("School data not found.")
                 except Exception as e:
-                    st.error(f"Login failed: {str(e)}")
+                    st.error(f"Login failed: {e}")
 
 
 def app_router():
-    """Route Between Pages"""
+    """Page Router"""
     if "page" not in st.session_state:
         st.session_state["page"] = "landing"
 
