@@ -104,7 +104,7 @@ def main():
                     st.error(f"Error creating order: {e}")
 
     # Step 3: Capture Payment
-    if "order" in st.session_state:
+    if "order" in st.session_state and st.session_state.order.get("status") == "APPROVED":
         st.success("Payment Approved! You can now proceed to capture the payment.")
         order_id = st.session_state.order["id"]
         if st.button("Capture Payment"):
@@ -114,7 +114,7 @@ def main():
                 # Display detailed capture response
                 st.json(capture_response)
 
-                # Optional: Extract specific details for better readability
+                # Extract specific details for better readability
                 payer_name = capture_response["payer"]["name"]["given_name"] + " " + capture_response["payer"]["name"]["surname"]
                 payer_email = capture_response["payer"]["email_address"]
                 amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
