@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
 
-# PayPal Sandbox Credentials
-PAYPAL_CLIENT_ID = "YOUR_CLIENT_ID"  # Replace with your PayPal sandbox client ID
-PAYPAL_SECRET = "YOUR_CLIENT_SECRET"  # Replace with your PayPal sandbox secret
+PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
+PAYPAL_SECRET = st.secrets["paypal"]["client_secret"]
+
 PAYPAL_API_URL = "https://api-m.sandbox.paypal.com"  # Use the sandbox URL for testing
 
 # URLs for success and cancel actions
