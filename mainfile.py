@@ -17,6 +17,7 @@ PAYPAL_API_URL = st.secrets["paypal"]["api_url"]
 
 # Set up PayPal API credentials using sandbox
 
+BASE_URL = "https://teachersgpt.streamlit.app"
 
 # Initialize Firebase Admin SDK
 st.set_page_config(page_title="Edu Pro - Accelerate Your Growth", layout="wide")
