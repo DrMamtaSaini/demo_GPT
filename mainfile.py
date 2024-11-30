@@ -7,8 +7,9 @@ PAYPAL_SECRET = st.secrets["paypal"]["client_secret"]
 PAYPAL_API_URL = "https://api-m.sandbox.paypal.com"  # PayPal sandbox URL for testing
 
 # URLs for success and cancel actions
-SUCCESS_URL = "https://teachersgpt.streamlit.app/success"
-CANCEL_URL = "https://teachersgpt.streamlit.app/cancel"
+BASE_URL = "https://teachersgpt.streamlit.app"  # Replace with your Streamlit app URL
+SUCCESS_URL = f"{BASE_URL}?page=success"
+CANCEL_URL = f"{BASE_URL}?page=cancel"
 
 def get_access_token():
     """Get PayPal Access Token."""
@@ -62,6 +63,20 @@ def capture_order(access_token, order_id):
 
 def main():
     """Main function to handle Streamlit UI and PayPal integration."""
+    # Query parameters for handling success/cancel
+    query_params = st.experimental_get_query_params()
+    page = query_params.get("page", ["main"])[0]
+
+    # Page routing
+    if page == "success":
+        st.title("Payment Successful")
+        st.success("Your payment was completed successfully!")
+        return
+    elif page == "cancel":
+        st.title("Payment Cancelled")
+        st.warning("The payment was cancelled. Please try again.")
+        return
+
     st.title("PayPal Payment Testing")
 
     # Step 1: Get Access Token
