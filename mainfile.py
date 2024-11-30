@@ -25,17 +25,23 @@ st.set_page_config(page_title="Edu Pro - Accelerate Your Growth", layout="wide")
 def initialize_firebase():
     try:
         if not firebase_admin._apps:  # Avoid multiple Firebase initializations
-            service_account_path = st.secrets["firebase"]["service_account_path"]
-            cred = credentials.Certificate(service_account_path)
-            initialize_app(cred)
+            cred = credentials.Certificate({
+                "type": st.secrets["firebase"]["type"],
+                "project_id": st.secrets["firebase"]["project_id"],
+                "private_key_id": st.secrets["firebase"]["private_key_id"],
+                "private_key": st.secrets["firebase"]["private_key"].replace("\\n", "\n"),
+                "client_email": st.secrets["firebase"]["client_email"],
+                "client_id": st.secrets["firebase"]["client_id"],
+                "auth_uri": st.secrets["firebase"]["auth_uri"],
+                "token_uri": st.secrets["firebase"]["token_uri"],
+                "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+                "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+            })
+            firebase_admin.initialize_app(cred)
         return firestore.client()
-    except FileNotFoundError:
-        st.error("Service account file not found. Check the path in your secrets.")
-        st.stop()
     except Exception as e:
         st.error(f"Failed to initialize Firebase: {e}")
         st.stop()
-
 
 # Firebase Client
 db = initialize_firebase()
