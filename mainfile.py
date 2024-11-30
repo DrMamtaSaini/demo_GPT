@@ -96,7 +96,20 @@ def main():
             try:
                 capture_response = capture_order(st.session_state.access_token, order_id)
                 st.success("Payment Captured Successfully!")
-                st.write("Capture Response:", capture_response)
+                # Display detailed capture response
+                st.json(capture_response)
+
+                # Optional: Extract specific details for better readability
+                payer_name = capture_response["payer"]["name"]["given_name"] + " " + capture_response["payer"]["name"]["surname"]
+                payer_email = capture_response["payer"]["email_address"]
+                amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
+                currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
+
+                # Display extracted details
+                st.write(f"**Payer Name:** {payer_name}")
+                st.write(f"**Payer Email:** {payer_email}")
+                st.write(f"**Amount Paid:** {amount} {currency}")
+
             except requests.exceptions.RequestException as e:
                 st.error(f"Error capturing payment: {e}")
 
