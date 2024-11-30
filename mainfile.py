@@ -1,10 +1,14 @@
 import streamlit as st
 import requests
 
+# PayPal Sandbox Credentials
 PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
 PAYPAL_SECRET = st.secrets["paypal"]["client_secret"]
+PAYPAL_API_URL = "https://api-m.sandbox.paypal.com"  # PayPal sandbox URL for testing
 
-PAYPAL_API_URL = "https://api-m.sandbox.paypal.com"  # Use the sandbox URL for testing
+# URLs for success and cancel actions
+SUCCESS_URL = "https://teachersgpt.streamlit.app/success"
+CANCEL_URL = "https://teachersgpt.streamlit.app/cancel"
 
 def get_access_token():
     """Get PayPal Access Token."""
@@ -37,8 +41,8 @@ def create_order(access_token):
             }
         ],
         "application_context": {
-            "return_url": "https://teachersgpt.streamlit.app?status=success",
-            "cancel_url": "https://teachersgpt.streamlit.app?status=cancel",
+            "return_url": SUCCESS_URL,
+            "cancel_url": CANCEL_URL,
         },
     }
     response = requests.post(url, headers=headers, json=order_data)
@@ -56,28 +60,12 @@ def capture_order(access_token, order_id):
     response.raise_for_status()
     return response.json()
 
-# Streamlit UI
 def main():
+    """Main function to handle Streamlit UI and PayPal integration."""
     st.title("PayPal Payment Testing")
 
-    # Handle query parameters
-    query_params = st.experimental_get_query_params()
-    payment_status = query_params.get("status", [""])[0]
-
-    if payment_status == "success":
-        st.success("Payment Approved! You can now proceed to capture the payment.")
-        if "order" in st.session_state:
-            order_id = st.session_state.order["id"]
-            if st.button("Capture Payment"):
-                try:
-                    capture_response = capture_order(st.session_state.access_token, order_id)
-                    st.success("Payment Captured Successfully!")
-                    st.write("Capture Response:", capture_response)
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Error capturing payment: {e}")
-    elif payment_status == "cancel":
-        st.warning("Payment was canceled. Please try again.")
-    else:
+    # Step 1: Get Access Token
+    if "access_token" not in st.session_state:
         if st.button("Get Access Token"):
             try:
                 access_token = get_access_token()
@@ -86,7 +74,9 @@ def main():
             except requests.exceptions.RequestException as e:
                 st.error(f"Error getting access token: {e}")
 
-        if "access_token" in st.session_state:
+    # Step 2: Create Order
+    if "access_token" in st.session_state:
+        if "order" not in st.session_state:
             if st.button("Create PayPal Order"):
                 try:
                     order = create_order(st.session_state.access_token)
@@ -97,6 +87,18 @@ def main():
                     st.markdown(f"[Click here to approve payment]({approval_url})")
                 except requests.exceptions.RequestException as e:
                     st.error(f"Error creating order: {e}")
+
+    # Step 3: Capture Payment
+    if "order" in st.session_state:
+        st.success("Payment Approved! You can now proceed to capture the payment.")
+        order_id = st.session_state.order["id"]
+        if st.button("Capture Payment"):
+            try:
+                capture_response = capture_order(st.session_state.access_token, order_id)
+                st.success("Payment Captured Successfully!")
+                st.write("Capture Response:", capture_response)
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error capturing payment: {e}")
 
 if __name__ == "__main__":
     main()
