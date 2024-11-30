@@ -14,3 +14,7 @@ openpyxl
 streamlit
 paypalrestsdk
 firebase-admin
+
+sendgrid
+paypalrestsdk
+requests
