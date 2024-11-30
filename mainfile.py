@@ -432,7 +432,6 @@ def create_paypal_order(access_token, amount, description):
         st.stop()
 
 
-
 def capture_paypal_order(access_token, order_id):
     """Capture the specified PayPal order."""
     url = f"{PAYPAL_API_URL}/v2/checkout/orders/{order_id}/capture"
