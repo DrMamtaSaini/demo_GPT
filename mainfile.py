@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time  # Added import for time module
 
 # PayPal Sandbox Credentials
 PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
@@ -11,7 +12,6 @@ BASE_URL = "https://teachersgpt.streamlit.app"  # Replace with your Streamlit ap
 SUCCESS_URL = f"{BASE_URL}?page=success"
 CANCEL_URL = f"{BASE_URL}?page=cancel"
 
-# Get PayPal Access Token
 def get_access_token():
     """Get PayPal Access Token."""
     url = f"{PAYPAL_API_URL}/v1/oauth2/token"
@@ -24,7 +24,6 @@ def get_access_token():
     response.raise_for_status()
     return response.json()["access_token"]
 
-# Create PayPal Order
 def create_order(access_token, amount="10.00", description="Test Payment"):
     """Create PayPal Order."""
     url = f"{PAYPAL_API_URL}/v2/checkout/orders"
@@ -52,19 +51,6 @@ def create_order(access_token, amount="10.00", description="Test Payment"):
     response.raise_for_status()
     return response.json()
 
-# Capture PayPal Order
-def capture_order(access_token, order_id):
-    """Capture PayPal Order."""
-    url = f"{PAYPAL_API_URL}/v2/checkout/orders/{order_id}/capture"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-    response = requests.post(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-# Main Function to Handle Payment
 def payment_page():
     """Main function to handle PayPal payment integration."""
     st.title("Subscribe to Edu Pro")
@@ -88,8 +74,8 @@ def payment_page():
                 </a>
             """, unsafe_allow_html=True)
 
-            # Show success message after a short delay (simulating landing back on success URL)
-            time.sleep(3)  # Simulate delay for user to complete payment
+            # Simulate a delay for user to complete payment
+            time.sleep(3)  
             st.success("Payment Successful! Thank you for subscribing.")
             st.markdown(f"[Return to Home]({BASE_URL})")
 
