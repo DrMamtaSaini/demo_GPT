@@ -20,10 +20,13 @@ def get_access_token():
     }
     data = {"grant_type": "client_credentials"}
     response = requests.post(url, headers=headers, data=data, auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET))
-    response.raise_for_status()
-    return response.json()["access_token"]
+    if response.status_code == 200:
+        return response.json()["access_token"]
+    else:
+        st.error(f"Error generating access token: {response.json()}")
+        return None
 
-def create_order(access_token):
+def create_order(access_token, amount="10.00"):
     """Create PayPal Order."""
     url = f"{PAYPAL_API_URL}/v2/checkout/orders"
     headers = {
@@ -36,7 +39,7 @@ def create_order(access_token):
             {
                 "amount": {
                     "currency_code": "USD",
-                    "value": "10.00",  # Test amount
+                    "value": amount,
                 },
                 "description": "Test Payment",
             }
@@ -47,8 +50,11 @@ def create_order(access_token):
         },
     }
     response = requests.post(url, headers=headers, json=order_data)
-    response.raise_for_status()
-    return response.json()
+    if response.status_code == 201:
+        return response.json()
+    else:
+        st.error(f"Error creating order: {response.json()}")
+        return None
 
 def capture_order(access_token, order_id):
     """Capture PayPal Order."""
@@ -58,8 +64,11 @@ def capture_order(access_token, order_id):
         "Authorization": f"Bearer {access_token}",
     }
     response = requests.post(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
+    if response.status_code == 201:
+        return response.json()
+    else:
+        st.error(f"Error capturing payment: {response.json()}")
+        return None
 
 def main():
     """Main function to handle Streamlit UI and PayPal integration."""
@@ -71,59 +80,67 @@ def main():
     if page == "success":
         st.title("Payment Successful")
         st.success("Your payment was completed successfully!")
+        
         # Automatically capture payment
-        if "order" in st.session_state:
-            try:
-                access_token = get_access_token()
-                order_id = st.session_state.order["id"]
-                capture_response = capture_order(access_token, order_id)
-                st.success("Payment Captured Successfully!")
-                # Display detailed capture response
-                st.json(capture_response)
+        order_id = query_params.get("token", [""])[0]  # Extract order ID from redirect URL
+        if not order_id:
+            st.error("Order ID not found in the redirect URL.")
+            return
+        
+        # Get Access Token
+        access_token = get_access_token()
+        if not access_token:
+            st.error("Failed to generate access token.")
+            return
+        
+        # Capture Payment
+        capture_response = capture_order(access_token, order_id)
+        if capture_response:
+            st.success("Payment Captured Successfully!")
+            # Display detailed capture response
+            st.json(capture_response)
 
-                # Optional: Extract specific details for better readability
-                payer_name = capture_response["payer"]["name"]["given_name"] + " " + capture_response["payer"]["name"]["surname"]
-                payer_email = capture_response["payer"]["email_address"]
-                amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
-                currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
+            # Extract specific details for better readability
+            payer_name = capture_response["payer"]["name"]["given_name"] + " " + capture_response["payer"]["name"]["surname"]
+            payer_email = capture_response["payer"]["email_address"]
+            amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
+            currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
 
-                # Display extracted details
-                st.write(f"**Payer Name:** {payer_name}")
-                st.write(f"**Payer Email:** {payer_email}")
-                st.write(f"**Amount Paid:** {amount} {currency}")
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error capturing payment: {e}")
+            # Display extracted details
+            st.write(f"**Payer Name:** {payer_name}")
+            st.write(f"**Payer Email:** {payer_email}")
+            st.write(f"**Amount Paid:** {amount} {currency}")
+        else:
+            st.error("Failed to capture payment. Please check your PayPal account for the payment status.")
         return
+
     elif page == "cancel":
         st.title("Payment Cancelled")
         st.warning("The payment was cancelled. Please try again.")
         return
 
-    st.title("PayPal Payment Testing")
+    st.title("PayPal Payment Integration")
 
     # Step 1: Get Access Token
     if "access_token" not in st.session_state:
-        if st.button("Get Access Token"):
-            try:
-                access_token = get_access_token()
+        if st.button("Generate Access Token"):
+            access_token = get_access_token()
+            if access_token:
                 st.session_state.access_token = access_token
                 st.success("Access Token Retrieved!")
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error getting access token: {e}")
+            else:
+                st.error("Failed to retrieve access token.")
 
     # Step 2: Create Order
     if "access_token" in st.session_state:
-        if "order" not in st.session_state:
-            if st.button("Create PayPal Order"):
-                try:
-                    order = create_order(st.session_state.access_token)
-                    st.session_state.order = order
-                    approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
-                    st.success("Order Created!")
-                    st.write("Order Details:", order)
-                    st.markdown(f"[Click here to approve payment]({approval_url})")
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Error creating order: {e}")
+        if st.button("Create PayPal Order"):
+            order = create_order(st.session_state.access_token)
+            if order:
+                st.session_state.order = order
+                approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
+                st.success("Order Created!")
+                st.write("Order Details:", order)
+                st.markdown(f"[Click here to approve payment]({approval_url})")
 
 if __name__ == "__main__":
     main()
