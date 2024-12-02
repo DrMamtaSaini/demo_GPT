@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 
 # PayPal Sandbox Credentials
 PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
@@ -71,7 +72,7 @@ def main():
     if page == "success":
         st.title("Payment Successful")
         st.success("Your payment was completed successfully!")
-
+        
         # Automatically capture payment
         order_id = query_params.get("token", [""])[0]  # Extract order ID from redirect URL
         if not order_id:
@@ -83,8 +84,8 @@ def main():
             access_token = get_access_token()
             capture_response = capture_order(access_token, order_id)
 
+            # Display success message
             st.success("Payment Captured Successfully!")
-            # Extract specific details for better readability
             payer_name = (
                 capture_response["payer"]["name"]["given_name"]
                 + " "
@@ -94,30 +95,51 @@ def main():
             amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
             currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
 
-            # Display extracted details
+            # Display payment details
             st.write(f"**Payer Name:** {payer_name}")
             st.write(f"**Payer Email:** {payer_email}")
             st.write(f"**Amount Paid:** {amount} {currency}")
         except requests.exceptions.RequestException as e:
             st.error(f"An error occurred during payment processing: {e}")
-        return
+            return
+
+        # Redirect to landing page after a delay
+        st.info("Redirecting to the landing page...")
+        time.sleep(3)
+        st.session_state.page = "main"
+        st.experimental_rerun()
 
     elif page == "cancel":
         st.title("Payment Cancelled")
         st.warning("The payment was cancelled. Please try again.")
+        st.info("Redirecting to the landing page...")
+        time.sleep(3)
+        st.session_state.page = "main"
+        st.experimental_rerun()
         return
 
-    st.title("PayPal Payment")
+    # Main Payment Flow
+    if "payment_initiated" not in st.session_state:
+        st.title("Proceed to Payment")
+        if st.button("Make Payment"):
+            try:
+                # Initiate Payment Process
+                access_token = get_access_token()
+                order = create_order(access_token)
+                approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
 
-    # Create Order and Display Payment Approval Window
-    if st.button("Proceed to Payment"):
-        try:
-            access_token = get_access_token()
-            order = create_order(access_token)
-            approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
-            st.markdown(f"[Click here to approve payment]({approval_url})")
-        except requests.exceptions.RequestException as e:
-            st.error(f"An error occurred while creating the payment: {e}")
+                # Redirect user to PayPal
+                st.session_state.payment_initiated = True
+                st.markdown(
+                    f"""
+                    <script>
+                        window.open("{approval_url}", "_self");
+                    </script>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            except requests.exceptions.RequestException as e:
+                st.error(f"An error occurred while creating the payment: {e}")
 
 if __name__ == "__main__":
     main()
