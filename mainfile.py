@@ -198,12 +198,14 @@ def signup_signin_page():
             else:
                 st.error("Please fill in all fields.")
 
-# Landing Page
 def landing_page():
+    """
+    Landing page with a 'Get Started' button that navigates to the signup/sign-in page.
+    """
     st.markdown("""
         <style>
             .stApp {background-color: #111827; color: white; font-family: 'Arial', sans-serif;}
-            .main-container {text-align: center; padding-top: 10%;} /* Reduced padding */
+            .main-container {text-align: center; padding-top: 10%;}
             .header-title {font-size: 3.5rem; color: #38BDF8; font-weight: bold; margin-bottom: 20px;}
             .sub-title {font-size: 1.2rem; color: #6B7280; margin-bottom: 30px;}
             .stButton>button {
@@ -224,9 +226,10 @@ def landing_page():
     # Centered "Get Started" button
     col1, col2, col3 = st.columns([2, 1, 2])
     with col2:
-        if st.button("Get Started", key="get_started"):
-            
+        if st.button("Get Started", key="get_started_button"):
+            # Navigate to the signup/signin page
             st.session_state.page = "signup_signin"
+
 
 def subscription_page():
     """
