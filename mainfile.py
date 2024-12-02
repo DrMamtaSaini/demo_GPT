@@ -39,7 +39,7 @@ def create_order(access_token, amount="10.00"):
                     "currency_code": "USD",
                     "value": amount,
                 },
-                "description": "Test Payment",
+                "description": "Pro Plan Subscription",
             }
         ],
         "application_context": {
@@ -68,24 +68,24 @@ def main():
     query_params = st.experimental_get_query_params()
     page = query_params.get("page", ["main"])[0]
 
-    # Page routing
     if page == "success":
         st.title("Payment Successful")
         st.success("Your payment was completed successfully!")
-        
-        # Automatically capture payment
-        order_id = query_params.get("token", [""])[0]  # Extract order ID from redirect URL
+
+        # Extract order ID from the query parameters
+        order_id = query_params.get("token", [""])[0]
         if not order_id:
             st.error("Order ID not found in the redirect URL.")
             return
 
         try:
-            # Get Access Token and Capture Payment
+            # Get Access Token
             access_token = get_access_token()
+
+            # Capture the payment
             capture_response = capture_order(access_token, order_id)
 
-            # Display success message
-            st.success("Payment Captured Successfully!")
+            # Display payment details
             payer_name = (
                 capture_response["payer"]["name"]["given_name"]
                 + " "
@@ -95,19 +95,19 @@ def main():
             amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
             currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
 
-            # Display payment details
             st.write(f"**Payer Name:** {payer_name}")
             st.write(f"**Payer Email:** {payer_email}")
             st.write(f"**Amount Paid:** {amount} {currency}")
+
+            # Redirect to landing page after a short delay
+            st.info("Redirecting to the landing page...")
+            time.sleep(3)
+            st.session_state.page = "main"
+            st.experimental_rerun()
+
         except requests.exceptions.RequestException as e:
             st.error(f"An error occurred during payment processing: {e}")
             return
-
-        # Redirect to landing page after a delay
-        st.info("Redirecting to the landing page...")
-        time.sleep(3)
-        st.session_state.page = "main"
-        st.experimental_rerun()
 
     elif page == "cancel":
         st.title("Payment Cancelled")
@@ -118,12 +118,12 @@ def main():
         st.experimental_rerun()
         return
 
-    # Main Payment Flow
+    # Main payment flow
+    st.title("Proceed to Payment")
     if "payment_initiated" not in st.session_state:
-        st.title("Proceed to Payment")
-        if st.button("Make Payment"):
+        if st.button("Subscribe Now"):
             try:
-                # Initiate Payment Process
+                # Initiate the payment process
                 access_token = get_access_token()
                 order = create_order(access_token)
                 approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
@@ -133,7 +133,7 @@ def main():
                 st.markdown(
                     f"""
                     <script>
-                        window.open("{approval_url}", "_self");
+                        window.location.href = "{approval_url}";
                     </script>
                     """,
                     unsafe_allow_html=True,
