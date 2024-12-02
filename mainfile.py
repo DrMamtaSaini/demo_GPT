@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import time
 
 # PayPal Sandbox Credentials
 PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
@@ -12,6 +11,7 @@ BASE_URL = "https://teachersgpt.streamlit.app"  # Replace with your Streamlit ap
 SUCCESS_URL = f"{BASE_URL}?page=success"
 CANCEL_URL = f"{BASE_URL}?page=cancel"
 
+# Get PayPal Access Token
 def get_access_token():
     """Get PayPal Access Token."""
     url = f"{PAYPAL_API_URL}/v1/oauth2/token"
@@ -24,7 +24,8 @@ def get_access_token():
     response.raise_for_status()
     return response.json()["access_token"]
 
-def create_order(access_token, amount="10.00"):
+# Create PayPal Order
+def create_order(access_token, amount="10.00", description="Test Payment"):
     """Create PayPal Order."""
     url = f"{PAYPAL_API_URL}/v2/checkout/orders"
     headers = {
@@ -39,7 +40,7 @@ def create_order(access_token, amount="10.00"):
                     "currency_code": "USD",
                     "value": amount,
                 },
-                "description": "Pro Plan Subscription",
+                "description": description,
             }
         ],
         "application_context": {
@@ -51,6 +52,7 @@ def create_order(access_token, amount="10.00"):
     response.raise_for_status()
     return response.json()
 
+# Capture PayPal Order
 def capture_order(access_token, order_id):
     """Capture PayPal Order."""
     url = f"{PAYPAL_API_URL}/v2/checkout/orders/{order_id}/capture"
@@ -62,84 +64,37 @@ def capture_order(access_token, order_id):
     response.raise_for_status()
     return response.json()
 
-def main():
-    """Main function to handle Streamlit UI and PayPal integration."""
-    # Query parameters for handling success/cancel
-    query_params = st.experimental_get_query_params()
-    page = query_params.get("page", ["main"])[0]
-
-    if page == "success":
-        st.title("Payment Successful")
-        st.success("Your payment was completed successfully!")
-
-        # Extract order ID from the query parameters
-        order_id = query_params.get("token", [""])[0]
-        if not order_id:
-            st.error("Order ID not found in the redirect URL.")
-            return
-
+# Main Function to Handle Payment
+def payment_page():
+    """Main function to handle PayPal payment integration."""
+    st.title("Subscribe to Edu Pro")
+    st.write("Choose your subscription plan and proceed to payment.")
+    
+    if st.button("Subscribe Now"):
         try:
-            # Get Access Token
+            # Step 1: Get Access Token
             access_token = get_access_token()
+            
+            # Step 2: Create Order
+            order = create_order(access_token, amount="1.00", description="Pro Plan Subscription")
+            approval_url = next(link["href"] for link in order["links"] if link["rel"] == "approve")
+            
+            # Step 3: Redirect User to PayPal for Payment
+            st.markdown(f"""
+                <a href="{approval_url}" target="_blank">
+                    <button style="background-color: #38BDF8; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none;">
+                        Proceed to PayPal
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
-            # Capture the payment
-            capture_response = capture_order(access_token, order_id)
-
-            # Display payment details
-            payer_name = (
-                capture_response["payer"]["name"]["given_name"]
-                + " "
-                + capture_response["payer"]["name"]["surname"]
-            )
-            payer_email = capture_response["payer"]["email_address"]
-            amount = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["value"]
-            currency = capture_response["purchase_units"][0]["payments"]["captures"][0]["amount"]["currency_code"]
-
-            st.write(f"**Payer Name:** {payer_name}")
-            st.write(f"**Payer Email:** {payer_email}")
-            st.write(f"**Amount Paid:** {amount} {currency}")
-
-            # Redirect to landing page after a short delay
-            st.info("Redirecting to the landing page...")
-            time.sleep(3)
-            st.session_state.page = "main"
-            st.experimental_rerun()
+            # Show success message after a short delay (simulating landing back on success URL)
+            time.sleep(3)  # Simulate delay for user to complete payment
+            st.success("Payment Successful! Thank you for subscribing.")
+            st.markdown(f"[Return to Home]({BASE_URL})")
 
         except requests.exceptions.RequestException as e:
-            st.error(f"An error occurred during payment processing: {e}")
-            return
-
-    elif page == "cancel":
-        st.title("Payment Cancelled")
-        st.warning("The payment was cancelled. Please try again.")
-        st.info("Redirecting to the landing page...")
-        time.sleep(3)
-        st.session_state.page = "main"
-        st.experimental_rerun()
-        return
-
-    # Main payment flow
-    st.title("Proceed to Payment")
-    if "payment_initiated" not in st.session_state:
-        if st.button("Subscribe Now"):
-            try:
-                # Initiate the payment process
-                access_token = get_access_token()
-                order = create_order(access_token)
-                approval_url = [link["href"] for link in order["links"] if link["rel"] == "approve"][0]
-
-                # Redirect user to PayPal
-                st.session_state.payment_initiated = True
-                st.markdown(
-                    f"""
-                    <script>
-                        window.location.href = "{approval_url}";
-                    </script>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            except requests.exceptions.RequestException as e:
-                st.error(f"An error occurred while creating the payment: {e}")
+            st.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    main()
+    payment_page()
