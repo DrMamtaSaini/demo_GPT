@@ -9,12 +9,10 @@ import hashlib
 import requests
 import paypalrestsdk
 import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
 
 BASE_URL = "https://teachersgpt.streamlit.app"
-
+# Set the path to your video
+video_path = r"C:\test-streamlit-app\EduCreatepro.mp4"
 # PayPal Credentials
 PAYPAL_CLIENT_ID = st.secrets["paypal"]["client_id"]
 PAYPAL_SECRET = st.secrets["paypal"]["client_secret"]
@@ -26,8 +24,7 @@ PAYPAL_API_URL = st.secrets["paypal"]["api_url"]
 # Initialize Firebase Admin SDK
 st.set_page_config(page_title="Edu Pro - Accelerate Your Growth", layout="wide")
 
-# Set the path to your video
-video_path = r"C:\test-streamlit-app\EduCreatepro.mp4"
+
 def initialize_firebase():
     try:
         if not firebase_admin._apps:  # Avoid multiple Firebase initializations
@@ -98,81 +95,125 @@ def send_verification_email(recipient_email, verification_code):
 # Main Function for Sign-Up/Sign-In
 import uuid  # For generating unique IDs
 
+# Main Function for Sign-Up/Sign-In
+# Main Function for Sign-Up/Sign-In
+def signup_signin_page():
 
-
-# Utility functions
-def is_valid_email(email):
-    return "@" in email and "." in email
-
-
-
-
-
-
-
-
-
-
-
-
-video_path = r"C:\test-streamlit-app\EduCreatepro.mp4"
-
-# Sign Up / Sign In Page
-def signup_sign_page():
     st.markdown("""
         <style>
-            .form-container {
-                background-color: white;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-                margin: 0 auto;
-                width: 90%;
-                max-width: 400px;
+            .stApp {background-color: #111827; color: white; font-family: 'Arial', sans-serif;}
+            .main-container {text-align: center; padding-top: 10%;}
+            .header-title {font-size: 3.5rem; color: #38BDF8; font-weight: bold; margin-bottom: 20px;}
+            .sub-title {font-size: 1.2rem; color: #6B7280; margin-bottom: 30px;}
+            .stButton>button {
+                background-color: #38BDF8; color: white; font-size: 1.2rem; font-weight: bold; padding: 12px 30px;
+                border-radius: 5px; border: none; cursor: pointer; transition: 0.3s; margin-top: 20px;
             }
-            .form-header {font-size: 1.8rem; font-weight: bold; color: #4B9CD3; margin-bottom: 20px;}
-            .form-input {margin-bottom: 20px; width: 100%; padding: 10px; font-size: 1rem;}
-            .form-button {
-                background: linear-gradient(to right, #4B9CD3, #1E90FF);
-                color: white;
-                padding: 10px 20px;
-                font-size: 1.2rem;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                width: 100%;
-            }
-            .form-button:hover {background: #1E90FF;}
+            .stButton>button:hover {background-color: #1E90FF;}
         </style>
     """, unsafe_allow_html=True)
+    
+    if "signup_stage" not in st.session_state:
+        st.session_state.signup_stage = "form"
+    if "email_sent" not in st.session_state:
+        st.session_state.email_sent = False
+    if "signup_data" not in st.session_state:
+        st.session_state.signup_data = None
 
-    # Sign In / Sign Up Form
-    #st.markdown("<div class='form-container'>", unsafe_allow_html=True)
-    st.markdown("<div class='form-header'>Sign In / Sign Up</div>", unsafe_allow_html=True)
-
-    # Radio Option to Switch Between Sign In / Sign Up
-    option = st.radio("Choose an option:", ["Sign Up", "Sign In"], index=0, label_visibility="collapsed")
+    st.title("Sign Up / Sign In")
+    option = st.radio("Choose an option:", ["Sign Up", "Sign In"], index=0, key="signup_signin_radio")
 
     if option == "Sign Up":
-        school_name = st.text_input("School Name", placeholder="Enter your school name")
-        email = st.text_input("Email", placeholder="Enter your email")
-        password = st.text_input("Create Password", type="password", placeholder="Enter a strong password")
-        if st.button("Sign Up", key="signup"):
-            if not school_name or not email or not password:
-                st.error("Please fill in all fields.")
-            else:
-                st.success(f"Account created for {school_name}!")
+        if st.session_state.signup_stage == "form":
+            st.subheader("Register Your School")
+            school_name = st.text_input("School Name", key="signup_school_name")
+            email = st.text_input("Email", key="signup_email")
+            password = st.text_input("Create Password", type="password", key="signup_password")
+
+            if st.button("Sign Up") and not st.session_state.email_sent:
+                if not school_name or not email or not password:
+                    st.error("Please fill in all fields.")
+                elif not is_valid_email(email):
+                    st.error("Please enter a valid email address.")
+                else:
+                    existing_user = db.collection("schools").where("email", "==", email).stream()
+                    if any(existing_user):
+                        st.error("This email is already registered. Please use another email.")
+                    else:
+                        verification_code = random.randint(100000, 999999)
+                        st.session_state.verification_code = verification_code
+                        if send_verification_email(email, verification_code):
+                            unique_school_id = str(uuid.uuid4())  # Generate a unique ID for the school
+                            st.session_state.signup_data = {
+                                "school_id": unique_school_id,
+                                "school_name": school_name,
+                                "email": email,
+                                "password": hash_password(password),
+                                "subscription_status": "free",  # Default subscription status
+                                "created_on": firestore.SERVER_TIMESTAMP,  # Firestore timestamp
+                                "activated_on": None,  # To be updated upon activation
+                            }
+                            st.session_state.signup_stage = "verify"
+                            st.session_state.email_sent = True
+                            st.success("Verification email sent! Enter the code below.")
+
+        if st.session_state.signup_stage == "verify":
+            st.subheader("Verify Your Email")
+            verification_code_input = st.text_input("Enter Verification Code", key="verification_code_input")
+
+            if st.button("Verify"):
+                if verification_code_input.isdigit() and int(verification_code_input) == st.session_state.verification_code:
+                    signup_data = st.session_state.signup_data
+                    school_name = signup_data["school_name"]  # Ensure this is defined
+                    school_id = str(uuid.uuid4())  # Generate a unique school ID
+
+                    # Save the school data to the database
+                    db.collection("schools").add({
+                        "school_id": school_id,
+                        "school_name": signup_data["school_name"],
+                        "email": signup_data["email"],
+                        "password": signup_data["password"],
+                        "subscription_status": "free",
+                        "created_on": firestore.SERVER_TIMESTAMP,
+                        "activated_on": None,
+                    })
+
+                    # Assign an API key
+                    available_api_key = db.collection("api_keys").where("assigned", "==", False).limit(1).stream()
+                    for key in available_api_key:
+                        db.collection("api_keys").document(key.id).update({
+                            "assigned": True,
+                            "assigned_on": firestore.SERVER_TIMESTAMP,
+                            "school_id": school_id
+                        })
+                        st.success(f"API key assigned to {school_name}.")
+                        break
+                    else:
+                        st.error("No API keys available. Please contact support.")
+
+                    st.success(f"Account created successfully for {school_name}!")
+                    st.session_state.signup_stage = "form"
+                    st.session_state.email_sent = False
+                else:
+                    st.error("Invalid verification code. Please try again.")
+
 
     elif option == "Sign In":
-        email = st.text_input("Email", placeholder="Enter your email")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        if st.button("Sign In", key="signin"):
-            if not email or not password:
-                st.error("Please fill in all fields.")
-            else:
-                st.success(f"Welcome back, {email}!")
+        st.subheader("Sign In to Your Account")
+        email = st.text_input("Sign-In Email", key="signin_email")
+        password = st.text_input("Sign-In Password", type="password", key="signin_password")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        if st.button("Sign In"):
+            if email and password:
+                hashed_password = hash_password(password)
+                users = db.collection("schools").where("email", "==", email).where("password", "==", hashed_password).stream()
+                if any(users):
+                    st.success(f"Welcome back, {email}!")
+                    st.session_state.page = "subscription_page"
+                else:
+                    st.error("Invalid credentials.")
+            else:
+                st.error("Please fill in all fields.")
 
 # Main Page Functionality
 def sign():
@@ -211,149 +252,6 @@ def sign():
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-
-
-
-
-
-
-def signup_signin_page():
-    """
-    Sign Up / Sign In Page with a modern and professional UI.
-    """
-    # CSS Styling
-    st.markdown("""
-        <style>
-            body {margin: 0; padding: 0; background: linear-gradient(90deg, #1E1E2F, #383E56); font-family: Arial, sans-serif;}
-            .container {text-align: center; padding-top: 5%;}
-            .form-container {
-                background-color: white;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-                margin: 0 auto;
-                width: 400px;
-            }
-            .form-header {font-size: 2rem; font-weight: bold; color: #4B9CD3; margin-bottom: 20px;}
-            .form-subheader {font-size: 1.2rem; color: #6B7280; margin-bottom: 30px;}
-            .form-input {margin-bottom: 20px; width: 100%;}
-            .form-button {
-                background: linear-gradient(to right, #4B9CD3, #1E90FF);
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                font-size: 1rem;
-                cursor: pointer;
-                margin-top: 10px;
-                width: 100%;
-            }
-            .form-button:hover {background: #1E90FF;}
-            .social-btn {
-                font-size: 1rem;
-                font-weight: bold;
-                padding: 10px;
-                border-radius: 5px;
-                cursor: pointer;
-                width: 100%;
-                margin-top: 15px;
-                text-align: center;
-                display: inline-block;
-                transition: 0.3s;
-            }
-            .google-btn {
-                background-color: white;
-                color: #4285F4;
-                border: 1px solid #4285F4;
-            }
-            .google-btn:hover {
-                background-color: #4285F4;
-                color: white;
-            }
-            .facebook-btn {
-                background-color: #3b5998;
-                color: white;
-                border: none;
-            }
-            .facebook-btn:hover {
-                background-color: #2d4373;
-            }
-            .radio-container {text-align: center; margin-bottom: 20px;}
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Initialize session states
-    if "signup_stage" not in st.session_state:
-        st.session_state.signup_stage = "form"
-    if "email_sent" not in st.session_state:
-        st.session_state.email_sent = False
-    if "signup_data" not in st.session_state:
-        st.session_state.signup_data = None
-
-   
-    # Sign Up / Sign In Form
-   # st.markdown("<div class='form-container'>", unsafe_allow_html=True)
-    st.markdown("<div class='form-header'>Sign Up / Sign In</div>", unsafe_allow_html=True)
-
-    option = st.radio("Choose an option:", ["Sign Up", "Sign In"], index=0, key="signup_signin_radio", label_visibility="collapsed")
-
-    if option == "Sign Up":
-        if st.session_state.signup_stage == "form":
-            school_name = st.text_input("School Name", placeholder="Enter your school name", key="signup_school_name", help="Name of your school.")
-            email = st.text_input("Email", placeholder="Enter your email", key="signup_email")
-            password = st.text_input("Create Password", type="password", placeholder="Enter a strong password", key="signup_password")
-
-            if st.button("Sign Up", key="signup_button", help="Register your school to get started."):
-                if not school_name or not email or not password:
-                    st.error("Please fill in all fields.")
-                elif not is_valid_email(email):
-                    st.error("Please enter a valid email address.")
-                else:
-                    existing_user = db.collection("schools").where("email", "==", email).stream()
-                    if any(existing_user):
-                        st.error("This email is already registered. Please use another email.")
-                    else:
-                        verification_code = random.randint(100000, 999999)
-                        st.session_state.verification_code = verification_code
-                        if send_verification_email(email, verification_code):
-                            st.session_state.signup_data = {
-                                "school_name": school_name,
-                                "email": email,
-                                "password": hash_password(password),
-                            }
-                            st.session_state.signup_stage = "verify"
-                            st.success("Verification email sent! Enter the code below.")
-
-        if st.session_state.signup_stage == "verify":
-            verification_code_input = st.text_input("Enter Verification Code", key="verification_code_input")
-            if st.button("Verify"):
-                if verification_code_input.isdigit() and int(verification_code_input) == st.session_state.verification_code:
-                    db.collection("schools").add(st.session_state.signup_data)
-                    st.success("Account created successfully!")
-                    st.session_state.signup_stage = "form"
-                    st.session_state.email_sent = False
-                else:
-                    st.error("Invalid verification code. Please try again.")
-
-    elif option == "Sign In":
-        email = st.text_input("Email", placeholder="Enter your email", key="signin_email")
-        password = st.text_input("Password", type="password", placeholder="Enter your password", key="signin_password")
-
-        if st.button("Sign In"):
-            if email and password:
-                hashed_password = hash_password(password)
-                users = db.collection("schools").where("email", "==", email).where("password", "==", hashed_password).stream()
-                if any(users):
-                    st.success(f"Welcome back, {email}!")
-                else:
-                    st.error("Invalid credentials.")
-            else:
-                st.error("Please fill in all fields.")
-
-    # Social Buttons
-    st.markdown("<button class='social-btn google-btn'>Sign in with Google</button>", unsafe_allow_html=True)
-    st.markdown("<button class='social-btn facebook-btn'>Sign in with Facebook</button>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 def landing_page():
     """
@@ -1098,10 +996,10 @@ def app_router():
         landing_page()
     elif st.session_state.page == "subscription_page":
         subscription_page()
-    elif st.session_state.page == "signup_signin":
-        signup_signin_page()
     elif st.session_state.page == "sign":
         sign()
+    elif st.session_state.page == "signup_signin":
+        signup_signin_page()
     elif st.session_state.page == "free_dashboard":
         free_dashboard()
     elif st.session_state.page == "free version dashboard":
