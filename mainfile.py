@@ -1309,7 +1309,7 @@ def subscription_management():
         st.session_state["page"] = "payment_page"
     st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe n      _allow_html=True)
+    #st.markdown("</div>", unsafe_allow_html=True)
 
 
 
