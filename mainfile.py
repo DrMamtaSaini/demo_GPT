@@ -22,7 +22,9 @@ file_type = imghdr.what(image_path)
 
 if file_type in ["jpeg", "png"]:
     st.write(f"Valid image format: {file_type}")
-    st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
+   # st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
+    st.image("https://via.placeholder.com/300", caption="Placeholder Image")
+
 else:
     st.error(f"Invalid image format: {file_type}. Supported formats are JPEG and PNG.")
 
