@@ -17,6 +17,15 @@ st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout=
 # Sample video path (you can change it later)
 #video_path = "EduCreatepro.mp4"
 video_path= "./Teacher_s_Assistant_AI_Tool.mp4"
+import os
+
+video_path = "./Teacher_s_Assistant_AI_Tool.mp4"
+
+# Check if the path exists
+if os.path.exists(video_path):
+    print("File exists:", video_path)
+else:
+    print("File not found:", video_path)
 
 
 # Initialize Firebase Admin SDK
