@@ -1639,7 +1639,7 @@ def landing_page():
     elif selected == "Login":
         sign()
     elif selected == "Logout":
-        logout_page
+        logout_page()
         
     footer()  # Add Footer
 def app_router():
