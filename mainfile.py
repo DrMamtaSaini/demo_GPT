@@ -17,6 +17,7 @@ st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout=
 # Sample video path (you can change it later)
 #video_path = "EduCreatepro.mp4"
 video_path= "./Teacher_s_Assistant_AI_Tool.mp4"
+image_path = "./n1.jpeg"
 import os
 
 video_path = "./Teacher_s_Assistant_AI_Tool.mp4"
@@ -449,14 +450,13 @@ def sign():
         
 
        
-        image_path = "./n1.jpeg"
+        
         if os.path.exists(image_path):
             st.write(f"File found: {image_path}")
             st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
         else:
             st.error(f"Image not found at: {image_path}")
 
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # Admin Dashboard
 def admin_dashboard():
