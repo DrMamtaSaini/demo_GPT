@@ -19,32 +19,7 @@ st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout=
 
 image_path = "./n1.jpeg"
 file_type = imghdr.what(image_path)
-
-if file_type in ["jpeg", "png"]:
-    st.write(f"Valid image format: {file_type}")
-   # st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
-    st.image("https://via.placeholder.com/300", caption="Placeholder Image")
-
-else:
-    st.error(f"Invalid image format: {file_type}. Supported formats are JPEG and PNG.")
-import os
-image_path = os.path.abspath("./n1.jpeg")
-st.write(f"Absolute path: {image_path}")
-st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
-
-
-
 video_path = "./Teacher_s_Assistant_AI_Tool.mp4"
-if not os.path.exists(image_path):
-    print(f"Error: Image not found at {image_path}")
-else:
-    print(f"Image found: {image_path}")
-
-if not os.path.exists(video_path):
-    print(f"Error: Video not found at {video_path}")
-else:
-    print(f"Video found: {video_path}")
-
 
 # Initialize Firebase Admin SDK
 def initialize_firebase():
@@ -1651,8 +1626,8 @@ def app_router():
     # Route based on the current page state
     if st.session_state["page"] == "landing":
         landing_page()
-    elif st.session_state["page"] == "sign":
-        sign()
+    #elif st.session_state["page"] == "sign":
+       # sign()
     elif st.session_state["page"] == "signup_signin":
         signup_signin_page()
     
