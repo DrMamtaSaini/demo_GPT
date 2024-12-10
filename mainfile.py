@@ -12,14 +12,23 @@ from sendgrid.helpers.mail import Mail
 import re
 import string
 from streamlit_option_menu import option_menu
+import imghdr
 
 # Set page configuration
 st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout="wide", page_icon="📚")
 
 image_path = "./n1.jpeg"
+file_type = imghdr.what(image_path)
+
+if file_type in ["jpeg", "png"]:
+    st.write(f"Valid image format: {file_type}")
+    st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
+else:
+    st.error(f"Invalid image format: {file_type}. Supported formats are JPEG and PNG.")
+
+
+
 video_path = "./Teacher_s_Assistant_AI_Tool.mp4"
-
-
 if not os.path.exists(image_path):
     print(f"Error: Image not found at {image_path}")
 else:
