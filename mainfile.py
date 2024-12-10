@@ -12,21 +12,23 @@ from sendgrid.helpers.mail import Mail
 import re
 import string
 from streamlit_option_menu import option_menu
+
 # Set page configuration
 st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout="wide", page_icon="📚")
-# Sample video path (you can change it later)
-#video_path = "EduCreatepro.mp4"
-video_path= "./Teacher_s_Assistant_AI_Tool.mp4"
-image_path = "./n1.jpeg"
-import os
 
+image_path = "./n1.jpeg"
 video_path = "./Teacher_s_Assistant_AI_Tool.mp4"
 
-# Check if the path exists
-if os.path.exists(video_path):
-    print("File exists:", video_path)
+
+if not os.path.exists(image_path):
+    print(f"Error: Image not found at {image_path}")
 else:
-    print("File not found:", video_path)
+    print(f"Image found: {image_path}")
+
+if not os.path.exists(video_path):
+    print(f"Error: Video not found at {video_path}")
+else:
+    print(f"Video found: {video_path}")
 
 
 # Initialize Firebase Admin SDK
@@ -86,7 +88,7 @@ st.markdown("""
             transition: 0.3s ease;
         }
     </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
 
 # Utility Functions
