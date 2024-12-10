@@ -10,6 +10,7 @@ streamlit
 openai
 openpyxl
 werkzeug
+streamlit-option-menu
 
 streamlit
 paypalrestsdk
@@ -18,3 +19,13 @@ firebase-admin
 sendgrid
 paypalrestsdk
 requests
+json
+random
+hashlib
+time
+os
+sandgrid
+re
+string
+
+
