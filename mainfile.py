@@ -15,7 +15,8 @@ from streamlit_option_menu import option_menu
 # Set page configuration
 st.set_page_config(page_title="EduPro.AI - AI-Powered Education System", layout="wide", page_icon="📚")
 # Sample video path (you can change it later)
-video_path = "EduCreatepro.mp4"
+#video_path = "EduCreatepro.mp4"
+video_path= "./Teacher_s_Assistant_AI_Tool.mp4"
 
 
 # Initialize Firebase Admin SDK
@@ -436,7 +437,7 @@ def sign():
         st.markdown("<div class='right-container'>", unsafe_allow_html=True)
         
         # Display image from your project directory
-        image_path = "school.jpg"  # Image file in the project directory
+        image_path = "./school.jpg"  # Image file in the project directory
         if os.path.exists(image_path):
             st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
         else:
