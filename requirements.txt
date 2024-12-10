@@ -9,7 +9,7 @@ matplotlib
 streamlit
 openai
 openpyxl
-
+werkzeug
 
 streamlit
 paypalrestsdk
