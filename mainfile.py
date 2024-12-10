@@ -446,11 +446,15 @@ def sign():
         st.markdown("<div class='right-container'>", unsafe_allow_html=True)
         
         # Display image from your project directory
-        image_path = "./school.jpg"  # Image file in the project directory
+        import os
+
+        image_path = "./school.jpg"
+
         if os.path.exists(image_path):
+            st.write(f"File found: {image_path}")
             st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
         else:
-            st.error("Image not found, please check the path!")
+            st.error(f"Image not found at: {image_path}")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
