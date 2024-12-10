@@ -27,6 +27,10 @@ if file_type in ["jpeg", "png"]:
 
 else:
     st.error(f"Invalid image format: {file_type}. Supported formats are JPEG and PNG.")
+import os
+image_path = os.path.abspath("./n1.jpeg")
+st.write(f"Absolute path: {image_path}")
+st.image(image_path, use_container_width=True, caption="Welcome to EduPro.AI")
 
 
 
